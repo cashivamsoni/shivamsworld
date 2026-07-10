@@ -60,9 +60,12 @@ header h1 {
 }
 
 /* When menu is open, header stays in normal flow (same left padding as
-   closed state) so the page content is pushed down instead of covered */
+   closed state) so the page content is pushed down instead of covered.
+   Logo/title and the close button stay vertically centered next to the
+   nav pills, same as before. */
 header:has(#mainNav.show) {
-  align-items: flex-start;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 #headerBrand {
@@ -871,4 +874,4 @@ footer a { color: #fff; }
   .videos-grid { grid-template-columns: 1fr; }
 
   html { zoom: 0.9; }
-}
+} 

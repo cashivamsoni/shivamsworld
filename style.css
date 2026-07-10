@@ -116,18 +116,18 @@ nav {
   display: none;
   width: 100%;
   flex-direction: column;
-  align-items: center;
-  margin-top: 10px;
-  gap: 8px;
+  align-items: flex-end;
+  margin-top: 8px;
+  gap: 4px;
 }
 
 nav a {
   display: block;
-  padding: 8px 22px;
+  padding: 5px 22px;
   color: var(--primary);
   text-decoration: none;
   background: rgba(255,255,255,0.95);
-  margin: 5px 0;
+  margin: 3px 0;
   border-radius: 20px;
   width: 190px;
   text-align: center;

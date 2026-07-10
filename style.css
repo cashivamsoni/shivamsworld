@@ -59,18 +59,10 @@ header h1 {
   flex: 1;
 }
 
-/* When menu is open, header becomes a top overlay bar sized to its content */
+/* When menu is open, header stays in normal flow (same left padding as
+   closed state) so the page content is pushed down instead of covered */
 header:has(#mainNav.show) {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  flex-wrap: nowrap;
-  align-items: center;
-  max-height: 100vh;
-  overflow-y: auto;
-  z-index: 1000;
-  padding: 30px 40px;
+  align-items: flex-start;
 }
 
 #headerBrand {

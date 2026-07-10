@@ -59,6 +59,15 @@ header h1 {
   flex: 1;
 }
 
+/* When menu is open, shift logo + title to the middle of the header */
+header:has(#mainNav.show) {
+  justify-content: center;
+}
+
+header:has(#mainNav.show) #menuToggle {
+  margin-left: 0;
+}
+
 /* ---------- Navigation ---------- */
 #menuToggle {
   background: rgba(255,255,255,0.9);
@@ -847,4 +856,4 @@ footer a { color: #fff; }
   .videos-grid { grid-template-columns: 1fr; }
 
   html { zoom: 0.9; }
-}
+} 

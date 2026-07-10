@@ -64,6 +64,10 @@ header:has(#mainNav.show) {
   justify-content: center;
 }
 
+header:has(#mainNav.show) h1 {
+  flex: 0 1 auto;
+}
+
 header:has(#mainNav.show) #menuToggle {
   margin-left: 0;
 }
@@ -136,7 +140,7 @@ nav a {
   color: var(--primary);
   text-decoration: none;
   background: rgba(255,255,255,0.95);
-  margin: 3px 0;
+  margin: 0;
   border-radius: 20px;
   width: 190px;
   text-align: center;

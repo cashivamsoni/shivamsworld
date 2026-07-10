@@ -12,6 +12,7 @@
     e.stopPropagation();
     nav.classList.toggle("show");
     toggleBtn.classList.toggle("open");
+    document.body.style.overflow = nav.classList.contains("show") ? "hidden" : "";
   });
 
   // Close when any nav link is clicked
@@ -19,6 +20,7 @@
     link.addEventListener("click", function () {
       nav.classList.remove("show");
       toggleBtn.classList.remove("open");
+      document.body.style.overflow = "";
     });
   });
 
@@ -27,6 +29,7 @@
     if (!nav.contains(e.target) && e.target !== toggleBtn) {
       nav.classList.remove("show");
       toggleBtn.classList.remove("open");
+      document.body.style.overflow = "";
     }
   });
 })();

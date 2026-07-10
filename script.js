@@ -11,16 +11,14 @@
   toggleBtn.addEventListener("click", function (e) {
     e.stopPropagation();
     nav.classList.toggle("show");
-    toggleBtn.textContent = nav.classList.contains("show")
-      ? "× Close"
-      : "☰ Menu";
+    toggleBtn.classList.toggle("open");
   });
 
   // Close when any nav link is clicked
   document.querySelectorAll("#mainNav a").forEach(function (link) {
     link.addEventListener("click", function () {
       nav.classList.remove("show");
-      toggleBtn.textContent = "☰ Menu";
+      toggleBtn.classList.remove("open");
     });
   });
 
@@ -28,7 +26,7 @@
   document.addEventListener("click", function (e) {
     if (!nav.contains(e.target) && e.target !== toggleBtn) {
       nav.classList.remove("show");
-      toggleBtn.textContent = "☰ Menu";
+      toggleBtn.classList.remove("open");
     }
   });
 })();

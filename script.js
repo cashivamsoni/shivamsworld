@@ -2,6 +2,28 @@
    Shivam's World — JavaScript
    ========================================================= */
 
+/* ---------- Dark Mode Toggle ---------- */
+(function () {
+  const themeBtn = document.getElementById("themeToggle");
+  if (!themeBtn) return;
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    themeBtn.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
+  }
+
+  applyTheme(localStorage.getItem("sw-theme") || "light");
+
+  themeBtn.addEventListener("click", function () {
+    const next =
+      document.documentElement.getAttribute("data-theme") === "dark"
+        ? "light"
+        : "dark";
+    applyTheme(next);
+    localStorage.setItem("sw-theme", next);
+  });
+})();
+
 /* ---------- Menu Toggle ---------- */
 (function () {
   const toggleBtn = document.getElementById("menuToggle");

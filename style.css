@@ -220,7 +220,11 @@ nav #themeToggle {
 }
 
 [data-theme="dark"] #popupBoxUnique h2 {
-  color: #e6d9ff;
+  color: #c9a3ff;
+}
+
+[data-theme="dark"] #popupCloseUnique {
+  border-color: #c9a3ff;
 }
 
 [data-theme="dark"] h1,
@@ -362,7 +366,7 @@ p.ftsmall {
   right: 12px;
   background: linear-gradient(90deg, var(--secondary-red), var(--secondary-pink));
   color: #FFF;
-  border: none;
+  border: 2px solid #fff;
   border-radius: 50%;
   padding: 2.5px 8px;
   cursor: pointer;

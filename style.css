@@ -240,6 +240,10 @@ nav #themeToggle {
   background: linear-gradient(135deg, #0f6b5e, #0a3e37);
 }
 
+[data-theme="dark"] .btn-inline:hover {
+  background: linear-gradient(90deg, #a10e63, #4b0091);
+}
+
 [data-theme="dark"] h1,
 [data-theme="dark"] h2,
 [data-theme="dark"] h3 {
@@ -972,4 +976,4 @@ footer a { color: #fff; }
   nav a { width: 150px; padding: 5px 10px; font-size: 14px; }
 
   html { zoom: 0.9; }
-} 
+}

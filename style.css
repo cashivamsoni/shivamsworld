@@ -873,5 +873,7 @@ footer a { color: #fff; }
   .video-main { max-width: 100%; }
   .videos-grid { grid-template-columns: 1fr; }
 
+  nav a { width: 150px; padding: 5px 10px; font-size: 14px; }
+
   html { zoom: 0.9; }
-} 
+}

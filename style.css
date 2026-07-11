@@ -409,26 +409,38 @@ p.ftsmall {
 
 #imgLightboxOverlay.show { display: flex; }
 
+#imgLightboxBox {
+  position: relative;
+  display: inline-block;
+  max-width: 90%;
+  max-height: 90%;
+}
+
 #imgLightboxClose {
-  position: fixed;
-  top: 18px;
-  right: 18px;
-  background: #fff;
-  color: #000;
-  border: none;
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  background: linear-gradient(90deg, var(--secondary-red), var(--secondary-pink));
+  color: #fff;
+  border: 2px solid #fff;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 22px;
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
   line-height: 1;
   cursor: pointer;
-  z-index: 100000;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  z-index: 2;
+  box-shadow: 0 0 14px rgba(255,255,255,0.6);
+}
+
+[data-theme="dark"] #imgLightboxClose {
+  border-color: #c9a3ff;
 }
 
 #imgLightboxOverlay img {
-  max-width: 90%;
-  max-height: 90%;
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
   border-radius: 15px;
   border: 2px solid #fff;
   box-shadow: 0 0 20px #fff;

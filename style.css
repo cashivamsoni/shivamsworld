@@ -227,6 +227,19 @@ nav #themeToggle {
   border-color: #c9a3ff;
 }
 
+[data-theme="dark"] .btn-inline,
+[data-theme="dark"] #topBtn {
+  background: linear-gradient(135deg, #4b0091, #2d0057);
+}
+
+[data-theme="dark"] #shareBtn {
+  background: linear-gradient(135deg, #a10e63, #4b0091);
+}
+
+[data-theme="dark"] #CallNowBtn {
+  background: linear-gradient(135deg, #0f6b5e, #0a3e37);
+}
+
 [data-theme="dark"] h1,
 [data-theme="dark"] h2,
 [data-theme="dark"] h3 {
@@ -907,6 +920,8 @@ footer {
 
 footer h1 { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.4); }
 
+[data-theme="dark"] footer h1 { color: #fff; }
+
 footer a { color: #fff; }
 
 
@@ -957,4 +972,4 @@ footer a { color: #fff; }
   nav a { width: 150px; padding: 5px 10px; font-size: 14px; }
 
   html { zoom: 0.9; }
-}
+} 

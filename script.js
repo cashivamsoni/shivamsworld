@@ -239,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         await navigator.share({
           title: "Shivam's World - Home",
-          text: "Check out Shivam's World — a creative brand for DIYs, Calligraphy, Sketches & much more!",
+          text: "Check out Shivam's World - a creative brand for DIYs, Calligraphy, Sketches & much more!",
           url: window.location.href,
         });
       } catch (error) {

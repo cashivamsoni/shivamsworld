@@ -205,6 +205,24 @@ nav #themeToggle {
   color: #fff;
 }
 
+[data-theme="dark"] #popupOverlayUnique {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+[data-theme="dark"] #popupBoxUnique {
+  background: rgba(28, 0, 58, 0.97);
+  border-color: rgba(160,110,255,0.5);
+  box-shadow: 0 0 20px rgba(160,110,255,0.5);
+}
+
+[data-theme="dark"] #popupBoxUnique h1 {
+  color: #c9a3ff;
+}
+
+[data-theme="dark"] #popupBoxUnique h2 {
+  color: #e6d9ff;
+}
+
 [data-theme="dark"] h1,
 [data-theme="dark"] h2,
 [data-theme="dark"] h3 {

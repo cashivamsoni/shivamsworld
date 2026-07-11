@@ -24,6 +24,38 @@
   });
 })();
 
+/* ---------- Image Lightbox ---------- */
+(function () {
+  const overlay = document.getElementById("imgLightboxOverlay");
+  const lightboxImg = document.getElementById("imgLightboxImg");
+  if (!overlay || !lightboxImg) return;
+
+  function openLightbox(src, alt) {
+    lightboxImg.src = src;
+    lightboxImg.alt = alt || "";
+    overlay.classList.add("show");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeLightbox() {
+    overlay.classList.remove("show");
+    document.body.style.overflow = "";
+  }
+
+  document.querySelectorAll("img").forEach(function (img) {
+    if (img.closest("header") || img.closest("#popupBoxUnique") || img === lightboxImg) return;
+    img.style.cursor = "zoom-in";
+    img.addEventListener("click", function () {
+      openLightbox(img.src, img.alt);
+    });
+  });
+
+  // Close when clicking outside the image (on the overlay itself)
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) closeLightbox();
+  });
+})();
+
 /* ---------- Menu Toggle ---------- */
 (function () {
   const toggleBtn = document.getElementById("menuToggle");

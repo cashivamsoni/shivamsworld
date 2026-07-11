@@ -150,7 +150,8 @@ nav.show {
   gap: 8px;
 }
 
-nav a {
+nav a,
+nav #themeToggle {
   display: block;
   padding: 5px 22px;
   color: var(--primary);
@@ -161,12 +162,52 @@ nav a {
   width: 220px;
   text-align: center;
   font-weight: 500;
+  font: inherit;
+  cursor: pointer;
   border: 2px solid rgba(111,0,255,0.2);
   box-shadow: 0 0 8px rgba(255,255,255,0.5);
   transition: all 0.4s ease;
 }
 
-nav a:hover {
+/* =========================================================
+   Dark Mode (darker tone of primary #6f00ff)
+   ========================================================= */
+[data-theme="dark"] body {
+  background: linear-gradient(135deg, #2a0066 0%, #3a0a4d 50%, #1c1c2e 100%);
+  color: #f0eaff;
+}
+
+[data-theme="dark"] header {
+  background: rgba(42, 0, 102, 0.55);
+}
+
+[data-theme="dark"] .card {
+  background: rgba(30, 0, 60, 0.9);
+  border-color: rgba(160,110,255,0.4);
+  color: #f0eaff;
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3 {
+  color: #c9a3ff;
+}
+
+[data-theme="dark"] p,
+[data-theme="dark"] p.small,
+[data-theme="dark"] .muted {
+  color: #e6d9ff;
+}
+
+[data-theme="dark"] nav a,
+[data-theme="dark"] nav #themeToggle {
+  background: rgba(50, 0, 110, 0.95);
+  color: #e6d9ff;
+  border-color: rgba(160,110,255,0.4);
+}
+
+nav a:hover,
+nav #themeToggle:hover {
   color: #fff;
   background: var(--primary);
   box-shadow: 0 0 15px rgba(255,255,255,0.7);

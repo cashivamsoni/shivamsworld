@@ -28,6 +28,7 @@
 (function () {
   const overlay = document.getElementById("imgLightboxOverlay");
   const lightboxImg = document.getElementById("imgLightboxImg");
+  const closeBtn = document.getElementById("imgLightboxClose");
   if (!overlay || !lightboxImg) return;
 
   function openLightbox(src, alt) {
@@ -54,6 +55,10 @@
   overlay.addEventListener("click", function (e) {
     if (e.target === overlay) closeLightbox();
   });
+
+  if (closeBtn) {
+    closeBtn.addEventListener("click", closeLightbox);
+  }
 })();
 
 /* ---------- Menu Toggle ---------- */

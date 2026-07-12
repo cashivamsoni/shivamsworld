@@ -11,7 +11,7 @@
     document.documentElement.setAttribute("data-theme", theme);
     themeBtn.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
     const metaTheme = document.querySelector('meta[name="theme-color"]');
-    if (metaTheme) metaTheme.setAttribute("content", theme === "dark" ? "#2d0057" : "#6f00ff");
+    if (metaTheme) metaTheme.setAttribute("content", theme === "dark" ? "#2a0066" : "#6f00ff");
   }
 
   applyTheme(localStorage.getItem("sw-theme") || "light");

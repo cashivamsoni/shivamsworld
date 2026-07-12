@@ -10,6 +10,8 @@
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
     themeBtn.textContent = theme === "dark" ? "Light Mode" : "Dark Mode";
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute("content", theme === "dark" ? "#2d0057" : "#6f00ff");
   }
 
   applyTheme(localStorage.getItem("sw-theme") || "light");
@@ -21,6 +23,11 @@
         : "dark";
     applyTheme(next);
     localStorage.setItem("sw-theme", next);
+
+    const nav = document.getElementById("mainNav");
+    const menuBtn = document.getElementById("menuToggle");
+    if (nav) nav.classList.remove("show");
+    if (menuBtn) menuBtn.classList.remove("open");
   });
 })();
 

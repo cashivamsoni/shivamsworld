@@ -873,7 +873,7 @@ p.ftsmall {
 /* ---------- Share Button ---------- */
 #shareBtn {
   position: fixed;
-  bottom: 380px;
+  bottom: 20px;
   right: 20px;
   padding: 10px 16px;
   z-index: 50;
@@ -896,7 +896,7 @@ p.ftsmall {
 /* ---------- Call Now Button ---------- */
 #CallNowBtn {
   position: fixed;
-  bottom: 320px;
+  bottom: 85px;
   right: 20px;
   padding: 6px 16px;
   z-index: 50;

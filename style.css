@@ -1029,6 +1029,24 @@ footer a { color: #fff; }
 .snowflake:nth-of-type(8)  { left: 78%; animation-delay: 0.5s, 1s; }
 .snowflake:nth-of-type(9)  { left: 90%; animation-delay: 6s,   0s; }
 
+/* Styled scrollbar for inner scrollable panels (e.g. #searchList) —
+   explicitly excludes html/body so the main page scrollbar stays the
+   browser's normal native one. */
+:not(html):not(body)::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+:not(html):not(body)::-webkit-scrollbar-track {
+  background: transparent;
+}
+:not(html):not(body)::-webkit-scrollbar-thumb {
+  background: #c4c4d0;
+  border-radius: 3px;
+}
+:not(html):not(body)::-webkit-scrollbar-thumb:hover {
+  background: #a8a8b8;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 700px) {
   header h1 { font-size: 16px; }

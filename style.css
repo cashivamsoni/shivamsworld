@@ -761,16 +761,13 @@ p.ftsmall {
 
 .feature-img img {
   width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  background: rgba(0,0,0,0.25);
   border-radius: 12px;
   border: 2px solid rgba(255,255,255,0.6);
   box-shadow: 0 0 10px rgba(255,255,255,0.4);
   display: block;
-}
-
-.feature-img img.contain-fit {
-  aspect-ratio: 4 / 3;
-  object-fit: contain;
-  background: rgba(0,0,0,0.25);
 }
 
 .feature-text {

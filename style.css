@@ -768,6 +768,12 @@ p.ftsmall {
   border: 2px solid rgba(255,255,255,0.6);
   box-shadow: 0 0 10px rgba(255,255,255,0.4);
   display: block;
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
+}
+
+.feature-img img:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(255,255,255,0.8);
 }
 
 .feature-text {

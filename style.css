@@ -778,11 +778,20 @@ p.ftsmall {
 .feature-text h2 { margin-bottom: 8px; }
 .feature-text p { margin-bottom: 14px; }
 
+.feature-card:not(.reverse) .feature-text .btn-inline {
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+}
+
 @media (max-width: 640px) {
   .feature-card, .feature-card.reverse {
     flex-direction: column;
   }
   .feature-img { flex: 0 0 auto; max-width: 100%; width: 100%; }
+  .feature-card:not(.reverse) .feature-text .btn-inline {
+    margin-left: 0;
+  }
 }
 
 /* ----- Shivam Photo ----- */

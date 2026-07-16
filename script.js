@@ -216,7 +216,7 @@
 // Animate feature cards every time they scroll into view
 document.addEventListener("DOMContentLoaded", () => {
   const cards = document.querySelectorAll(
-    ".feature-card, .video-card, .shorts-item, .video-main, .shivamphoto, .qrcode, .section",
+    ".video-card, .shorts-item, .video-main, .shivamphoto, .qrcode, .section",
   );
 
   const observer = new IntersectionObserver(
@@ -234,6 +234,25 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   cards.forEach((card) => observer.observe(card));
+
+  // Featured Creations cards get a lower threshold since the section
+  // is tall and cards weren't triggering until scrolled further in
+  const featureCards = document.querySelectorAll(".feature-card");
+
+  const featureObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+        } else {
+          entry.target.classList.remove("visible");
+        }
+      });
+    },
+    { threshold: 0.1 }, // trigger when 10% of card is visible
+  );
+
+  featureCards.forEach((card) => featureObserver.observe(card));
 });
 
 /* ---------- Share Button ---------- */

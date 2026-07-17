@@ -721,7 +721,6 @@ p.ftsmall {
   transform: translateY(0) scale(1.025);
 }
 
-.feature-img,
 .feature-card,
 .video-card,
 .shorts-item,
@@ -733,7 +732,7 @@ p.ftsmall {
   transform: translateY(30px);
   transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.5s ease;
 }
-.feature-img.visible,
+
 .feature-card.visible,
 .video-card.visible,
 .shorts-item.visible,

@@ -255,20 +255,6 @@ document.addEventListener("DOMContentLoaded", () => {
   featureCards.forEach((card) => featureObserver.observe(card));
 });
 
-/* ---------- Feature Card Hover Sync ---------- */
-// Ensures the card and its image enlarge/shrink together, at the same
-// time, instead of the image and card animating separately.
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".feature-card").forEach((card) => {
-    card.addEventListener("mouseenter", () => {
-      card.classList.add("hover-active");
-    });
-    card.addEventListener("mouseleave", () => {
-      card.classList.remove("hover-active");
-    });
-  });
-});
-
 /* ---------- Share Button ---------- */
 (function () {
   const shareBtn = document.getElementById("shareBtn");

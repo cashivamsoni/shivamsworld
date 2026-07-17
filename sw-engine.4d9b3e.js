@@ -216,7 +216,7 @@
 // Animate feature cards every time they scroll into view
 document.addEventListener("DOMContentLoaded", () => {
   const cards = document.querySelectorAll(
-    ".feature-card, .video-card, .shorts-item, .video-main, .shivamphoto, .qrcode, .section",
+    ".video-card, .shorts-item, .video-main, .shivamphoto, .qrcode, .section",
   );
 
   const observer = new IntersectionObserver(
@@ -234,6 +234,26 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   cards.forEach((card) => observer.observe(card));
+
+  // Feature cards use a lower threshold on mobile (0.1) since the cards
+  // stack full-width and take up more screen space; desktop keeps 0.2
+  const isMobile = window.matchMedia("(max-width: 640px)").matches;
+  const featureCards = document.querySelectorAll(".feature-card");
+
+  const featureCardObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+        } else {
+          entry.target.classList.remove("visible");
+        }
+      });
+    },
+    { threshold: isMobile ? 0.1 : 0.2 },
+  );
+
+  featureCards.forEach((card) => featureCardObserver.observe(card));
 
   // Featured Creations section wrapper gets a lower, viewport-based trigger
   // point since it's a very tall section (especially on mobile) — using an

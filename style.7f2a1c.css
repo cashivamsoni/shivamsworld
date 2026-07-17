@@ -717,7 +717,7 @@ p.ftsmall {
   flex-wrap: wrap;
 }
   
-.feature-card.visible.hover-active {
+.feature-card.visible:hover {
   transform: translateY(0) scale(1.025);
 }
 
@@ -771,7 +771,7 @@ p.ftsmall {
   transition: transform 0.5s ease, box-shadow 0.5s ease;
 }
 
-.feature-card.hover-active .feature-img img {
+.feature-card.visible:hover .feature-img img {
   transform: scale(1.05);
   box-shadow: 0 0 20px rgba(255,255,255,0.8);
 }

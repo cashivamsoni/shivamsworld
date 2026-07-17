@@ -235,8 +235,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   cards.forEach((card) => observer.observe(card));
 
-  // Featured Creations section wrapper gets a lower threshold since it's
-  // a tall section and wasn't triggering until scrolled further in
+  // Featured Creations section wrapper gets a lower, viewport-based trigger
+  // point since it's a very tall section (especially on mobile) — using an
+  // area-based threshold like the other sections meant the 10% mark was
+  // never reached, so the whole section stayed invisible while scrolling.
   const featuredSection = document.getElementById("featured");
   if (featuredSection) {
     const featuredObserver = new IntersectionObserver(
@@ -249,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
       },
-      { threshold: 0.1 }, // trigger when 10% of section is visible
+      { threshold: 0, rootMargin: "0px 0px -10% 0px" }, // fires as soon as the section starts entering view
     );
 
     featuredObserver.observe(featuredSection);

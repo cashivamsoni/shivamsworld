@@ -719,6 +719,7 @@ p.ftsmall {
   
 .feature-card.visible:hover {
   transform: translateY(0) scale(1.025);
+  transition-delay: 0s;
 }
 
 .feature-card,

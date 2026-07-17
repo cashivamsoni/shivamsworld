@@ -216,7 +216,7 @@
 // Animate feature cards every time they scroll into view
 document.addEventListener("DOMContentLoaded", () => {
   const cards = document.querySelectorAll(
-    ".video-card, .shorts-item, .video-main, .shivamphoto, .qrcode, .section",
+    ".video-card, .shorts-item, .video-main, .shivamphoto, .qrcode, .section:not(#featured)",
   );
 
   const observer = new IntersectionObserver(

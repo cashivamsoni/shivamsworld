@@ -717,7 +717,7 @@ p.ftsmall {
   flex-wrap: wrap;
 }
   
-.feature-card:hover {
+.feature-card.visible:hover {
   transform: translateY(0) scale(1.025);
 }
 
@@ -746,14 +746,14 @@ p.ftsmall {
 }
 
 /* Staggered delays for 5 cards */
-.feature-card:nth-of-type(1).visible { transition-delay: 0s; }
-.feature-card:nth-of-type(2).visible { transition-delay: 0.1s; }
-.feature-card:nth-of-type(3).visible { transition-delay: 0.2s; }
-.feature-card:nth-of-type(4).visible { transition-delay: 0.3s; }
-.feature-card:nth-of-type(5).visible { transition-delay: 0.4s; }
-.feature-card:nth-of-type(6).visible { transition-delay: 0.5s; }
-.feature-card:nth-of-type(7).visible { transition-delay: 0.6s; }
-.feature-card:nth-of-type(8).visible { transition-delay: 0.7s; }
+.feature-card:nth-child(1).visible { transition-delay: 0s; }
+.feature-card:nth-child(2).visible { transition-delay: 0.1s; }
+.feature-card:nth-child(3).visible { transition-delay: 0.2s; }
+.feature-card:nth-child(4).visible { transition-delay: 0.3s; }
+.feature-card:nth-child(5).visible { transition-delay: 0.4s; }
+.feature-card:nth-child(6).visible { transition-delay: 0.5s; }
+.feature-card:nth-child(7).visible { transition-delay: 0.6s; }
+.feature-card:nth-child(8).visible { transition-delay: 0.7s; }
 
 .feature-card.reverse {
   flex-direction: row-reverse;

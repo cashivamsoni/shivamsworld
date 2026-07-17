@@ -216,7 +216,7 @@
 // Animate feature cards every time they scroll into view
 document.addEventListener("DOMContentLoaded", () => {
   const cards = document.querySelectorAll(
-    ".video-card, .shorts-item, .video-main, .shivamphoto, .qrcode, .section",
+    ".feature-card, .video-card, .shorts-item, .video-main, .shivamphoto, .qrcode, .section",
   );
 
   const observer = new IntersectionObserver(
@@ -235,24 +235,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   cards.forEach((card) => observer.observe(card));
 
-  // Featured Creations cards get a lower threshold since the section
-  // is tall and cards weren't triggering until scrolled further in
-  const featureCards = document.querySelectorAll(".feature-card");
+  // Featured Creations section wrapper gets a lower threshold since it's
+  // a tall section and wasn't triggering until scrolled further in
+  const featuredSection = document.getElementById("featured");
+  if (featuredSection) {
+    const featuredObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          } else {
+            entry.target.classList.remove("visible");
+          }
+        });
+      },
+      { threshold: 0.1 }, // trigger when 10% of section is visible
+    );
 
-  const featureObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add("visible");
-        } else {
-          entry.target.classList.remove("visible");
-        }
-      });
-    },
-    { threshold: 0.1 }, // trigger when 10% of card is visible
-  );
-
-  featureCards.forEach((card) => featureObserver.observe(card));
+    featuredObserver.observe(featuredSection);
+  }
 });
 
 /* ---------- Share Button ---------- */

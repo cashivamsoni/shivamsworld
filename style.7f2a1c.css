@@ -717,7 +717,8 @@ p.ftsmall {
   flex-wrap: wrap;
 }
   
-.feature-card.visible:hover {
+.feature-card.visible:hover,
+.feature-card.visible:has(.feature-img img:hover) {
   transform: translateY(0) scale(1.025);
 }
 
@@ -750,11 +751,6 @@ p.ftsmall {
 .feature-card:nth-child(4).visible { transition-delay: 0.3s; }
 .feature-card:nth-child(5).visible { transition-delay: 0.4s; }
 
-/* Hover must always react instantly, overriding the entrance stagger delay above */
-.feature-card.visible:hover {
-  transition-delay: 0s;
-}
-
 .feature-card.reverse {
   flex-direction: row-reverse;
 }
@@ -776,6 +772,7 @@ p.ftsmall {
   transition: transform 0.5s ease, box-shadow 0.5s ease;
 }
 
+.feature-card.visible:hover .feature-img img,
 .feature-img img:hover {
   transform: scale(1.05);
   box-shadow: 0 0 20px rgba(255,255,255,0.8);

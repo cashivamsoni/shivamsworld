@@ -216,7 +216,7 @@
 // Animate feature cards every time they scroll into view
 document.addEventListener("DOMContentLoaded", () => {
   const cards = document.querySelectorAll(
-    ".video-card, .shorts-item, .video-main, .shivamphoto, .qrcode, .section",
+    ".video-card, .shorts-item, .video-main, .shivamphoto, .qrcode, .section:not(#featured)",
   );
 
   const observer = new IntersectionObserver(
@@ -253,6 +253,26 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   featureCards.forEach((card) => featureObserver.observe(card));
+
+  // #featured is very tall (8 cards stacked), so a 20%-of-height threshold
+  // never fires until deep into the section. Use rootMargin instead, so it
+  // becomes visible as soon as it starts entering the lower half of the screen.
+  const featuredSection = document.getElementById("featured");
+  if (featuredSection) {
+    const featuredSectionObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          } else {
+            entry.target.classList.remove("visible");
+          }
+        });
+      },
+      { threshold: 0, rootMargin: "0px 0px -50% 0px" },
+    );
+    featuredSectionObserver.observe(featuredSection);
+  }
 });
 
 /* ---------- Share Button ---------- */

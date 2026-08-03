@@ -1051,8 +1051,8 @@ p.ftsmall {
   right: 20px;
   width: 340px;
   max-width: calc(100vw - 32px);
-  height: 480px;
-  max-height: calc(100vh - 190px);
+  height: 400px;
+  max-height: calc(100vh - 230px);
   background: var(--card);
   border-radius: 18px;
   border: 2px solid rgba(255,255,255,0.7);
@@ -1201,28 +1201,6 @@ p.ftsmall {
   30% { transform: translateY(-4px); opacity: 1; }
 }
 
-#aiQuickReplies {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 12px;
-  background: var(--card);
-  border-top: 1px solid rgba(0,0,0,0.06);
-}
-
-.ai-chip {
-  border: 1px solid var(--primary);
-  background: transparent;
-  color: var(--primary);
-  border-radius: 14px;
-  padding: 5px 10px;
-  font-size: 11.5px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  white-space: nowrap;
-}
-.ai-chip:hover { background: var(--primary); color: #fff; }
-
 #aiChatForm {
   display: flex;
   gap: 8px;
@@ -1243,6 +1221,33 @@ p.ftsmall {
 }
 #aiChatInput:focus { border-color: var(--primary); }
 
+#aiMicBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg);
+  color: var(--primary);
+  border: 1px solid rgba(0,0,0,0.15);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 14px;
+  transition: all 0.25s ease;
+}
+#aiMicBtn:hover { background: var(--primary); color: #fff; }
+#aiMicBtn.listening {
+  background: var(--secondary-red);
+  color: #fff;
+  border-color: var(--secondary-red);
+  animation: aiMicPulse 1.2s infinite;
+}
+#aiMicBtn[hidden] { display: none; }
+
+@keyframes aiMicPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229,19,58,0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(229,19,58,0); }
+}
+
 #aiSendBtn {
   width: 38px;
   height: 38px;
@@ -1261,9 +1266,9 @@ p.ftsmall {
 [data-theme="dark"] #aiChatMessages { background: #150027; }
 [data-theme="dark"] .ai-msg-bot,
 [data-theme="dark"] #aiTypingIndicator { background: #2d0057; color: #f0e6ff; }
-[data-theme="dark"] #aiQuickReplies,
 [data-theme="dark"] #aiChatForm { background: #1f0038; border-color: rgba(160,110,255,0.25); }
 [data-theme="dark"] #aiChatInput { background: #150027; color: #f0e6ff; border-color: rgba(160,110,255,0.3); }
+[data-theme="dark"] #aiMicBtn { background: #150027; border-color: rgba(160,110,255,0.3); color: #cbb3ff; }
 
 @media (max-width: 700px) {
   #aiWidget { bottom: 150px; right: 16px; }
@@ -1271,7 +1276,7 @@ p.ftsmall {
     right: 16px;
     bottom: 150px;
     width: calc(100vw - 32px);
-    height: min(70vh, 520px);
+    height: min(58vh, 440px);
   }
   #aiPreviewBubble { max-width: 200px; }
 }

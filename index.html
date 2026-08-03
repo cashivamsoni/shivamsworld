@@ -111,8 +111,8 @@
 
       <!-- Launcher button -->
       <button id="aiToggleBtn" aria-label="Open AI Assistant">
-        <i class="fa fa-comments" id="aiIconOpen"></i>
-        <i class="fa fa-chevron-down" id="aiIconClose"></i>
+        <i class="fa fa-magic" id="aiIconOpen"></i>
+        <i class="fa fa-times" id="aiIconClose"></i>
         <span id="aiUnreadBadge">1</span>
       </button>
 
@@ -134,14 +134,9 @@
 
         <div id="aiChatMessages"></div>
 
-        <div id="aiQuickReplies">
-          <button class="ai-chip" data-q="What kind of content is on this channel?">🎥 What's on this channel?</button>
-          <button class="ai-chip" data-q="How can I place a custom order?">📩 Custom order</button>
-          <button class="ai-chip" data-q="How do I contact Shivam?">📞 Contact info</button>
-        </div>
-
         <form id="aiChatForm">
           <input type="text" id="aiChatInput" placeholder="Type your message…" autocomplete="off" maxlength="500">
+          <button type="button" id="aiMicBtn" aria-label="Speak your message" title="Voice input"><i class="fa fa-microphone"></i></button>
           <button type="submit" id="aiSendBtn" aria-label="Send message"><i class="fa fa-paper-plane"></i></button>
         </form>
       </div>

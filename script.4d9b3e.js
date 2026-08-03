@@ -352,6 +352,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let history = [];
   let isTyping = false;
+  const ttsSupported = "speechSynthesis" in window;
+  const AUTOREAD_KEY = "sw-ai-autoread";
+  let autoReadEnabled = false;
+  let currentUtterance = null;
+  let currentPlayBtn = null;
 
   /* ----- Persistence ----- */
   function loadHistory() {
@@ -387,13 +392,36 @@ document.addEventListener("DOMContentLoaded", () => {
     const textSpan = document.createElement("span");
     textSpan.textContent = msg.text;
     div.appendChild(textSpan);
-    if (msg.role !== "error") {
+
+    if (msg.role === "bot" && ttsSupported) {
+      const footer = document.createElement("div");
+      footer.className = "ai-msg-footer";
+
+      const timeSpan = document.createElement("span");
+      timeSpan.className = "ai-msg-time";
+      timeSpan.textContent = formatTime(msg.ts);
+
+      const playBtn = document.createElement("button");
+      playBtn.type = "button";
+      playBtn.className = "ai-msg-play";
+      playBtn.innerHTML = '<i class="fa fa-play"></i>';
+      playBtn.setAttribute("aria-label", "Read message aloud");
+      playBtn.addEventListener("click", function () {
+        toggleSpeak(msg.text, playBtn);
+      });
+
+      footer.appendChild(timeSpan);
+      footer.appendChild(playBtn);
+      div.appendChild(footer);
+    } else if (msg.role !== "error") {
       const timeSpan = document.createElement("span");
       timeSpan.className = "ai-msg-time";
       timeSpan.textContent = formatTime(msg.ts);
       div.appendChild(timeSpan);
     }
+
     messagesEl.appendChild(div);
+    return div;
   }
 
   function renderAll() {
@@ -433,7 +461,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ----- Open / Close ----- */
   function openChat() {
     widget.classList.add("open", "seen");
-    hidePreview(true);
+    hidePreview(false);
     stopPreviewCycle();
     renderAll();
     setTimeout(() => input && input.focus(), 250);
@@ -442,6 +470,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeChat() {
     widget.classList.remove("open");
     stopListening();
+    stopSpeaking();
+    resumePreviewCycle();
   }
 
   toggleBtn.addEventListener("click", function (e) {
@@ -459,6 +489,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (clearBtn) {
     clearBtn.addEventListener("click", function () {
+      stopSpeaking();
       history = [];
       saveHistory();
       renderAll();
@@ -486,6 +517,11 @@ document.addEventListener("DOMContentLoaded", () => {
       clearTimeout(previewCycleTimer);
       previewCycleTimer = null;
     }
+  }
+
+  function resumePreviewCycle() {
+    if (previewDismissedForSession || previewCycleTimer) return;
+    previewCycleTimer = setTimeout(showNextPreview, 15000);
   }
 
   function showNextPreview() {
@@ -570,7 +606,11 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         history.push({ role: "bot", text: data.reply, ts: Date.now() });
         saveHistory();
-        renderMessage(history[history.length - 1]);
+        const msgEl = renderMessage(history[history.length - 1]);
+        if (autoReadEnabled && ttsSupported) {
+          const playBtn = msgEl.querySelector(".ai-msg-play");
+          if (playBtn) toggleSpeak(data.reply, playBtn);
+        }
       }
     } catch (err) {
       hideTyping();
@@ -673,6 +713,90 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Lets closeChat() cut the mic off if the window is dismissed mid-recording.
     stopListening = stopListeningInternal;
+  })();
+
+  /* ----- Read aloud (Web Speech Synthesis) ----- */
+  function setPlayBtnState(btn, playing) {
+    if (!btn) return;
+    btn.classList.toggle("playing", playing);
+    btn.innerHTML = playing
+      ? '<i class="fa fa-pause"></i>'
+      : '<i class="fa fa-play"></i>';
+    btn.setAttribute("aria-label", playing ? "Pause reading" : "Read message aloud");
+  }
+
+  function stopSpeaking() {
+    if (!ttsSupported) return;
+    window.speechSynthesis.cancel();
+    if (currentPlayBtn) setPlayBtnState(currentPlayBtn, false);
+    currentUtterance = null;
+    currentPlayBtn = null;
+  }
+
+  function toggleSpeak(text, btn) {
+    if (!ttsSupported) return;
+    const synth = window.speechSynthesis;
+
+    // Clicking the message that's already active: pause/resume it in place.
+    if (currentPlayBtn === btn && currentUtterance) {
+      if (synth.speaking && !synth.paused) {
+        synth.pause();
+        setPlayBtnState(btn, false);
+      } else if (synth.paused) {
+        synth.resume();
+        setPlayBtnState(btn, true);
+      }
+      return;
+    }
+
+    // Switching to a different message: stop whatever was playing first.
+    synth.cancel();
+    if (currentPlayBtn) setPlayBtnState(currentPlayBtn, false);
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1;
+    utter.pitch = 1;
+    utter.onend = function () {
+      setPlayBtnState(btn, false);
+      if (currentUtterance === utter) {
+        currentUtterance = null;
+        currentPlayBtn = null;
+      }
+    };
+    utter.onerror = utter.onend;
+
+    currentUtterance = utter;
+    currentPlayBtn = btn;
+    setPlayBtnState(btn, true);
+    synth.speak(utter);
+  }
+
+  (function initReadToggle() {
+    const readToggle = document.getElementById("aiReadToggle");
+    if (!readToggle) return;
+    if (!ttsSupported) {
+      readToggle.hidden = true;
+      return;
+    }
+    try {
+      autoReadEnabled = localStorage.getItem(AUTOREAD_KEY) === "1";
+    } catch {}
+    readToggle.setAttribute("aria-pressed", String(autoReadEnabled));
+    readToggle.innerHTML = autoReadEnabled
+      ? '<i class="fa fa-volume-up"></i>'
+      : '<i class="fa fa-volume-off"></i>';
+
+    readToggle.addEventListener("click", function () {
+      autoReadEnabled = !autoReadEnabled;
+      readToggle.setAttribute("aria-pressed", String(autoReadEnabled));
+      readToggle.innerHTML = autoReadEnabled
+        ? '<i class="fa fa-volume-up"></i>'
+        : '<i class="fa fa-volume-off"></i>';
+      try {
+        localStorage.setItem(AUTOREAD_KEY, autoReadEnabled ? "1" : "0");
+      } catch {}
+      if (!autoReadEnabled) stopSpeaking();
+    });
   })();
 
   /* ----- Init ----- */

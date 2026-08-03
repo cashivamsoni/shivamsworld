@@ -1123,6 +1123,11 @@ p.ftsmall {
   opacity: 0.85;
 }
 #aiChatHeaderActions button:hover { opacity: 1; }
+#aiReadToggle[aria-pressed="true"] {
+  opacity: 1;
+  background: rgba(255,255,255,0.2);
+  border-radius: 6px;
+}
 
 #aiChatMessages {
   flex: 1;
@@ -1174,6 +1179,37 @@ p.ftsmall {
   margin-top: 4px;
   font-size: 10px;
   opacity: 0.55;
+}
+
+.ai-msg-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+.ai-msg-footer .ai-msg-time { margin-top: 0; }
+
+.ai-msg-play {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(111,0,255,0.1);
+  color: var(--primary);
+  font-size: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.ai-msg-play:hover { background: var(--primary); color: #fff; }
+.ai-msg-play.playing {
+  background: var(--primary);
+  color: #fff;
+  animation: aiMicPulse 1.2s infinite;
 }
 
 #aiTypingIndicator {

@@ -334,8 +334,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const previewBubble = document.getElementById("aiPreviewBubble");
   const previewText = document.getElementById("aiPreviewText");
   const previewClose = document.getElementById("aiPreviewClose");
-  const quickReplies = document.getElementById("aiQuickReplies");
+  const micBtn = document.getElementById("aiMicBtn");
   if (!widget || !toggleBtn || !chatWindow) return;
+
+  let stopListening = function () {};
 
   const STORAGE_KEY = "sw-ai-chat-history";
   const PREVIEW_DISMISS_KEY = "sw-ai-preview-dismissed";
@@ -422,16 +424,39 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el) el.remove();
   }
 
+  /* ----- Scroll lock (mirrors the MediHome fix: single flag + stored
+     original value, so repeated open/close never drifts the page into
+     a permanently locked or unlocked state) ----- */
+  let scrollLocked = false;
+  let storedOverflow = "";
+
+  function lockScroll() {
+    if (scrollLocked) return;
+    storedOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    scrollLocked = true;
+  }
+
+  function unlockScroll() {
+    if (!scrollLocked) return;
+    document.body.style.overflow = storedOverflow;
+    scrollLocked = false;
+  }
+
   /* ----- Open / Close ----- */
   function openChat() {
     widget.classList.add("open", "seen");
     hidePreview(true);
+    stopPreviewCycle();
     renderAll();
+    lockScroll();
     setTimeout(() => input && input.focus(), 250);
   }
 
   function closeChat() {
     widget.classList.remove("open");
+    unlockScroll();
+    stopListening();
   }
 
   toggleBtn.addEventListener("click", function () {
@@ -447,39 +472,51 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ----- Preview bubble teaser ----- */
+  /* ----- Preview bubble teaser (recurring, rotating messages) ----- */
+  let previewCycleTimer = null;
+  let previewDismissedForSession = false;
+
   function hidePreview(permanent) {
     if (!previewBubble) return;
     previewBubble.classList.remove("show");
     if (permanent) {
+      previewDismissedForSession = true;
       try {
         sessionStorage.setItem(PREVIEW_DISMISS_KEY, "1");
       } catch {}
+      stopPreviewCycle();
     }
+  }
+
+  function stopPreviewCycle() {
+    if (previewCycleTimer) {
+      clearTimeout(previewCycleTimer);
+      previewCycleTimer = null;
+    }
+  }
+
+  function showNextPreview() {
+    if (!previewBubble || previewDismissedForSession || widget.classList.contains("open")) return;
+    const msg = previewMessages[Math.floor(Math.random() * previewMessages.length)];
+    if (previewText) previewText.textContent = msg;
+    previewBubble.classList.add("show");
+
+    // Hide this bubble after a while, then queue the next one — so the
+    // teaser resurfaces every so often instead of appearing just once.
+    previewCycleTimer = setTimeout(function () {
+      previewBubble.classList.remove("show");
+      previewCycleTimer = setTimeout(showNextPreview, 45000);
+    }, 9000);
   }
 
   function initPreview() {
     if (!previewBubble) return;
-    let dismissed = false;
     try {
-      dismissed = sessionStorage.getItem(PREVIEW_DISMISS_KEY) === "1";
+      previewDismissedForSession =
+        sessionStorage.getItem(PREVIEW_DISMISS_KEY) === "1";
     } catch {}
-    if (dismissed) return;
-
-    const msg =
-      previewMessages[Math.floor(Math.random() * previewMessages.length)];
-    if (previewText) previewText.textContent = msg;
-
-    setTimeout(function () {
-      if (!widget.classList.contains("open")) {
-        previewBubble.classList.add("show");
-      }
-    }, 4000);
-
-    // Auto-dismiss after a while so it doesn't linger forever
-    setTimeout(function () {
-      hidePreview(false);
-    }, 16000);
+    if (previewDismissedForSession) return;
+    previewCycleTimer = setTimeout(showNextPreview, 4000);
   }
 
   if (previewClose) {
@@ -562,14 +599,85 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (quickReplies) {
-    quickReplies.addEventListener("click", function (e) {
-      const chip = e.target.closest(".ai-chip");
-      if (!chip) return;
-      const q = chip.getAttribute("data-q");
-      if (q) sendMessage(q);
+  /* ----- Voice input (Web Speech API) ----- */
+  (function initVoiceInput() {
+    if (!micBtn || !input) return;
+    const SpeechRecognitionAPI =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      micBtn.hidden = true;
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    let listening = false;
+    let baseValue = "";
+
+    function setListening(state) {
+      listening = state;
+      micBtn.classList.toggle("listening", state);
+      micBtn.setAttribute(
+        "aria-label",
+        state ? "Stop voice input" : "Speak your message"
+      );
+    }
+
+    function stopListeningInternal() {
+      try {
+        recognition.stop();
+      } catch {}
+    }
+
+    recognition.addEventListener("start", function () {
+      baseValue = input.value ? input.value + " " : "";
+      setListening(true);
     });
-  }
+
+    recognition.addEventListener("result", function (e) {
+      let transcript = "";
+      for (let i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
+      input.value = baseValue + transcript;
+    });
+
+    recognition.addEventListener("error", function (e) {
+      setListening(false);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        history.push({
+          role: "error",
+          text: "Microphone access was blocked. Please allow mic permissions to use voice input.",
+          ts: Date.now(),
+        });
+        saveHistory();
+        renderMessage(history[history.length - 1]);
+        scrollToBottom();
+      }
+    });
+
+    recognition.addEventListener("end", function () {
+      setListening(false);
+    });
+
+    micBtn.addEventListener("click", function () {
+      if (listening) {
+        stopListeningInternal();
+      } else {
+        try {
+          recognition.start();
+        } catch {}
+      }
+    });
+
+    // Lets closeChat() cut the mic off if the window is dismissed mid-recording.
+    stopListening = stopListeningInternal;
+  })();
 
   /* ----- Init ----- */
   loadHistory();

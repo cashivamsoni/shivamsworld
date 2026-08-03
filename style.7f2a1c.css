@@ -1060,6 +1060,7 @@ p.ftsmall {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overscroll-behavior: contain;
   opacity: 0;
   transform: translateY(16px) scale(0.97);
   pointer-events: none;
@@ -1126,6 +1127,7 @@ p.ftsmall {
 #aiChatMessages {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 14px;
   display: flex;
   flex-direction: column;

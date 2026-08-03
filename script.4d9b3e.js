@@ -317,3 +317,261 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 })();
+
+/* =========================================================
+   AI Assistant Widget
+   ========================================================= */
+(function () {
+  const widget = document.getElementById("aiWidget");
+  const toggleBtn = document.getElementById("aiToggleBtn");
+  const chatWindow = document.getElementById("aiChatWindow");
+  const closeBtn = document.getElementById("aiCloseBtn");
+  const clearBtn = document.getElementById("aiClearBtn");
+  const messagesEl = document.getElementById("aiChatMessages");
+  const form = document.getElementById("aiChatForm");
+  const input = document.getElementById("aiChatInput");
+  const sendBtn = document.getElementById("aiSendBtn");
+  const previewBubble = document.getElementById("aiPreviewBubble");
+  const previewText = document.getElementById("aiPreviewText");
+  const previewClose = document.getElementById("aiPreviewClose");
+  const quickReplies = document.getElementById("aiQuickReplies");
+  if (!widget || !toggleBtn || !chatWindow) return;
+
+  const STORAGE_KEY = "sw-ai-chat-history";
+  const PREVIEW_DISMISS_KEY = "sw-ai-preview-dismissed";
+  const WELCOME_MSG =
+    "Hi! I'm Shivam's AI assistant 🎨 Ask me anything about the DIYs, calligraphy, sketches, custom orders, or how to reach Shivam.";
+
+  const previewMessages = [
+    "Hi! I'm Shivam's AI assistant 👋 Ask me about DIYs, calligraphy or custom orders.",
+    "Curious how to get a custom calligraphy piece made? Just ask me! ✍️",
+    "Need Shivam's contact details? I can help right here. 📩",
+  ];
+
+  let history = [];
+  let isTyping = false;
+
+  /* ----- Persistence ----- */
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      history = raw ? JSON.parse(raw) : [];
+    } catch {
+      history = [];
+    }
+  }
+
+  function saveHistory() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(-40)));
+    } catch {}
+  }
+
+  /* ----- Rendering ----- */
+  function formatTime(ts) {
+    const d = new Date(ts);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function renderMessage(msg) {
+    const div = document.createElement("div");
+    div.className =
+      "ai-msg " +
+      (msg.role === "user"
+        ? "ai-msg-user"
+        : msg.role === "error"
+        ? "ai-msg-error"
+        : "ai-msg-bot");
+    const textSpan = document.createElement("span");
+    textSpan.textContent = msg.text;
+    div.appendChild(textSpan);
+    if (msg.role !== "error") {
+      const timeSpan = document.createElement("span");
+      timeSpan.className = "ai-msg-time";
+      timeSpan.textContent = formatTime(msg.ts);
+      div.appendChild(timeSpan);
+    }
+    messagesEl.appendChild(div);
+  }
+
+  function renderAll() {
+    messagesEl.innerHTML = "";
+    if (history.length === 0) {
+      history.push({ role: "bot", text: WELCOME_MSG, ts: Date.now() });
+      saveHistory();
+    }
+    history.forEach(renderMessage);
+    scrollToBottom();
+  }
+
+  function scrollToBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function showTyping() {
+    if (document.getElementById("aiTypingIndicator")) return;
+    const el = document.createElement("div");
+    el.id = "aiTypingIndicator";
+    el.innerHTML = "<span></span><span></span><span></span>";
+    messagesEl.appendChild(el);
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    const el = document.getElementById("aiTypingIndicator");
+    if (el) el.remove();
+  }
+
+  /* ----- Open / Close ----- */
+  function openChat() {
+    widget.classList.add("open", "seen");
+    hidePreview(true);
+    renderAll();
+    setTimeout(() => input && input.focus(), 250);
+  }
+
+  function closeChat() {
+    widget.classList.remove("open");
+  }
+
+  toggleBtn.addEventListener("click", function () {
+    widget.classList.contains("open") ? closeChat() : openChat();
+  });
+  if (closeBtn) closeBtn.addEventListener("click", closeChat);
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", function () {
+      history = [];
+      saveHistory();
+      renderAll();
+    });
+  }
+
+  /* ----- Preview bubble teaser ----- */
+  function hidePreview(permanent) {
+    if (!previewBubble) return;
+    previewBubble.classList.remove("show");
+    if (permanent) {
+      try {
+        sessionStorage.setItem(PREVIEW_DISMISS_KEY, "1");
+      } catch {}
+    }
+  }
+
+  function initPreview() {
+    if (!previewBubble) return;
+    let dismissed = false;
+    try {
+      dismissed = sessionStorage.getItem(PREVIEW_DISMISS_KEY) === "1";
+    } catch {}
+    if (dismissed) return;
+
+    const msg =
+      previewMessages[Math.floor(Math.random() * previewMessages.length)];
+    if (previewText) previewText.textContent = msg;
+
+    setTimeout(function () {
+      if (!widget.classList.contains("open")) {
+        previewBubble.classList.add("show");
+      }
+    }, 4000);
+
+    // Auto-dismiss after a while so it doesn't linger forever
+    setTimeout(function () {
+      hidePreview(false);
+    }, 16000);
+  }
+
+  if (previewClose) {
+    previewClose.addEventListener("click", function (e) {
+      e.stopPropagation();
+      hidePreview(true);
+    });
+  }
+  if (previewBubble) {
+    previewBubble.addEventListener("click", openChat);
+  }
+
+  /* ----- Sending messages ----- */
+  async function sendMessage(text) {
+    text = (text || "").trim();
+    if (!text || isTyping) return;
+
+    history.push({ role: "user", text: text, ts: Date.now() });
+    saveHistory();
+    renderMessage(history[history.length - 1]);
+    scrollToBottom();
+
+    input.value = "";
+    isTyping = true;
+    sendBtn.disabled = true;
+    showTyping();
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          history: history
+            .filter((m) => m.role === "user" || m.role === "bot")
+            .slice(-10)
+            .map((m) => ({
+              role: m.role === "user" ? "user" : "assistant",
+              text: m.text,
+            })),
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      hideTyping();
+
+      if (!res.ok || !data.reply) {
+        const errMsg =
+          data && data.error
+            ? data.error
+            : "The assistant is warming up and will be ready shortly. Meanwhile, feel free to reach Shivam directly via WhatsApp or the contact section below!";
+        history.push({ role: "error", text: errMsg, ts: Date.now() });
+        saveHistory();
+        renderMessage(history[history.length - 1]);
+      } else {
+        history.push({ role: "bot", text: data.reply, ts: Date.now() });
+        saveHistory();
+        renderMessage(history[history.length - 1]);
+      }
+    } catch (err) {
+      hideTyping();
+      history.push({
+        role: "error",
+        text: "Couldn't reach the assistant right now. Please check your connection and try again.",
+        ts: Date.now(),
+      });
+      saveHistory();
+      renderMessage(history[history.length - 1]);
+    } finally {
+      isTyping = false;
+      sendBtn.disabled = false;
+      scrollToBottom();
+    }
+  }
+
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      sendMessage(input.value);
+    });
+  }
+
+  if (quickReplies) {
+    quickReplies.addEventListener("click", function (e) {
+      const chip = e.target.closest(".ai-chip");
+      if (!chip) return;
+      const q = chip.getAttribute("data-q");
+      if (q) sendMessage(q);
+    });
+  }
+
+  /* ----- Init ----- */
+  loadHistory();
+  initPreview();
+})();

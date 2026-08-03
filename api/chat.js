@@ -3,7 +3,7 @@
 // The API key never reaches the browser: it's read server-side from the
 // GEMINI_API_KEY environment variable configured in the Vercel dashboard.
 
-const GEMINI_MODEL = "gemini-3.6-flash";
+const GEMINI_MODEL = "gemini-3.5-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const SYSTEM_PROMPT = `You are the friendly AI assistant embedded on "Shivam's World"

@@ -424,24 +424,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (el) el.remove();
   }
 
-  /* ----- Scroll lock (mirrors the MediHome fix: single flag + stored
-     original value, so repeated open/close never drifts the page into
-     a permanently locked or unlocked state) ----- */
-  let scrollLocked = false;
-  let storedOverflow = "";
-
-  function lockScroll() {
-    if (scrollLocked) return;
-    storedOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    scrollLocked = true;
-  }
-
-  function unlockScroll() {
-    if (!scrollLocked) return;
-    document.body.style.overflow = storedOverflow;
-    scrollLocked = false;
-  }
+  /* ----- Scroll containment -----
+     Rather than locking the whole page's scroll (which blocked scrolling
+     the rest of the site while the chat was open), scroll is contained to
+     the chat window itself via CSS `overscroll-behavior: contain` on
+     #aiChatMessages/#aiChatWindow. The page behind stays scrollable. */
 
   /* ----- Open / Close ----- */
   function openChat() {
@@ -449,20 +436,26 @@ document.addEventListener("DOMContentLoaded", () => {
     hidePreview(true);
     stopPreviewCycle();
     renderAll();
-    lockScroll();
     setTimeout(() => input && input.focus(), 250);
   }
 
   function closeChat() {
     widget.classList.remove("open");
-    unlockScroll();
     stopListening();
   }
 
-  toggleBtn.addEventListener("click", function () {
+  toggleBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
     widget.classList.contains("open") ? closeChat() : openChat();
   });
   if (closeBtn) closeBtn.addEventListener("click", closeChat);
+
+  // Click outside the chat window (and outside the toggle button) closes it.
+  document.addEventListener("click", function (e) {
+    if (!widget.classList.contains("open")) return;
+    if (chatWindow.contains(e.target) || toggleBtn.contains(e.target)) return;
+    closeChat();
+  });
 
   if (clearBtn) {
     clearBtn.addEventListener("click", function () {
@@ -505,8 +498,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // teaser resurfaces every so often instead of appearing just once.
     previewCycleTimer = setTimeout(function () {
       previewBubble.classList.remove("show");
-      previewCycleTimer = setTimeout(showNextPreview, 45000);
-    }, 9000);
+      previewCycleTimer = setTimeout(showNextPreview, 15000);
+    }, 5000);
   }
 
   function initPreview() {
@@ -516,7 +509,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sessionStorage.getItem(PREVIEW_DISMISS_KEY) === "1";
     } catch {}
     if (previewDismissedForSession) return;
-    previewCycleTimer = setTimeout(showNextPreview, 4000);
+    previewCycleTimer = setTimeout(showNextPreview, 1500);
   }
 
   if (previewClose) {
@@ -526,7 +519,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
   if (previewBubble) {
-    previewBubble.addEventListener("click", openChat);
+    previewBubble.addEventListener("click", function (e) {
+      e.stopPropagation();
+      openChat();
+    });
   }
 
   /* ----- Sending messages ----- */

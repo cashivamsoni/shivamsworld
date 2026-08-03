@@ -41,21 +41,6 @@
       <div class="snowflake">❅</div>
     </div>
 
-      <!--Start of Tawk.to Script-->
-<script type="text/javascript">
-var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-(function(){
-var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-s1.async=true;
-s1.src='https://embed.tawk.to/6181f0ac6bb0760a4940dcf2/1fjhp89lr';
-s1.charset='UTF-8';
-s1.setAttribute('crossorigin','*');
-s0.parentNode.insertBefore(s1,s0);
-})();
-</script>
-<!--End of Tawk.to Script-->
-
-
     <!-- ===== HEADER ===== -->
     <header>
       <div id="headerBrand">
@@ -115,6 +100,52 @@ s0.parentNode.insertBefore(s1,s0);
     <button id="topBtn">↑ Top</button>
     <button id="shareBtn">Share</button>
     <a id="CallNowBtn" href="tel:+919005325544">Call</a>
+
+    <!-- ===== AI ASSISTANT WIDGET ===== -->
+    <div id="aiWidget">
+      <!-- Bubble preview / teaser -->
+      <div id="aiPreviewBubble" role="button" tabindex="0" aria-label="Open chat suggestion">
+        <button id="aiPreviewClose" aria-label="Dismiss">×</button>
+        <p id="aiPreviewText">Hi! I'm Shivam's AI assistant 👋 Ask me about DIYs, calligraphy or custom orders.</p>
+      </div>
+
+      <!-- Launcher button -->
+      <button id="aiToggleBtn" aria-label="Open AI Assistant">
+        <i class="fa fa-comments" id="aiIconOpen"></i>
+        <i class="fa fa-chevron-down" id="aiIconClose"></i>
+        <span id="aiUnreadBadge">1</span>
+      </button>
+
+      <!-- Chat window -->
+      <div id="aiChatWindow" role="dialog" aria-label="AI Assistant chat">
+        <div id="aiChatHeader">
+          <div id="aiChatHeaderInfo">
+            <span id="aiChatAvatar"><i class="fa fa-magic"></i></span>
+            <div>
+              <strong>Shivam's World Assistant</strong>
+              <span id="aiChatStatus"><span id="aiStatusDot"></span>Online</span>
+            </div>
+          </div>
+          <div id="aiChatHeaderActions">
+            <button id="aiClearBtn" title="Clear chat" aria-label="Clear chat"><i class="fa fa-trash-o"></i></button>
+            <button id="aiCloseBtn" title="Close" aria-label="Close chat"><i class="fa fa-times"></i></button>
+          </div>
+        </div>
+
+        <div id="aiChatMessages"></div>
+
+        <div id="aiQuickReplies">
+          <button class="ai-chip" data-q="What kind of content is on this channel?">🎥 What's on this channel?</button>
+          <button class="ai-chip" data-q="How can I place a custom order?">📩 Custom order</button>
+          <button class="ai-chip" data-q="How do I contact Shivam?">📞 Contact info</button>
+        </div>
+
+        <form id="aiChatForm">
+          <input type="text" id="aiChatInput" placeholder="Type your message…" autocomplete="off" maxlength="500">
+          <button type="submit" id="aiSendBtn" aria-label="Send message"><i class="fa fa-paper-plane"></i></button>
+        </form>
+      </div>
+    </div>
 
     <main class="container">
 

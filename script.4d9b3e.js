@@ -316,8 +316,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
-})();
-/* =========================================================
+})();/* =========================================================
    AI Assistant Widget
    Two-tier design: Gemini API (via /api/chat) as the primary
    conversational layer, with a free local rule-based fallback
@@ -330,27 +329,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleBtn = document.getElementById("aiToggleBtn");
   const chatWindow = document.getElementById("aiChatWindow");
   const closeBtn = document.getElementById("aiCloseBtn");
+  const readCtrl = document.getElementById("aiReadCtrl");
   const messagesEl = document.getElementById("aiChatMessages");
   const form = document.getElementById("aiChatForm");
   const input = document.getElementById("aiChatInput");
   const sendBtn = document.getElementById("aiSendBtn");
   const previewBubble = document.getElementById("aiPreviewBubble");
   const previewText = document.getElementById("aiPreviewText");
-  const previewClose = document.getElementById("aiPreviewClose");
   const micBtn = document.getElementById("aiMicBtn");
   if (!widget || !toggleBtn || !chatWindow) return;
 
   let stopListening = function () {};
 
   const PREVIEW_DISMISS_KEY = "sw-ai-preview-dismissed";
-  const AUTOREAD_KEY = "sw-ai-autoread";
   const WELCOME_MSG =
-    "Hi! I'm Shivam's AI assistant 🎨 Ask me anything about the DIYs, calligraphy, sketches, custom orders, or how to reach Shivam.";
+    "Hi! Ask me about the DIYs, calligraphy, sketches, custom orders — or anything else.";
 
   const previewMessages = [
-    "Hi! I'm Shivam's AI assistant 👋 Ask me about DIYs, calligraphy or custom orders.",
-    "Curious how to get a custom calligraphy piece made? Just ask me! ✍️",
-    "Need Shivam's contact details? I can help right here. 📩",
+    "Ask about custom orders.",
+    "Ask how to reach Shivam.",
+    "Ask what's on the channel.",
   ];
 
   // Conversation lives in memory only for the current page load — nothing
@@ -358,7 +356,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let history = [];
   let isTyping = false;
   const ttsSupported = "speechSynthesis" in window;
-  let autoReadEnabled = false;
 
   /* ---------------------------------------------------------
      Header height sync — keeps --header-h current so the chat
@@ -472,28 +469,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ----- Rendering ----- */
-  function formatTime(ts) {
-    const d = new Date(ts);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
-  function updatePlayBtn(msg, btn) {
-    if (!btn) return;
-    btn.classList.remove("playing", "replay");
-    if (msg.ttsState === "reading") {
-      btn.classList.add("playing");
-      btn.innerHTML = '<i class="fa fa-pause"></i>';
-      btn.setAttribute("aria-label", "Pause reading");
-    } else if (msg.ttsState === "done") {
-      btn.classList.add("replay");
-      btn.innerHTML = '<i class="fa fa-repeat"></i>';
-      btn.setAttribute("aria-label", "Replay message");
-    } else {
-      btn.innerHTML = '<i class="fa fa-play"></i>';
-      btn.setAttribute("aria-label", "Read message aloud");
-    }
-  }
-
   function renderMessage(msg) {
     const div = document.createElement("div");
     div.className =
@@ -504,42 +479,10 @@ document.addEventListener("DOMContentLoaded", () => {
         ? "ai-msg-error"
         : "ai-msg-bot");
 
-    const textSpan = document.createElement("span");
     if (msg.role === "bot") {
-      textSpan.innerHTML = renderRichText(msg.text);
+      div.innerHTML = renderRichText(msg.text);
     } else {
-      textSpan.textContent = msg.text;
-    }
-    div.appendChild(textSpan);
-
-    if (msg.role === "bot" && ttsSupported) {
-      if (!msg.ttsState) msg.ttsState = "idle";
-      if (typeof msg.ttsPos !== "number") msg.ttsPos = 0;
-
-      const footer = document.createElement("div");
-      footer.className = "ai-msg-footer";
-
-      const timeSpan = document.createElement("span");
-      timeSpan.className = "ai-msg-time";
-      timeSpan.textContent = formatTime(msg.ts);
-
-      const playBtn = document.createElement("button");
-      playBtn.type = "button";
-      playBtn.className = "ai-msg-play";
-      updatePlayBtn(msg, playBtn);
-      playBtn.addEventListener("click", function () {
-        toggleSpeak(msg, playBtn);
-      });
-      msg._btn = playBtn;
-
-      footer.appendChild(timeSpan);
-      footer.appendChild(playBtn);
-      div.appendChild(footer);
-    } else if (msg.role !== "error") {
-      const timeSpan = document.createElement("span");
-      timeSpan.className = "ai-msg-time";
-      timeSpan.textContent = formatTime(msg.ts);
-      div.appendChild(timeSpan);
+      div.textContent = msg.text;
     }
 
     messagesEl.appendChild(div);
@@ -549,7 +492,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderAll() {
     messagesEl.innerHTML = "";
     if (history.length === 0) {
-      history.push({ role: "bot", text: WELCOME_MSG, ts: Date.now(), ttsState: "idle", ttsPos: 0 });
+      history.push({ role: "bot", text: WELCOME_MSG, ts: Date.now() });
     }
     history.forEach(renderMessage);
     scrollToBottom();
@@ -591,7 +534,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeChat() {
     widget.classList.remove("open");
     stopListening();
-    stopSpeaking();
     resumePreviewCycle();
   }
 
@@ -668,15 +610,10 @@ document.addEventListener("DOMContentLoaded", () => {
     previewCycleTimer = setTimeout(showNextPreview, 1500);
   }
 
-  if (previewClose) {
-    previewClose.addEventListener("click", function (e) {
-      e.stopPropagation();
-      hidePreview(true);
-    });
-  }
   if (previewBubble) {
     previewBubble.addEventListener("click", function (e) {
       e.stopPropagation();
+      hidePreview(true);
       openChat();
     });
   }
@@ -729,12 +666,10 @@ document.addEventListener("DOMContentLoaded", () => {
       replyText = localFallbackAnswer(text);
     }
 
-    history.push({ role: "bot", text: replyText, ts: Date.now(), ttsState: "idle", ttsPos: 0 });
-    const msgEl = renderMessage(history[history.length - 1]);
-    if (autoReadEnabled && ttsSupported) {
-      const bot = history[history.length - 1];
-      toggleSpeak(bot, bot._btn);
-    }
+    const botMsg = { role: "bot", text: replyText, ts: Date.now() };
+    history.push(botMsg);
+    renderMessage(botMsg);
+    startReading(botMsg);
 
     isTyping = false;
     sendBtn.disabled = false;
@@ -838,64 +773,81 @@ document.addEventListener("DOMContentLoaded", () => {
   })();
 
   /* ---------------------------------------------------------
-     Read aloud (Web Speech Synthesis)
+     Read aloud (Web Speech Synthesis) — single control, header-
+     mounted, mirroring MediHome: one button that shows a Pause
+     icon while the latest reply is being read, and swaps to a
+     Replay icon once paused or finished. It's hidden entirely
+     until there's something to control.
 
      Deliberately avoids native pause()/resume() — unreliable,
      especially on mobile where resume() is known to silently
      fail. Instead: pausing fully cancels the utterance (position
      is preserved), and resuming starts a brand-new utterance from
-     that tracked character position.
+     that tracked character position. Replaying (after a message
+     finished naturally) starts over from position 0.
 
      Position is tracked two ways: word-boundary events where the
      browser fires them, and a time-elapsed character-rate
      estimate (~15 chars/sec) as a universal fallback, since mobile
      browsers often never fire boundary events at all.
 
-     A generation counter plus explicit handler-nulling on every
-     cancel guards against stale, late-firing callbacks from an
-     already-abandoned utterance corrupting another message's UI
-     state.
+     A generation counter guards against stale, late-firing
+     callbacks from an already-abandoned utterance corrupting the
+     UI state. The target message + position persist in memory
+     independent of playback state, so they survive closing and
+     reopening the panel.
   --------------------------------------------------------- */
   const CHARS_PER_SEC = 15;
   let ttsGen = 0;
-  let activeMsg = null;
-  let activeBtn = null;
-  let activeTimer = null;
+  let readMsg = null; // the message object currently under control
+  let readPos = 0; // chars already spoken, for pause/resume
+  let readState = "idle"; // idle | reading | paused | done
+  let readTimer = null;
 
-  function clearActiveTimer() {
-    if (activeTimer) {
-      clearInterval(activeTimer);
-      activeTimer = null;
+  function clearReadTimer() {
+    if (readTimer) {
+      clearInterval(readTimer);
+      readTimer = null;
     }
   }
 
-  // Cancels whatever is currently speaking. If `pausing` is true, the
-  // abandoned message is left in a resumable "paused" state at its last
-  // tracked position; otherwise it's just dropped (e.g. natural end, or
-  // switching to read a different message).
-  function haltActive(pausing) {
-    ttsGen++; // invalidate any in-flight callbacks from the old utterance
-    clearActiveTimer();
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    if (activeMsg) {
-      activeMsg.ttsState = pausing ? "paused" : activeMsg.ttsState;
-      if (activeBtn) updatePlayBtn(activeMsg, activeBtn);
+  function updateReadCtrlUI() {
+    if (!readCtrl) return;
+    if (readState === "idle" || !ttsSupported) {
+      readCtrl.hidden = true;
+      return;
     }
-    activeMsg = null;
-    activeBtn = null;
+    readCtrl.hidden = false;
+    if (readState === "reading") {
+      readCtrl.classList.add("reading");
+      readCtrl.innerHTML = '<i class="fa fa-pause"></i>';
+      readCtrl.title = "Pause";
+      readCtrl.setAttribute("aria-label", "Pause reading");
+    } else {
+      readCtrl.classList.remove("reading");
+      readCtrl.innerHTML = '<i class="fa fa-refresh"></i>';
+      readCtrl.title = "Replay";
+      readCtrl.setAttribute("aria-label", "Replay last reply");
+    }
   }
 
-  function beginSpeaking(msg, btn, fromChar) {
+  function speakFrom(msg, fromChar) {
     if (!ttsSupported) return;
-    haltActive(true); // pause/abandon whatever was previously active
+    ttsGen++; // invalidate any in-flight callbacks from a prior utterance
+    clearReadTimer();
+    window.speechSynthesis.cancel();
 
     const plain = stripMarkdown(msg.text);
     const startPos = Math.min(Math.max(fromChar, 0), plain.length);
     const remaining = plain.slice(startPos);
+
+    readMsg = msg;
+    readPos = startPos;
+
     if (!remaining) {
-      msg.ttsState = "done";
-      msg.ttsPos = 0;
-      updatePlayBtn(msg, btn);
+      readState = "done";
+      readPos = 0;
+      updateReadCtrlUI();
       return;
     }
 
@@ -907,99 +859,74 @@ document.addEventListener("DOMContentLoaded", () => {
     let boundaryFired = false;
     const startedAt = performance.now();
 
-    activeTimer = setInterval(function () {
+    readTimer = setInterval(function () {
       if (myGen !== ttsGen) return;
       if (boundaryFired) return; // trust real boundary events once they start firing
       const elapsed = (performance.now() - startedAt) / 1000;
-      msg.ttsPos = Math.min(startPos + Math.floor(elapsed * CHARS_PER_SEC), plain.length);
+      readPos = Math.min(startPos + Math.floor(elapsed * CHARS_PER_SEC), plain.length);
     }, 200);
 
     utter.onboundary = function (e) {
       if (myGen !== ttsGen) return;
       boundaryFired = true;
       if (typeof e.charIndex === "number") {
-        msg.ttsPos = Math.min(startPos + e.charIndex, plain.length);
+        readPos = Math.min(startPos + e.charIndex, plain.length);
       }
     };
 
     utter.onend = function () {
       if (myGen !== ttsGen) return; // stale callback from an abandoned utterance
-      clearActiveTimer();
-      msg.ttsState = "done";
-      msg.ttsPos = 0;
-      updatePlayBtn(msg, btn);
-      activeMsg = null;
-      activeBtn = null;
+      clearReadTimer();
+      readState = "done";
+      readPos = 0;
+      updateReadCtrlUI();
     };
 
     utter.onerror = function () {
       if (myGen !== ttsGen) return;
-      clearActiveTimer();
-      // Leave it paused at wherever it got to, rather than marking done,
-      // since an error means it didn't finish naturally.
-      msg.ttsState = "paused";
-      updatePlayBtn(msg, btn);
-      activeMsg = null;
-      activeBtn = null;
+      clearReadTimer();
+      readState = "paused";
+      updateReadCtrlUI();
     };
 
-    msg.ttsState = "reading";
-    updatePlayBtn(msg, btn);
-    activeMsg = msg;
-    activeBtn = btn;
+    readState = "reading";
+    updateReadCtrlUI();
     window.speechSynthesis.speak(utter);
   }
 
-  function toggleSpeak(msg, btn) {
-    if (!ttsSupported || !msg) return;
+  function pauseReading() {
+    if (!ttsSupported || readState !== "reading") return;
+    ttsGen++; // invalidate callbacks from the utterance we're about to kill
+    clearReadTimer();
+    window.speechSynthesis.cancel();
+    readState = "paused";
+    updateReadCtrlUI();
+  }
 
-    if (activeMsg === msg) {
-      // This message is the one currently loaded in the synth.
-      if (msg.ttsState === "reading") {
-        haltActive(true); // pause: cancel + keep tracked position
-      }
-      return;
-    }
-
-    if (msg.ttsState === "done") {
-      beginSpeaking(msg, btn, 0); // replay from the start
-    } else {
-      beginSpeaking(msg, btn, msg.ttsPos || 0); // fresh start or resume
-    }
+  function startReading(msg) {
+    speakFrom(msg, 0);
   }
 
   function stopSpeaking() {
     if (!ttsSupported) return;
-    haltActive(true);
+    ttsGen++;
+    clearReadTimer();
+    window.speechSynthesis.cancel();
+    if (readState === "reading") readState = "paused";
+    updateReadCtrlUI();
   }
 
-  (function initReadToggle() {
-    const readToggle = document.getElementById("aiReadToggle");
-    if (!readToggle) return;
-    if (!ttsSupported) {
-      readToggle.hidden = true;
-      return;
-    }
-    try {
-      autoReadEnabled = localStorage.getItem(AUTOREAD_KEY) === "1";
-    } catch {}
-    readToggle.setAttribute("aria-pressed", String(autoReadEnabled));
-    readToggle.innerHTML = autoReadEnabled
-      ? '<i class="fa fa-volume-up"></i>'
-      : '<i class="fa fa-volume-off"></i>';
-
-    readToggle.addEventListener("click", function () {
-      autoReadEnabled = !autoReadEnabled;
-      readToggle.setAttribute("aria-pressed", String(autoReadEnabled));
-      readToggle.innerHTML = autoReadEnabled
-        ? '<i class="fa fa-volume-up"></i>'
-        : '<i class="fa fa-volume-off"></i>';
-      try {
-        localStorage.setItem(AUTOREAD_KEY, autoReadEnabled ? "1" : "0");
-      } catch {}
-      if (!autoReadEnabled) stopSpeaking();
+  if (readCtrl) {
+    readCtrl.addEventListener("click", function () {
+      if (readState === "reading") {
+        pauseReading();
+      } else if (readState === "paused" && readMsg) {
+        speakFrom(readMsg, readPos);
+      } else if (readState === "done" && readMsg) {
+        speakFrom(readMsg, 0);
+      }
     });
-  })();
+  }
 
   /* ----- Init ----- */
   initPreview();

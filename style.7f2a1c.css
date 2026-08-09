@@ -977,18 +977,18 @@ p.ftsmall {
   max-width: calc(100vw - 100px);
   margin-bottom: 10px;
   padding: 8px 14px;
-  background: rgba(20, 10, 35, 0.88);
+  background: rgba(45, 10, 85, 0.4);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   color: #fff;
-  border-radius: 14px;
+  border-radius: 16px;
   font-size: 12.5px;
-  font-weight: 500;
-  line-height: 1.4;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
   cursor: pointer;
   opacity: 0;
-  transform: translateY(8px) scale(0.95);
+  transform: translateY(6px);
   pointer-events: none;
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
@@ -996,19 +996,27 @@ p.ftsmall {
 #aiPreviewBubble::after {
   content: "";
   position: absolute;
-  bottom: -7px;
-  right: 20px;
+  bottom: -6px;
+  right: 16px;
   width: 0;
   height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-top: 8px solid rgba(20, 10, 35, 0.88);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(45, 10, 85, 0.4);
+}
+
+[data-theme="dark"] #aiPreviewBubble {
+  background: rgba(226, 232, 240, 0.18);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #f5f0ff;
+}
+[data-theme="dark"] #aiPreviewBubble::after {
+  border-top-color: rgba(226, 232, 240, 0.18);
 }
 
 #aiPreviewBubble.show {
   opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
+  transform: translateY(0);
 }
 
 #aiPreviewBubble p { margin: 0; text-align: left; white-space: nowrap; }
@@ -1025,20 +1033,14 @@ p.ftsmall {
   border-radius: 20px;
   border: 1px solid rgba(0,0,0,0.06);
   box-shadow: 0 10px 34px rgba(20,10,40,0.22);
-  display: flex;
+  display: none;
   flex-direction: column;
   overflow: hidden;
   overscroll-behavior: contain;
-  opacity: 0;
-  transform: translateY(16px) scale(0.97);
-  pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 #aiWidget.open #aiChatWindow {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-  pointer-events: auto;
+  display: flex;
 }
 
 #aiChatHeader {
@@ -1079,6 +1081,7 @@ p.ftsmall {
   transition: background 0.2s ease;
 }
 #aiChatHeaderActions button:hover { background: rgba(0,0,0,0.1); }
+#aiChatHeaderActions button[hidden] { display: none; }
 #aiSpeechToggle.active { color: var(--primary); }
 
 #aiChatMessages {

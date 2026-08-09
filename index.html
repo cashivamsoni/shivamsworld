@@ -105,15 +105,13 @@
     <div id="aiWidget">
       <!-- Bubble preview / teaser -->
       <div id="aiPreviewBubble" role="button" tabindex="0" aria-label="Open chat suggestion">
-        <button id="aiPreviewClose" aria-label="Dismiss">×</button>
-        <p id="aiPreviewText">Hi! I'm Shivam's AI assistant 👋 Ask me about DIYs, calligraphy or custom orders.</p>
+        <p id="aiPreviewText">Ask about custom orders.</p>
       </div>
 
       <!-- Launcher button -->
       <button id="aiToggleBtn" aria-label="Open AI Assistant">
         <i class="fa fa-magic" id="aiIconOpen"></i>
         <i class="fa fa-times" id="aiIconClose"></i>
-        <span id="aiUnreadBadge">1</span>
       </button>
 
       <!-- Chat window -->
@@ -121,13 +119,10 @@
         <div id="aiChatHeader">
           <div id="aiChatHeaderInfo">
             <span id="aiChatAvatar"><i class="fa fa-magic"></i></span>
-            <div>
-              <strong>Shivam's World Assistant</strong>
-              <span id="aiChatStatus"><span id="aiStatusDot"></span>Online</span>
-            </div>
+            <strong>Shivam's World Assistant</strong>
           </div>
           <div id="aiChatHeaderActions">
-            <button id="aiReadToggle" title="Read replies aloud" aria-label="Toggle read aloud" aria-pressed="false"><i class="fa fa-volume-off"></i></button>
+            <button id="aiReadCtrl" title="Replay" aria-label="Replay last reply" hidden><i class="fa fa-refresh"></i></button>
             <button id="aiCloseBtn" title="Close" aria-label="Close chat"><i class="fa fa-times"></i></button>
           </div>
         </div>
@@ -135,7 +130,7 @@
         <div id="aiChatMessages"></div>
 
         <form id="aiChatForm">
-          <input type="text" id="aiChatInput" placeholder="Type your message…" autocomplete="off" maxlength="500">
+          <input type="text" id="aiChatInput" placeholder="Ask something…" autocomplete="off" maxlength="500">
           <button type="button" id="aiMicBtn" aria-label="Speak your message" title="Voice input"><i class="fa fa-microphone"></i></button>
           <button type="submit" id="aiSendBtn" aria-label="Send message"><i class="fa fa-paper-plane"></i></button>
         </form>

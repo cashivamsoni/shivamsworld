@@ -317,16 +317,19 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 })();
-
 /* =========================================================
    AI Assistant Widget
+   Two-tier design: Gemini API (via /api/chat) as the primary
+   conversational layer, with a free local rule-based fallback
+   that silently takes over if the API errors, times out, or is
+   rate-limited — so the assistant never fully depends on the
+   external service.
    ========================================================= */
 (function () {
   const widget = document.getElementById("aiWidget");
   const toggleBtn = document.getElementById("aiToggleBtn");
   const chatWindow = document.getElementById("aiChatWindow");
   const closeBtn = document.getElementById("aiCloseBtn");
-  const clearBtn = document.getElementById("aiClearBtn");
   const messagesEl = document.getElementById("aiChatMessages");
   const form = document.getElementById("aiChatForm");
   const input = document.getElementById("aiChatInput");
@@ -339,8 +342,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let stopListening = function () {};
 
-  const STORAGE_KEY = "sw-ai-chat-history";
   const PREVIEW_DISMISS_KEY = "sw-ai-preview-dismissed";
+  const AUTOREAD_KEY = "sw-ai-autoread";
   const WELCOME_MSG =
     "Hi! I'm Shivam's AI assistant 🎨 Ask me anything about the DIYs, calligraphy, sketches, custom orders, or how to reach Shivam.";
 
@@ -350,34 +353,145 @@ document.addEventListener("DOMContentLoaded", () => {
     "Need Shivam's contact details? I can help right here. 📩",
   ];
 
+  // Conversation lives in memory only for the current page load — nothing
+  // is written to localStorage, so it starts fresh on every visit/refresh.
   let history = [];
   let isTyping = false;
   const ttsSupported = "speechSynthesis" in window;
-  const AUTOREAD_KEY = "sw-ai-autoread";
   let autoReadEnabled = false;
-  let currentUtterance = null;
-  let currentPlayBtn = null;
 
-  /* ----- Persistence ----- */
-  function loadHistory() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      history = raw ? JSON.parse(raw) : [];
-    } catch {
-      history = [];
+  /* ---------------------------------------------------------
+     Header height sync — keeps --header-h current so the chat
+     panel's max-height (set in CSS) can never grow tall enough
+     to sit behind the sticky header.
+  --------------------------------------------------------- */
+  (function syncHeaderHeight() {
+    const header = document.querySelector("header");
+    if (!header) return;
+    function measure() {
+      const h = header.getBoundingClientRect().height;
+      if (h > 0) {
+        document.documentElement.style.setProperty("--header-h", h + "px");
+      }
     }
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    // Header height can change when the mobile nav wraps/opens.
+    const nav = document.getElementById("mainNav");
+    if (nav) {
+      const obs = new MutationObserver(measure);
+      obs.observe(nav, { attributes: true, attributeFilter: ["class"] });
+    }
+    setTimeout(measure, 400); // catch late font/layout shifts
+  })();
+
+  /* ---------------------------------------------------------
+     Markdown-lite rendering: escape HTML first for safety, then
+     convert **bold** to <strong>, then any remaining single
+     *emphasis* to a semi-bold span. Order matters — bold must be
+     processed first so double-asterisk pairs aren't mistaken for
+     two single-asterisk emphasis markers.
+  --------------------------------------------------------- */
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
-  function saveHistory() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(-40)));
-    } catch {}
+  function renderRichText(rawText) {
+    let safe = escapeHtml(rawText);
+    safe = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    safe = safe.replace(/\*(.+?)\*/g, '<span class="ai-em">$1</span>');
+    return safe;
+  }
+
+  // Markdown markers are stripped entirely before text reaches
+  // speechSynthesis, so the assistant never reads out asterisks.
+  function stripMarkdown(rawText) {
+    return rawText.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1");
+  }
+
+  /* ---------------------------------------------------------
+     Local rule-based fallback — free, fully offline, pattern-
+     matches against the site's own known details. Used whenever
+     the Gemini-backed API errors, times out, or is rate-limited,
+     so the assistant is never fully dependent on the external
+     service.
+  --------------------------------------------------------- */
+  const LOCAL_INTENTS = [
+    {
+      test: /\b(hi|hello|hey|namaste|yo)\b/i,
+      reply:
+        "Hey there! 👋 I'm Shivam's AI assistant. Ask me about the DIYs, calligraphy, sketches, custom orders, or how to reach Shivam.",
+    },
+    {
+      test: /\b(custom order|commission|order|buy|purchase|price|cost|rate)\b/i,
+      reply:
+        "For custom orders, the quickest way is to message Shivam directly on WhatsApp: https://wa.link/zvaoa9 — share what you'd like (calligraphy, sketch, DIY piece, etc.) and he'll get back to you with details.",
+    },
+    {
+      test: /\b(contact|reach|email|phone|number|whatsapp|call)\b/i,
+      reply:
+        "You can reach Shivam by phone/WhatsApp at +91 9005325544, or email babitavrm60@gmail.com. There's also a Call button on this page for a quick tap-to-call.",
+    },
+    {
+      test: /\b(channel|content|video|diy|calligraphy|sketch|craft|creation)\b/i,
+      reply:
+        "Shivam's World features DIY crafts, calligraphy, sketches/drawings, and handcrafted cards. You can browse it all on the YouTube channel (youtube.com/c/ShivamsWorld) or right here on the site.",
+    },
+    {
+      test: /\b(dark mode|light mode|theme|night mode)\b/i,
+      reply:
+        "You can switch between light and dark mode using the theme toggle in the menu at the top — just tap it to flip the look of the whole site.",
+    },
+    {
+      test: /\bsearch\b/i,
+      reply:
+        "There's a search bar you can use to quickly find content on the page — type a keyword and it filters the list live as you type.",
+    },
+    {
+      test: /\bshare\b/i,
+      reply:
+        "Tap the Share button (fixed near the bottom-right) to share this page — it'll open your device's share menu, or copy the link if sharing isn't supported.",
+    },
+    {
+      test: /\b(thank|thanks|thank you)\b/i,
+      reply: "You're welcome! Let me know if there's anything else you'd like to know. 🙂",
+    },
+  ];
+
+  function localFallbackAnswer(userText) {
+    for (const intent of LOCAL_INTENTS) {
+      if (intent.test.test(userText)) return intent.reply;
+    }
+    return "I'm not fully sure about that one — the best way to get an accurate answer is to reach out to Shivam directly on WhatsApp: https://wa.link/zvaoa9";
   }
 
   /* ----- Rendering ----- */
   function formatTime(ts) {
     const d = new Date(ts);
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function updatePlayBtn(msg, btn) {
+    if (!btn) return;
+    btn.classList.remove("playing", "replay");
+    if (msg.ttsState === "reading") {
+      btn.classList.add("playing");
+      btn.innerHTML = '<i class="fa fa-pause"></i>';
+      btn.setAttribute("aria-label", "Pause reading");
+    } else if (msg.ttsState === "done") {
+      btn.classList.add("replay");
+      btn.innerHTML = '<i class="fa fa-repeat"></i>';
+      btn.setAttribute("aria-label", "Replay message");
+    } else {
+      btn.innerHTML = '<i class="fa fa-play"></i>';
+      btn.setAttribute("aria-label", "Read message aloud");
+    }
   }
 
   function renderMessage(msg) {
@@ -389,11 +503,19 @@ document.addEventListener("DOMContentLoaded", () => {
         : msg.role === "error"
         ? "ai-msg-error"
         : "ai-msg-bot");
+
     const textSpan = document.createElement("span");
-    textSpan.textContent = msg.text;
+    if (msg.role === "bot") {
+      textSpan.innerHTML = renderRichText(msg.text);
+    } else {
+      textSpan.textContent = msg.text;
+    }
     div.appendChild(textSpan);
 
     if (msg.role === "bot" && ttsSupported) {
+      if (!msg.ttsState) msg.ttsState = "idle";
+      if (typeof msg.ttsPos !== "number") msg.ttsPos = 0;
+
       const footer = document.createElement("div");
       footer.className = "ai-msg-footer";
 
@@ -404,11 +526,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const playBtn = document.createElement("button");
       playBtn.type = "button";
       playBtn.className = "ai-msg-play";
-      playBtn.innerHTML = '<i class="fa fa-play"></i>';
-      playBtn.setAttribute("aria-label", "Read message aloud");
+      updatePlayBtn(msg, playBtn);
       playBtn.addEventListener("click", function () {
-        toggleSpeak(msg.text, playBtn);
+        toggleSpeak(msg, playBtn);
       });
+      msg._btn = playBtn;
 
       footer.appendChild(timeSpan);
       footer.appendChild(playBtn);
@@ -427,8 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderAll() {
     messagesEl.innerHTML = "";
     if (history.length === 0) {
-      history.push({ role: "bot", text: WELCOME_MSG, ts: Date.now() });
-      saveHistory();
+      history.push({ role: "bot", text: WELCOME_MSG, ts: Date.now(), ttsState: "idle", ttsPos: 0 });
     }
     history.forEach(renderMessage);
     scrollToBottom();
@@ -442,7 +563,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (document.getElementById("aiTypingIndicator")) return;
     const el = document.createElement("div");
     el.id = "aiTypingIndicator";
-    el.innerHTML = "<span></span><span></span><span></span>";
+    el.textContent = "Thinking…";
     messagesEl.appendChild(el);
     scrollToBottom();
   }
@@ -453,10 +574,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* ----- Scroll containment -----
-     Rather than locking the whole page's scroll (which blocked scrolling
-     the rest of the site while the chat was open), scroll is contained to
-     the chat window itself via CSS `overscroll-behavior: contain` on
-     #aiChatMessages/#aiChatWindow. The page behind stays scrollable. */
+     Scroll is contained to the chat window itself via CSS
+     `overscroll-behavior: contain` (see #aiChatWindow /
+     #aiChatMessages) — the page behind stays freely scrollable
+     the whole time the chat is open. */
 
   /* ----- Open / Close ----- */
   function openChat() {
@@ -487,16 +608,12 @@ document.addEventListener("DOMContentLoaded", () => {
     closeChat();
   });
 
-  if (clearBtn) {
-    clearBtn.addEventListener("click", function () {
-      stopSpeaking();
-      history = [];
-      saveHistory();
-      renderAll();
-    });
-  }
-
-  /* ----- Preview bubble teaser (recurring, rotating messages) ----- */
+  /* ----- Preview bubble teaser (recurring, rotating messages) -----
+     Paused whenever the panel is open, resumed on close. The show
+     transition is retriggered by forcing a DOM reflow between
+     removing and re-adding the "show" class, so the fade-in fires
+     reliably even if the previous cycle's transition hadn't fully
+     settled. ----- */
   let previewCycleTimer = null;
   let previewDismissedForSession = false;
 
@@ -528,10 +645,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!previewBubble || previewDismissedForSession || widget.classList.contains("open")) return;
     const msg = previewMessages[Math.floor(Math.random() * previewMessages.length)];
     if (previewText) previewText.textContent = msg;
+
+    // Force a reflow between removing and re-adding "show" so the fade-in
+    // transition reliably retriggers even mid-cycle.
+    previewBubble.classList.remove("show");
+    void previewBubble.offsetWidth;
     previewBubble.classList.add("show");
 
-    // Hide this bubble after a while, then queue the next one — so the
-    // teaser resurfaces every so often instead of appearing just once.
     previewCycleTimer = setTimeout(function () {
       previewBubble.classList.remove("show");
       previewCycleTimer = setTimeout(showNextPreview, 15000);
@@ -561,13 +681,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ----- Sending messages ----- */
+  /* ----- Sending messages (Gemini primary, local fallback silent) ----- */
   async function sendMessage(text) {
     text = (text || "").trim();
     if (!text || isTyping) return;
 
     history.push({ role: "user", text: text, ts: Date.now() });
-    saveHistory();
     renderMessage(history[history.length - 1]);
     scrollToBottom();
 
@@ -575,6 +694,8 @@ document.addEventListener("DOMContentLoaded", () => {
     isTyping = true;
     sendBtn.disabled = true;
     showTyping();
+
+    let replyText = null;
 
     try {
       const res = await fetch("/api/chat", {
@@ -593,39 +714,31 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const data = await res.json().catch(() => ({}));
-      hideTyping();
-
-      if (!res.ok || !data.reply) {
-        const errMsg =
-          data && data.error
-            ? data.error
-            : "The assistant is warming up and will be ready shortly. Meanwhile, feel free to reach Shivam directly via WhatsApp or the contact section below!";
-        history.push({ role: "error", text: errMsg, ts: Date.now() });
-        saveHistory();
-        renderMessage(history[history.length - 1]);
-      } else {
-        history.push({ role: "bot", text: data.reply, ts: Date.now() });
-        saveHistory();
-        const msgEl = renderMessage(history[history.length - 1]);
-        if (autoReadEnabled && ttsSupported) {
-          const playBtn = msgEl.querySelector(".ai-msg-play");
-          if (playBtn) toggleSpeak(data.reply, playBtn);
-        }
+      if (res.ok && data && data.reply) {
+        replyText = data.reply;
       }
     } catch (err) {
-      hideTyping();
-      history.push({
-        role: "error",
-        text: "Couldn't reach the assistant right now. Please check your connection and try again.",
-        ts: Date.now(),
-      });
-      saveHistory();
-      renderMessage(history[history.length - 1]);
-    } finally {
-      isTyping = false;
-      sendBtn.disabled = false;
-      scrollToBottom();
+      // network error — fall through to local fallback
     }
+
+    hideTyping();
+
+    // Silent fallback: if Gemini errored, timed out, or was rate-limited,
+    // answer from the local rule-based matcher instead of showing an error.
+    if (!replyText) {
+      replyText = localFallbackAnswer(text);
+    }
+
+    history.push({ role: "bot", text: replyText, ts: Date.now(), ttsState: "idle", ttsPos: 0 });
+    const msgEl = renderMessage(history[history.length - 1]);
+    if (autoReadEnabled && ttsSupported) {
+      const bot = history[history.length - 1];
+      toggleSpeak(bot, bot._btn);
+    }
+
+    isTyping = false;
+    sendBtn.disabled = false;
+    scrollToBottom();
   }
 
   if (form) {
@@ -635,7 +748,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ----- Voice input (Web Speech API) ----- */
+  /* ----- Voice input (Web Speech API) -----
+     Feature-detected — the mic button simply never appears on
+     unsupported browsers. Auto-transcribes and auto-sends once
+     speech recognition reports a final result. ----- */
   (function initVoiceInput() {
     if (!micBtn || !input) return;
     const SpeechRecognitionAPI =
@@ -653,7 +769,7 @@ document.addEventListener("DOMContentLoaded", () => {
     recognition.maxAlternatives = 1;
 
     let listening = false;
-    let baseValue = "";
+    let finalSent = false;
 
     function setListening(state) {
       listening = state;
@@ -671,16 +787,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     recognition.addEventListener("start", function () {
-      baseValue = input.value ? input.value + " " : "";
+      finalSent = false;
       setListening(true);
     });
 
     recognition.addEventListener("result", function (e) {
       let transcript = "";
+      let isFinal = false;
       for (let i = 0; i < e.results.length; i++) {
         transcript += e.results[i][0].transcript;
+        if (e.results[i].isFinal) isFinal = true;
       }
-      input.value = baseValue + transcript;
+      input.value = transcript;
+
+      if (isFinal && transcript.trim() && !finalSent) {
+        finalSent = true;
+        sendMessage(transcript);
+      }
     });
 
     recognition.addEventListener("error", function (e) {
@@ -691,7 +814,6 @@ document.addEventListener("DOMContentLoaded", () => {
           text: "Microphone access was blocked. Please allow mic permissions to use voice input.",
           ts: Date.now(),
         });
-        saveHistory();
         renderMessage(history[history.length - 1]);
         scrollToBottom();
       }
@@ -715,60 +837,140 @@ document.addEventListener("DOMContentLoaded", () => {
     stopListening = stopListeningInternal;
   })();
 
-  /* ----- Read aloud (Web Speech Synthesis) ----- */
-  function setPlayBtnState(btn, playing) {
-    if (!btn) return;
-    btn.classList.toggle("playing", playing);
-    btn.innerHTML = playing
-      ? '<i class="fa fa-pause"></i>'
-      : '<i class="fa fa-play"></i>';
-    btn.setAttribute("aria-label", playing ? "Pause reading" : "Read message aloud");
+  /* ---------------------------------------------------------
+     Read aloud (Web Speech Synthesis)
+
+     Deliberately avoids native pause()/resume() — unreliable,
+     especially on mobile where resume() is known to silently
+     fail. Instead: pausing fully cancels the utterance (position
+     is preserved), and resuming starts a brand-new utterance from
+     that tracked character position.
+
+     Position is tracked two ways: word-boundary events where the
+     browser fires them, and a time-elapsed character-rate
+     estimate (~15 chars/sec) as a universal fallback, since mobile
+     browsers often never fire boundary events at all.
+
+     A generation counter plus explicit handler-nulling on every
+     cancel guards against stale, late-firing callbacks from an
+     already-abandoned utterance corrupting another message's UI
+     state.
+  --------------------------------------------------------- */
+  const CHARS_PER_SEC = 15;
+  let ttsGen = 0;
+  let activeMsg = null;
+  let activeBtn = null;
+  let activeTimer = null;
+
+  function clearActiveTimer() {
+    if (activeTimer) {
+      clearInterval(activeTimer);
+      activeTimer = null;
+    }
   }
 
-  function stopSpeaking() {
-    if (!ttsSupported) return;
-    window.speechSynthesis.cancel();
-    if (currentPlayBtn) setPlayBtnState(currentPlayBtn, false);
-    currentUtterance = null;
-    currentPlayBtn = null;
+  // Cancels whatever is currently speaking. If `pausing` is true, the
+  // abandoned message is left in a resumable "paused" state at its last
+  // tracked position; otherwise it's just dropped (e.g. natural end, or
+  // switching to read a different message).
+  function haltActive(pausing) {
+    ttsGen++; // invalidate any in-flight callbacks from the old utterance
+    clearActiveTimer();
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    if (activeMsg) {
+      activeMsg.ttsState = pausing ? "paused" : activeMsg.ttsState;
+      if (activeBtn) updatePlayBtn(activeMsg, activeBtn);
+    }
+    activeMsg = null;
+    activeBtn = null;
   }
 
-  function toggleSpeak(text, btn) {
+  function beginSpeaking(msg, btn, fromChar) {
     if (!ttsSupported) return;
-    const synth = window.speechSynthesis;
+    haltActive(true); // pause/abandon whatever was previously active
 
-    // Clicking the message that's already active: pause/resume it in place.
-    if (currentPlayBtn === btn && currentUtterance) {
-      if (synth.speaking && !synth.paused) {
-        synth.pause();
-        setPlayBtnState(btn, false);
-      } else if (synth.paused) {
-        synth.resume();
-        setPlayBtnState(btn, true);
+    const plain = stripMarkdown(msg.text);
+    const startPos = Math.min(Math.max(fromChar, 0), plain.length);
+    const remaining = plain.slice(startPos);
+    if (!remaining) {
+      msg.ttsState = "done";
+      msg.ttsPos = 0;
+      updatePlayBtn(msg, btn);
+      return;
+    }
+
+    const myGen = ttsGen;
+    const utter = new SpeechSynthesisUtterance(remaining);
+    utter.rate = 1;
+    utter.pitch = 1;
+
+    let boundaryFired = false;
+    const startedAt = performance.now();
+
+    activeTimer = setInterval(function () {
+      if (myGen !== ttsGen) return;
+      if (boundaryFired) return; // trust real boundary events once they start firing
+      const elapsed = (performance.now() - startedAt) / 1000;
+      msg.ttsPos = Math.min(startPos + Math.floor(elapsed * CHARS_PER_SEC), plain.length);
+    }, 200);
+
+    utter.onboundary = function (e) {
+      if (myGen !== ttsGen) return;
+      boundaryFired = true;
+      if (typeof e.charIndex === "number") {
+        msg.ttsPos = Math.min(startPos + e.charIndex, plain.length);
+      }
+    };
+
+    utter.onend = function () {
+      if (myGen !== ttsGen) return; // stale callback from an abandoned utterance
+      clearActiveTimer();
+      msg.ttsState = "done";
+      msg.ttsPos = 0;
+      updatePlayBtn(msg, btn);
+      activeMsg = null;
+      activeBtn = null;
+    };
+
+    utter.onerror = function () {
+      if (myGen !== ttsGen) return;
+      clearActiveTimer();
+      // Leave it paused at wherever it got to, rather than marking done,
+      // since an error means it didn't finish naturally.
+      msg.ttsState = "paused";
+      updatePlayBtn(msg, btn);
+      activeMsg = null;
+      activeBtn = null;
+    };
+
+    msg.ttsState = "reading";
+    updatePlayBtn(msg, btn);
+    activeMsg = msg;
+    activeBtn = btn;
+    window.speechSynthesis.speak(utter);
+  }
+
+  function toggleSpeak(msg, btn) {
+    if (!ttsSupported || !msg) return;
+
+    if (activeMsg === msg) {
+      // This message is the one currently loaded in the synth.
+      if (msg.ttsState === "reading") {
+        haltActive(true); // pause: cancel + keep tracked position
       }
       return;
     }
 
-    // Switching to a different message: stop whatever was playing first.
-    synth.cancel();
-    if (currentPlayBtn) setPlayBtnState(currentPlayBtn, false);
+    if (msg.ttsState === "done") {
+      beginSpeaking(msg, btn, 0); // replay from the start
+    } else {
+      beginSpeaking(msg, btn, msg.ttsPos || 0); // fresh start or resume
+    }
+  }
 
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 1;
-    utter.pitch = 1;
-    utter.onend = function () {
-      setPlayBtnState(btn, false);
-      if (currentUtterance === utter) {
-        currentUtterance = null;
-        currentPlayBtn = null;
-      }
-    };
-    utter.onerror = utter.onend;
-
-    currentUtterance = utter;
-    currentPlayBtn = btn;
-    setPlayBtnState(btn, true);
-    synth.speak(utter);
+  function stopSpeaking() {
+    if (!ttsSupported) return;
+    haltActive(true);
   }
 
   (function initReadToggle() {
@@ -800,6 +1002,5 @@ document.addEventListener("DOMContentLoaded", () => {
   })();
 
   /* ----- Init ----- */
-  loadHistory();
   initPreview();
 })();

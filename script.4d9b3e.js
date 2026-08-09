@@ -340,7 +340,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let stopListening = function () {};
 
-  const PREVIEW_DISMISS_KEY = "sw-ai-preview-dismissed";
   const WELCOME_MSG =
     "Hi! Ask me about the DIYs, calligraphy, sketches, custom orders — or anything else.";
 
@@ -524,10 +523,10 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ----- Open / Close ----- */
   function openChat() {
     widget.classList.add("open", "seen");
-    hidePreview(false);
+    hidePreview();
     stopPreviewCycle();
     renderAll();
-    setTimeout(() => input && input.focus(), 250);
+    if (input) input.focus();
   }
 
   function closeChat() {
@@ -551,25 +550,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /* ----- Preview bubble teaser (recurring, rotating messages) -----
-     Paused whenever the panel is open, resumed on close. The show
-     transition is retriggered by forcing a DOM reflow between
-     removing and re-adding the "show" class, then waiting a frame
-     before re-adding it, so the fade-in fires reliably even if the
-     previous cycle's transition hadn't fully settled. ----- */
+     Mirrors MediHome's hint cycle exactly: paused whenever the panel
+     is open, resumed the moment it closes — indefinitely, no permanent
+     dismissal. The show transition is retriggered by forcing a DOM
+     reflow between removing and re-adding the "show" class, then
+     waiting a frame before re-adding it, so the fade-in fires reliably
+     even if the previous cycle's transition hadn't fully settled. ----- */
   let previewCycleTimer = null;
   let previewCycleActive = false;
-  let previewDismissedForSession = false;
 
-  function hidePreview(permanent) {
-    if (!previewBubble) return;
-    previewBubble.classList.remove("show");
-    if (permanent) {
-      previewDismissedForSession = true;
-      try {
-        sessionStorage.setItem(PREVIEW_DISMISS_KEY, "1");
-      } catch {}
-      stopPreviewCycle();
-    }
+  function hidePreview() {
+    if (previewBubble) previewBubble.classList.remove("show");
   }
 
   function stopPreviewCycle() {
@@ -579,14 +570,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function resumePreviewCycle() {
-    if (previewDismissedForSession || previewCycleActive) return;
+    if (previewCycleActive) return;
     previewCycleActive = true;
     clearTimeout(previewCycleTimer);
     previewCycleTimer = setTimeout(showNextPreview, 2000);
   }
 
   function showNextPreview() {
-    if (!previewBubble || previewDismissedForSession || widget.classList.contains("open")) return;
+    if (!previewBubble || widget.classList.contains("open")) return;
     const msg = previewMessages[Math.floor(Math.random() * previewMessages.length)];
     if (previewText) previewText.textContent = msg;
 
@@ -602,20 +593,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function initPreview() {
     if (!previewBubble) return;
-    try {
-      previewDismissedForSession =
-        sessionStorage.getItem(PREVIEW_DISMISS_KEY) === "1";
-    } catch {}
-    if (previewDismissedForSession) return;
     resumePreviewCycle();
-  }
-
-  if (previewBubble) {
-    previewBubble.addEventListener("click", function (e) {
-      e.stopPropagation();
-      hidePreview(true);
-      openChat();
-    });
   }
 
   /* ----- Sending messages (Gemini primary, local fallback silent) ----- */

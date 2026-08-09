@@ -397,52 +397,68 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/'/g, "&#39;");
   }
 
+  // Matches domain-like text even without a protocol (e.g.
+  // "youtube.com/c/ShivamsWorld"), restricted to a known-TLD allowlist to
+  // keep false positives (version numbers, "e.g.", etc.) rare. The
+  // negative lookbehind keeps it from grabbing the domain half of an
+  // email address.
+  const BARE_DOMAIN_RE =
+    /(?<!@)\b((?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|org|net|app|in|co|io|link|me)(?:\/[^\s<>"')\]]*)?)/gi;
+
   function renderRichText(rawText) {
     let safe = escapeHtml(rawText);
 
     // Links are converted first and swapped out for placeholder tokens, so
     // the bold/emphasis passes below can never match text inside a URL or
-    // inside an already-built <a> tag.
+    // inside an already-built <a> tag. Every link — whatever label the
+    // model gave it, or none at all — renders uniformly as "Click here"
+    // for a clean, consistent read-aloud experience too.
     const links = [];
-    function stashLink(html) {
+    function stashLink(url) {
       const token = "\u0000LINK" + links.length + "\u0000";
-      links.push(html);
+      links.push(url);
       return token;
     }
 
     // Markdown-style links: [label](https://example.com)
     safe = safe.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function (m, label, url) {
-      return stashLink(
-        '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + label + "</a>"
-      );
+      return stashLink(url);
     });
 
-    // Bare URLs not already wrapped above
+    // Bare URLs with an explicit protocol
     safe = safe.replace(/https?:\/\/[^\s<]+/g, function (url) {
       const trimmed = url.replace(/[.,;:!?)\]]+$/, ""); // drop trailing punctuation
       const trailing = url.slice(trimmed.length);
-      return (
-        stashLink(
-          '<a href="' + trimmed + '" target="_blank" rel="noopener noreferrer">' + trimmed + "</a>"
-        ) + trailing
-      );
+      return stashLink(trimmed) + trailing;
+    });
+
+    // Bare domains with no protocol at all
+    safe = safe.replace(BARE_DOMAIN_RE, function (m, domain) {
+      const trimmed = domain.replace(/[.,;:!?)\]]+$/, "");
+      const trailing = domain.slice(trimmed.length);
+      const url = /^https?:\/\//i.test(trimmed) ? trimmed : "https://" + trimmed;
+      return stashLink(url) + trailing;
     });
 
     safe = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     safe = safe.replace(/\*(.+?)\*/g, '<span class="ai-em">$1</span>');
 
     safe = safe.replace(/\u0000LINK(\d+)\u0000/g, function (m, i) {
-      return links[Number(i)];
+      return (
+        '<a href="' + links[Number(i)] + '" target="_blank" rel="noopener noreferrer">Click here</a>'
+      );
     });
 
     return safe;
   }
 
-  // Markdown markers are stripped entirely before text reaches
-  // speechSynthesis, so the assistant never reads out asterisks.
+  // Markdown markers and links are stripped/normalized before text reaches
+  // speechSynthesis — links are read as "Click here" rather than a raw URL.
   function stripMarkdown(rawText) {
     return rawText
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1")
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "Click here")
+      .replace(/https?:\/\/[^\s<]+/g, "Click here")
+      .replace(BARE_DOMAIN_RE, "Click here")
       .replace(/\*\*(.+?)\*\*/g, "$1")
       .replace(/\*(.+?)\*/g, "$1");
   }

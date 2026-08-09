@@ -329,7 +329,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleBtn = document.getElementById("aiToggleBtn");
   const chatWindow = document.getElementById("aiChatWindow");
   const closeBtn = document.getElementById("aiCloseBtn");
-  const readCtrl = document.getElementById("aiReadCtrl");
   const messagesEl = document.getElementById("aiChatMessages");
   const form = document.getElementById("aiChatForm");
   const input = document.getElementById("aiChatInput");
@@ -534,6 +533,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeChat() {
     widget.classList.remove("open");
     stopListening();
+    stopSpeaking();
     resumePreviewCycle();
   }
 
@@ -553,10 +553,11 @@ document.addEventListener("DOMContentLoaded", () => {
   /* ----- Preview bubble teaser (recurring, rotating messages) -----
      Paused whenever the panel is open, resumed on close. The show
      transition is retriggered by forcing a DOM reflow between
-     removing and re-adding the "show" class, so the fade-in fires
-     reliably even if the previous cycle's transition hadn't fully
-     settled. ----- */
+     removing and re-adding the "show" class, then waiting a frame
+     before re-adding it, so the fade-in fires reliably even if the
+     previous cycle's transition hadn't fully settled. ----- */
   let previewCycleTimer = null;
+  let previewCycleActive = false;
   let previewDismissedForSession = false;
 
   function hidePreview(permanent) {
@@ -572,15 +573,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function stopPreviewCycle() {
-    if (previewCycleTimer) {
-      clearTimeout(previewCycleTimer);
-      previewCycleTimer = null;
-    }
+    previewCycleActive = false;
+    clearTimeout(previewCycleTimer);
+    previewCycleTimer = null;
   }
 
   function resumePreviewCycle() {
-    if (previewDismissedForSession || previewCycleTimer) return;
-    previewCycleTimer = setTimeout(showNextPreview, 15000);
+    if (previewDismissedForSession || previewCycleActive) return;
+    previewCycleActive = true;
+    clearTimeout(previewCycleTimer);
+    previewCycleTimer = setTimeout(showNextPreview, 2000);
   }
 
   function showNextPreview() {
@@ -588,16 +590,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const msg = previewMessages[Math.floor(Math.random() * previewMessages.length)];
     if (previewText) previewText.textContent = msg;
 
-    // Force a reflow between removing and re-adding "show" so the fade-in
-    // transition reliably retriggers even mid-cycle.
     previewBubble.classList.remove("show");
-    void previewBubble.offsetWidth;
-    previewBubble.classList.add("show");
+    void previewBubble.offsetWidth; // force reflow so the browser paints the "before" state first
+    requestAnimationFrame(() => previewBubble.classList.add("show"));
 
     previewCycleTimer = setTimeout(function () {
       previewBubble.classList.remove("show");
-      previewCycleTimer = setTimeout(showNextPreview, 15000);
-    }, 5000);
+      previewCycleTimer = setTimeout(showNextPreview, 3000);
+    }, 4000);
   }
 
   function initPreview() {
@@ -607,7 +607,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sessionStorage.getItem(PREVIEW_DISMISS_KEY) === "1";
     } catch {}
     if (previewDismissedForSession) return;
-    previewCycleTimer = setTimeout(showNextPreview, 1500);
+    resumePreviewCycle();
   }
 
   if (previewBubble) {
@@ -773,160 +773,191 @@ document.addEventListener("DOMContentLoaded", () => {
   })();
 
   /* ---------------------------------------------------------
-     Read aloud (Web Speech Synthesis) — single control, header-
-     mounted, mirroring MediHome: one button that shows a Pause
-     icon while the latest reply is being read, and swaps to a
-     Replay icon once paused or finished. It's hidden entirely
-     until there's something to control.
+     Read aloud (Web Speech Synthesis) — two separate header
+     controls, mirroring MediHome exactly:
+       - a Pause/Play TOGGLE (icon swaps in place) that's only
+         ever visible while a reply is actively being read or
+         sits paused mid-way through
+       - a separate REPLAY button that only appears once a reply
+         has finished naturally on its own (never while paused)
+     These are mutually exclusive by construction: starting/
+     resuming a reading hides Replay and shows the toggle as
+     Pause; pausing keeps Replay hidden and flips the toggle to
+     Play; finishing naturally hides the toggle and shows Replay.
 
      Deliberately avoids native pause()/resume() — unreliable,
      especially on mobile where resume() is known to silently
      fail. Instead: pausing fully cancels the utterance (position
      is preserved), and resuming starts a brand-new utterance from
-     that tracked character position. Replaying (after a message
-     finished naturally) starts over from position 0.
+     that tracked character position.
 
      Position is tracked two ways: word-boundary events where the
      browser fires them, and a time-elapsed character-rate
-     estimate (~15 chars/sec) as a universal fallback, since mobile
+     estimate (~15 chars/sec) as a fallback/floor, since mobile
      browsers often never fire boundary events at all.
 
-     A generation counter guards against stale, late-firing
-     callbacks from an already-abandoned utterance corrupting the
-     UI state. The target message + position persist in memory
-     independent of playback state, so they survive closing and
-     reopening the panel.
+     A generation counter plus handler-nulling on every cancel
+     guards against stale, late-firing callbacks from an already-
+     abandoned utterance corrupting the UI state. The last reply's
+     text persists independent of playback state, so Replay still
+     works after closing and reopening the panel.
   --------------------------------------------------------- */
+  const speechToggleBtn = document.getElementById("aiSpeechToggle");
+  const replayBtn = document.getElementById("aiReplayBtn");
   const CHARS_PER_SEC = 15;
-  let ttsGen = 0;
-  let readMsg = null; // the message object currently under control
-  let readPos = 0; // chars already spoken, for pause/resume
-  let readState = "idle"; // idle | reading | paused | done
-  let readTimer = null;
 
-  function clearReadTimer() {
-    if (readTimer) {
-      clearInterval(readTimer);
-      readTimer = null;
+  let speechFullText = "";
+  let speechCharIndex = 0;
+  let speechPaused = false;
+  let speechStartTime = 0;
+  let speechStartIndex = 0;
+  let speechGen = 0; // bumped on every deliberate interruption/new utterance
+  let currentUtterance = null; // handlers nulled whenever we cancel deliberately
+  let lastReplyPlainText = ""; // persists across stop/close, unlike the vars above
+
+  function detachCurrentUtterance() {
+    if (currentUtterance) {
+      currentUtterance.onstart = null;
+      currentUtterance.onend = null;
+      currentUtterance.onerror = null;
+      currentUtterance.onboundary = null;
+      currentUtterance = null;
     }
   }
 
-  function updateReadCtrlUI() {
-    if (!readCtrl) return;
-    if (readState === "idle" || !ttsSupported) {
-      readCtrl.hidden = true;
-      return;
-    }
-    readCtrl.hidden = false;
-    if (readState === "reading") {
-      readCtrl.classList.add("reading");
-      readCtrl.innerHTML = '<i class="fa fa-pause"></i>';
-      readCtrl.title = "Pause";
-      readCtrl.setAttribute("aria-label", "Pause reading");
-    } else {
-      readCtrl.classList.remove("reading");
-      readCtrl.innerHTML = '<i class="fa fa-refresh"></i>';
-      readCtrl.title = "Replay";
-      readCtrl.setAttribute("aria-label", "Replay last reply");
-    }
+  function setSpeechToggle(visible, paused) {
+    if (!speechToggleBtn) return;
+    speechToggleBtn.hidden = !visible;
+    speechToggleBtn.classList.toggle("active", visible && !paused);
+    speechToggleBtn.innerHTML = paused
+      ? '<i class="fa fa-play"></i>'
+      : '<i class="fa fa-pause"></i>';
+    speechToggleBtn.title = paused ? "Resume reading" : "Pause reading";
+    speechToggleBtn.setAttribute("aria-label", paused ? "Resume reading" : "Pause reading");
   }
 
-  function speakFrom(msg, fromChar) {
+  function setReplayVisible(visible) {
+    if (replayBtn) replayBtn.hidden = !visible;
+  }
+
+  function speakFrom(charIndex) {
     if (!ttsSupported) return;
-    ttsGen++; // invalidate any in-flight callbacks from a prior utterance
-    clearReadTimer();
-    window.speechSynthesis.cancel();
-
-    const plain = stripMarkdown(msg.text);
-    const startPos = Math.min(Math.max(fromChar, 0), plain.length);
-    const remaining = plain.slice(startPos);
-
-    readMsg = msg;
-    readPos = startPos;
-
+    const remaining = speechFullText.slice(charIndex);
     if (!remaining) {
-      readState = "done";
-      readPos = 0;
-      updateReadCtrlUI();
+      setSpeechToggle(false);
       return;
     }
-
-    const myGen = ttsGen;
+    const myGen = ++speechGen; // this utterance's own identity
     const utter = new SpeechSynthesisUtterance(remaining);
+    currentUtterance = utter;
     utter.rate = 1;
     utter.pitch = 1;
 
     let boundaryFired = false;
-    const startedAt = performance.now();
-
-    readTimer = setInterval(function () {
-      if (myGen !== ttsGen) return;
-      if (boundaryFired) return; // trust real boundary events once they start firing
-      const elapsed = (performance.now() - startedAt) / 1000;
-      readPos = Math.min(startPos + Math.floor(elapsed * CHARS_PER_SEC), plain.length);
-    }, 200);
 
     utter.onboundary = function (e) {
-      if (myGen !== ttsGen) return;
+      if (myGen !== speechGen) return; // a later utterance has since taken over
       boundaryFired = true;
       if (typeof e.charIndex === "number") {
-        readPos = Math.min(startPos + e.charIndex, plain.length);
+        speechCharIndex = charIndex + e.charIndex;
       }
+    };
+
+    utter.onstart = function () {
+      if (myGen !== speechGen) return;
+      speechStartTime = Date.now();
+      speechStartIndex = charIndex;
+      setSpeechToggle(true, false);
+      setReplayVisible(false); // pause/play takes over while actively reading
     };
 
     utter.onend = function () {
-      if (myGen !== ttsGen) return; // stale callback from an abandoned utterance
-      clearReadTimer();
-      readState = "done";
-      readPos = 0;
-      updateReadCtrlUI();
+      if (myGen !== speechGen) return; // stale — cancel() likely triggered this late
+      if (!speechPaused) {
+        setSpeechToggle(false);
+        setReplayVisible(true); // finished naturally
+      }
     };
 
     utter.onerror = function () {
-      if (myGen !== ttsGen) return;
-      clearReadTimer();
-      readState = "paused";
-      updateReadCtrlUI();
+      if (myGen !== speechGen) return;
+      if (!speechPaused) setSpeechToggle(false);
     };
 
-    readState = "reading";
-    updateReadCtrlUI();
+    // Fallback position tracking for browsers that never fire onboundary
+    // (common on mobile) — a rough time-elapsed estimate acts as a floor.
+    const startedAt = performance.now();
+    const fallbackTimer = setInterval(function () {
+      if (myGen !== speechGen) {
+        clearInterval(fallbackTimer);
+        return;
+      }
+      if (boundaryFired) return; // trust real boundary events once they start firing
+      const elapsed = (performance.now() - startedAt) / 1000;
+      speechCharIndex = Math.max(
+        speechCharIndex,
+        charIndex + Math.floor(elapsed * CHARS_PER_SEC)
+      );
+    }, 200);
+    utter.addEventListener("end", () => clearInterval(fallbackTimer));
+    utter.addEventListener("error", () => clearInterval(fallbackTimer));
+
     window.speechSynthesis.speak(utter);
   }
 
-  function pauseReading() {
-    if (!ttsSupported || readState !== "reading") return;
-    ttsGen++; // invalidate callbacks from the utterance we're about to kill
-    clearReadTimer();
-    window.speechSynthesis.cancel();
-    readState = "paused";
-    updateReadCtrlUI();
+  function speakAssistantReply(text) {
+    if (!ttsSupported) return; // not supported — silently skip
+    speechGen++; // invalidate whatever utterance was previously in flight
+    detachCurrentUtterance();
+    window.speechSynthesis.cancel(); // don't overlap with a previous reply still speaking
+    speechFullText = text;
+    speechCharIndex = 0;
+    speechPaused = false;
+    speakFrom(0);
   }
 
   function startReading(msg) {
-    speakFrom(msg, 0);
+    lastReplyPlainText = stripMarkdown(msg.text);
+    speakAssistantReply(lastReplyPlainText);
+  }
+
+  function toggleAssistantSpeech() {
+    if (!ttsSupported) return;
+    if (!speechPaused) {
+      // Estimate progress from elapsed time as a floor — onboundary alone
+      // isn't enough since mobile browsers frequently never fire it.
+      const elapsedSec = (Date.now() - speechStartTime) / 1000;
+      const estimatedIndex = speechStartIndex + Math.floor(elapsedSec * CHARS_PER_SEC);
+      speechCharIndex = Math.max(speechCharIndex, estimatedIndex);
+      speechPaused = true;
+      speechGen++; // invalidate the utterance we're about to cancel
+      detachCurrentUtterance();
+      window.speechSynthesis.cancel(); // instant and reliable, unlike pause()
+      setSpeechToggle(true, true); // must be last — nothing above can override it
+    } else {
+      speechPaused = false;
+      speakFrom(speechCharIndex); // fresh utterance from where we left off
+    }
+  }
+
+  function replayLastAssistantReply() {
+    if (!lastReplyPlainText) return;
+    speakAssistantReply(lastReplyPlainText); // resets all playback state, same as any new reply
   }
 
   function stopSpeaking() {
-    if (!ttsSupported) return;
-    ttsGen++;
-    clearReadTimer();
-    window.speechSynthesis.cancel();
-    if (readState === "reading") readState = "paused";
-    updateReadCtrlUI();
+    speechGen++; // invalidate any utterance still in flight
+    detachCurrentUtterance();
+    if (ttsSupported) window.speechSynthesis.cancel();
+    speechPaused = false;
+    speechFullText = "";
+    speechCharIndex = 0;
+    setSpeechToggle(false);
+    setReplayVisible(false);
   }
 
-  if (readCtrl) {
-    readCtrl.addEventListener("click", function () {
-      if (readState === "reading") {
-        pauseReading();
-      } else if (readState === "paused" && readMsg) {
-        speakFrom(readMsg, readPos);
-      } else if (readState === "done" && readMsg) {
-        speakFrom(readMsg, 0);
-      }
-    });
-  }
+  if (speechToggleBtn) speechToggleBtn.addEventListener("click", toggleAssistantSpeech);
+  if (replayBtn) replayBtn.addEventListener("click", replayLastAssistantReply);
 
   /* ----- Init ----- */
   initPreview();

@@ -372,10 +372,17 @@ document.addEventListener("DOMContentLoaded", () => {
     measure();
     window.addEventListener("resize", measure);
     window.addEventListener("orientationchange", measure);
-    // Header height can change when the mobile nav wraps/opens.
+    // Header height can change when the mobile nav wraps/opens. The same
+    // observer also closes the assistant the moment the nav opens, so the
+    // panel never sits half-visible behind the full-screen nav overlay.
     const nav = document.getElementById("mainNav");
     if (nav) {
-      const obs = new MutationObserver(measure);
+      const obs = new MutationObserver(function () {
+        measure();
+        if (nav.classList.contains("show") && widget.classList.contains("open")) {
+          closeChat();
+        }
+      });
       obs.observe(nav, { attributes: true, attributeFilter: ["class"] });
     }
     setTimeout(measure, 400); // catch late font/layout shifts

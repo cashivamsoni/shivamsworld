@@ -990,7 +990,7 @@ p.ftsmall {
   opacity: 0;
   transform: translateY(8px) scale(0.95);
   pointer-events: none;
-  transition: opacity 0.35s ease, transform 0.35s ease;
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 #aiPreviewBubble::after {
@@ -1020,8 +1020,7 @@ p.ftsmall {
   right: 20px;
   width: 340px;
   max-width: calc(100vw - 32px);
-  height: 400px;
-  max-height: calc(100vh - var(--header-h) - 170px);
+  max-height: min(420px, calc(100vh - 150px - var(--header-h, 64px) - 16px));
   background: var(--card);
   border-radius: 20px;
   border: 1px solid rgba(0,0,0,0.06);
@@ -1080,10 +1079,11 @@ p.ftsmall {
   transition: background 0.2s ease;
 }
 #aiChatHeaderActions button:hover { background: rgba(0,0,0,0.1); }
-#aiReadCtrl.reading { color: var(--primary); }
+#aiSpeechToggle.active { color: var(--primary); }
 
 #aiChatMessages {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 16px;
@@ -1242,8 +1242,7 @@ p.ftsmall {
     right: 16px;
     bottom: 150px;
     width: calc(100vw - 32px);
-    height: min(58vh, 440px);
-    max-height: calc(100vh - var(--header-h) - 160px);
+    max-height: min(420px, calc(100vh - 150px - var(--header-h, 64px) - 16px));
   }
   #aiPreviewBubble { max-width: calc(100vw - 80px); }
   #aiPreviewBubble p { white-space: normal; }

@@ -399,15 +399,52 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderRichText(rawText) {
     let safe = escapeHtml(rawText);
+
+    // Links are converted first and swapped out for placeholder tokens, so
+    // the bold/emphasis passes below can never match text inside a URL or
+    // inside an already-built <a> tag.
+    const links = [];
+    function stashLink(html) {
+      const token = "\u0000LINK" + links.length + "\u0000";
+      links.push(html);
+      return token;
+    }
+
+    // Markdown-style links: [label](https://example.com)
+    safe = safe.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function (m, label, url) {
+      return stashLink(
+        '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + label + "</a>"
+      );
+    });
+
+    // Bare URLs not already wrapped above
+    safe = safe.replace(/https?:\/\/[^\s<]+/g, function (url) {
+      const trimmed = url.replace(/[.,;:!?)\]]+$/, ""); // drop trailing punctuation
+      const trailing = url.slice(trimmed.length);
+      return (
+        stashLink(
+          '<a href="' + trimmed + '" target="_blank" rel="noopener noreferrer">' + trimmed + "</a>"
+        ) + trailing
+      );
+    });
+
     safe = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     safe = safe.replace(/\*(.+?)\*/g, '<span class="ai-em">$1</span>');
+
+    safe = safe.replace(/\u0000LINK(\d+)\u0000/g, function (m, i) {
+      return links[Number(i)];
+    });
+
     return safe;
   }
 
   // Markdown markers are stripped entirely before text reaches
   // speechSynthesis, so the assistant never reads out asterisks.
   function stripMarkdown(rawText) {
-    return rawText.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1");
+    return rawText
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1");
   }
 
   /* ---------------------------------------------------------
@@ -543,9 +580,18 @@ document.addEventListener("DOMContentLoaded", () => {
   if (closeBtn) closeBtn.addEventListener("click", closeChat);
 
   // Click outside the chat window (and outside the toggle button) closes it.
+  // Uses composedPath() rather than chatWindow.contains(e.target): some
+  // in-header buttons (e.g. the speech toggle) replace their own innerHTML
+  // in response to this same click, which can detach e.target from the DOM
+  // before the event finishes bubbling here. composedPath() reflects the
+  // event's original path and isn't affected by that later mutation.
   document.addEventListener("click", function (e) {
     if (!widget.classList.contains("open")) return;
-    if (chatWindow.contains(e.target) || toggleBtn.contains(e.target)) return;
+    const path = typeof e.composedPath === "function" ? e.composedPath() : null;
+    const insideChat = path
+      ? path.includes(chatWindow) || path.includes(toggleBtn)
+      : chatWindow.contains(e.target) || toggleBtn.contains(e.target);
+    if (insideChat) return;
     closeChat();
   });
 

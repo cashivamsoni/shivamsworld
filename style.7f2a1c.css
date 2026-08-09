@@ -1116,6 +1116,15 @@ p.ftsmall {
 
 .ai-msg-bot strong { font-weight: 700; }
 .ai-msg-bot .ai-em { font-weight: 600; }
+.ai-msg-bot a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  word-break: break-word;
+}
+.ai-msg-bot a:hover { color: var(--primary-dark); }
+[data-theme="dark"] .ai-msg-bot a { color: #cbb3ff; }
+[data-theme="dark"] .ai-msg-bot a:hover { color: #e6d9ff; }
 
 .ai-msg-user {
   align-self: flex-end;

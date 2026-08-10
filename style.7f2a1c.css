@@ -990,7 +990,7 @@ p.ftsmall {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  border: none;
+  border: 2px solid rgba(255,255,255,0.7);
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #fff;
   font-size: 22px;
@@ -1296,6 +1296,7 @@ p.ftsmall {
 [data-theme="dark"] #aiMicBtn { background: #150027; border-color: rgba(160,110,255,0.3); color: #cbb3ff; }
 
 @media (max-width: 700px) {
+  #floralMenu { right: 16px; }
   #aiWidget { bottom: 70px; right: 16px; }
   #aiChatWindow {
     right: 16px;

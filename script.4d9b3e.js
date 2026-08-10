@@ -448,18 +448,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const BARE_DOMAIN_RE =
     /(?<!@)\b((?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|org|net|app|in|co|io|link|me)(?:\/[^\s<>"')\]]*)?)/gi;
 
+  const EMAIL_RE = /[\w.+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+/gi;
+
+  // Matches "+91 9005325544", "+919005325544" (no separator), or a bare
+  // 10-digit "9005325544". The two-alternative form (rather than an optional
+  // country-code group) is needed because \b doesn't exist between two
+  // adjacent digits, so a single pattern can't cleanly handle "no separator".
+  const PHONE_RE = /\+\d{1,3}[\s-]?\d{10}\b|\b\d{10}\b/g;
+
   function renderRichText(rawText) {
     let safe = escapeHtml(rawText);
 
     // Links are converted first and swapped out for placeholder tokens, so
     // the bold/emphasis passes below can never match text inside a URL or
-    // inside an already-built <a> tag. Every link — whatever label the
-    // model gave it, or none at all — renders uniformly as "Click here"
-    // for a clean, consistent read-aloud experience too.
+    // inside an already-built <a> tag. Generic web links render uniformly
+    // as "Click here" for a clean, consistent read-aloud experience; phone
+    // numbers and email addresses instead keep their own text as the label,
+    // since the actual number/address is the useful part there.
     const links = [];
-    function stashLink(url) {
+    function stashLink(url, label) {
       const token = "\u0000LINK" + links.length + "\u0000";
-      links.push(url);
+      links.push({ url: url, label: label || "Click here" });
       return token;
     }
 
@@ -475,6 +484,12 @@ document.addEventListener("DOMContentLoaded", () => {
       return stashLink(trimmed) + trailing;
     });
 
+    // Email addresses — converted (and stashed) before the bare-domain pass
+    // below, so "gmail.com" isn't left behind as a separate, broken link.
+    safe = safe.replace(EMAIL_RE, function (email) {
+      return stashLink("mailto:" + email, email);
+    });
+
     // Bare domains with no protocol at all
     safe = safe.replace(BARE_DOMAIN_RE, function (m, domain) {
       const trimmed = domain.replace(/[.,;:!?)\]]+$/, "");
@@ -483,13 +498,20 @@ document.addEventListener("DOMContentLoaded", () => {
       return stashLink(url) + trailing;
     });
 
+    // Phone numbers
+    safe = safe.replace(PHONE_RE, function (phone) {
+      const digits = phone.replace(/[^\d+]/g, "");
+      return stashLink("tel:" + digits, phone);
+    });
+
     safe = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     safe = safe.replace(/\*(.+?)\*/g, '<span class="ai-em">$1</span>');
 
     safe = safe.replace(/\u0000LINK(\d+)\u0000/g, function (m, i) {
-      return (
-        '<a href="' + links[Number(i)] + '" target="_blank" rel="noopener noreferrer">Click here</a>'
-      );
+      const link = links[Number(i)];
+      const isWebLink = /^https?:\/\//i.test(link.url);
+      const attrs = isWebLink ? ' target="_blank" rel="noopener noreferrer"' : "";
+      return '<a href="' + link.url + '"' + attrs + ">" + link.label + "</a>";
     });
 
     return safe;

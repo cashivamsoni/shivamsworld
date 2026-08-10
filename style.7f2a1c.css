@@ -163,8 +163,8 @@ nav a {
   border-radius: 20px;
   width: 220px;
   text-align: center;
-  font-weight: 500;
   font: inherit;
+  font-weight: 700;
   cursor: pointer;
   border: 2px solid rgba(111,0,255,0.2);
   box-shadow: 0 0 8px rgba(255,255,255,0.5);
@@ -315,7 +315,8 @@ nav a:hover {
 }
 
 h1 { margin: 0 0 12px 0; color: var(--primary); }
-h2 { margin: 0 0 10px 0; color: var(--primary-dark); font-family: 'DM Serif Display', serif; font-weight: 400; }
+h1 { font-family: 'DM Serif Display', serif; font-weight: 400; }
+h2 { margin: 0 0 10px 0; color: var(--primary-dark); }
 h3 { color: var(--primary-dark); }
 
 /* ---------- Typography helpers ---------- */
@@ -1003,7 +1004,7 @@ p.ftsmall {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease-out, box-shadow 0.3s ease, background 0.15s ease-out;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out, background 0.15s ease-out;
 }
 
 #aiToggleBtn:hover {

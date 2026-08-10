@@ -17,7 +17,7 @@
   --btn-text: #fff;
   --gap: 12px;
   --header-h: 64px;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
 * { box-sizing: border-box; }
@@ -55,7 +55,9 @@ header {
 header h1 {
   margin: 0;
   color: #fff;
-  font-size: 21px;
+  font-family: 'DM Serif Display', serif;
+  font-weight: 400;
+  font-size: 26px;
   text-shadow: 0 0 10px rgba(255,255,255,0.6);
   flex: 1;
 }
@@ -237,6 +239,7 @@ nav a {
 
 [data-theme="dark"] #floralMain:hover,
 [data-theme="dark"] .petal:hover,
+[data-theme="dark"] #topBtn:hover,
 [data-theme="dark"] #aiToggleBtn:hover {
   background: linear-gradient(135deg, #a10e63, #4b0091);
 }
@@ -312,7 +315,7 @@ nav a:hover {
 }
 
 h1 { margin: 0 0 12px 0; color: var(--primary); }
-h2 { margin: 0 0 10px 0; color: var(--primary-dark); }
+h2 { margin: 0 0 10px 0; color: var(--primary-dark); font-family: 'DM Serif Display', serif; font-weight: 400; }
 h3 { color: var(--primary-dark); }
 
 /* ---------- Typography helpers ---------- */
@@ -881,6 +884,7 @@ p.ftsmall {
 }
 
 #topBtn:hover {
+  background: linear-gradient(135deg, var(--secondary-pink), var(--primary));
   transform: translateY(-3px) scale(1.1);
   box-shadow: 0 0 22px rgba(255,255,255,0.8);
 }
@@ -1003,6 +1007,7 @@ p.ftsmall {
 }
 
 #aiToggleBtn:hover {
+  background: linear-gradient(135deg, var(--secondary-pink), var(--primary));
   transform: scale(1.08);
   box-shadow: 0 6px 22px rgba(111,0,255,0.65);
 }

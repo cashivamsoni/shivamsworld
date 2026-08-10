@@ -239,7 +239,7 @@
   window.addEventListener("scroll", function () {
     topBtn.style.display =
       document.body.scrollTop > 120 || document.documentElement.scrollTop > 120
-        ? "block"
+        ? "flex"
         : "none";
   });
 

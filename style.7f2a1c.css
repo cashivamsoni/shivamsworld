@@ -100,7 +100,7 @@ header:has(#mainNav.show) #headerBrand {
   flex-shrink: 0;
   padding: 0;
   box-shadow: 0 0 10px rgba(255,255,255,0.6);
-  transition: all 0.4s ease;
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease, background 0.15s ease-out;
 }
 
 #menuToggle span {
@@ -151,8 +151,7 @@ nav.show {
   gap: 8px;
 }
 
-nav a,
-nav #themeToggle {
+nav a {
   display: block;
   padding: 5px 22px;
   color: var(--primary);
@@ -167,7 +166,7 @@ nav #themeToggle {
   cursor: pointer;
   border: 2px solid rgba(111,0,255,0.2);
   box-shadow: 0 0 8px rgba(255,255,255,0.5);
-  transition: all 0.4s ease;
+  transition: transform 0.15s ease-out, background 0.15s ease-out, box-shadow 0.3s ease, color 0.15s ease-out;
 }
 
 /* =========================================================
@@ -229,16 +228,15 @@ nav #themeToggle {
 }
 
 [data-theme="dark"] .btn-inline,
-[data-theme="dark"] #topBtn {
+[data-theme="dark"] #topBtn,
+[data-theme="dark"] #floralMain,
+[data-theme="dark"] .petal {
   background: linear-gradient(135deg, #4b0091, #2d0057);
 }
 
-[data-theme="dark"] #shareBtn {
+[data-theme="dark"] #floralMain:hover,
+[data-theme="dark"] .petal:hover {
   background: linear-gradient(135deg, #a10e63, #4b0091);
-}
-
-[data-theme="dark"] #CallNowBtn {
-  background: linear-gradient(135deg, #0f6b5e, #0a3e37);
 }
 
 [data-theme="dark"] .btn-inline:hover {
@@ -257,15 +255,13 @@ nav #themeToggle {
   color: #e6d9ff;
 }
 
-[data-theme="dark"] nav a,
-[data-theme="dark"] nav #themeToggle {
+[data-theme="dark"] nav a {
   background: rgba(50, 0, 110, 0.95);
   color: #e6d9ff;
   border-color: rgba(160,110,255,0.4);
 }
 
-nav a:hover,
-nav #themeToggle:hover {
+nav a:hover {
   color: #fff;
   background: var(--primary);
   box-shadow: 0 0 15px rgba(255,255,255,0.7);
@@ -465,7 +461,7 @@ p.ftsmall {
   border: 2px solid rgba(255,255,255,0.7);
   box-shadow: 0 0 14px rgba(255,255,255,0.5);
   cursor: pointer;
-  transition: all 0.5s ease;
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease, background 0.15s ease-out;
 }
 
 .btn-inline:hover {
@@ -877,7 +873,7 @@ p.ftsmall {
   font-size: 25px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.5s ease;
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease, background 0.15s ease-out;
 }
 
 #topBtn:hover {
@@ -885,52 +881,94 @@ p.ftsmall {
   box-shadow: 0 0 22px rgba(255,255,255,0.8);
 }
 
-/* ---------- Share Button ---------- */
-#shareBtn {
+/* ---------- Floral Quick Menu ---------- */
+#floralMenu {
   position: fixed;
-  bottom: 20px;
+  top: 50%;
   right: 20px;
-  padding: 10px 16px;
+  transform: translateY(-50%);
+  width: 56px;
+  height: 56px;
   z-index: 50;
-  border-radius: 15px;
+}
+
+#floralMain {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.7);
+  box-shadow: 0 0 15px rgba(255,255,255,0.5);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease, background 0.15s ease-out;
+  z-index: 2;
+}
+
+#floralMain:hover {
   background: linear-gradient(135deg, var(--secondary-pink), var(--primary));
+  transform: translateY(-3px) scale(1.1);
+  box-shadow: 0 0 20px rgba(255,255,255,0.8);
+}
+
+#floralMain i {
+  transition: transform 0.3s ease;
+}
+
+#floralMain[aria-expanded="true"] i {
+  transform: rotate(45deg);
+}
+
+.petal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #fff;
   border: 2px solid rgba(255,255,255,0.7);
-  box-shadow: 0 0 14px rgba(255,255,255,0.5);
-  font-size: 25px;
-  font-weight: 600;
+  box-shadow: 0 0 15px rgba(255,255,255,0.5);
+  font-size: 17px;
   cursor: pointer;
-  transition: all 0.5s ease;
-}
-
-#shareBtn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 22px rgba(255,255,255,0.8);
-}
-
-/* ---------- Call Now Button ---------- */
-#CallNowBtn {
-  position: fixed;
-  bottom: 85px;
-  right: 20px;
-  padding: 6px 16px;
-  z-index: 50;
-  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-decoration: none;
-  background: linear-gradient(135deg, var(--secondary-teal), #128c7e);
-  color: #fff;
-  border: 2px solid rgba(255,255,255,0.7);
-  box-shadow: 0 0 14px rgba(255,255,255,0.5);
-  font-size: 25px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.5s ease;
+  opacity: 0;
+  transform: translate(0, 0) scale(0.3);
+  transition: transform 0.15s ease-out, opacity 0.2s ease, box-shadow 0.3s ease, background 0.15s ease-out;
+  pointer-events: none;
+  z-index: 1;
 }
 
-#CallNowBtn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 0 22px rgba(255,255,255,0.8);
+.petal:hover {
+  background: linear-gradient(135deg, var(--secondary-pink), var(--primary));
+  box-shadow: 0 0 20px rgba(255,255,255,0.8);
 }
+
+#floralMenu.open .petal {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#floralMenu.open .petal:nth-child(2) { transition-delay: 0.02s; transform: translate(-14px, -73px) scale(1); }
+#floralMenu.open .petal:nth-child(3) { transition-delay: 0.05s; transform: translate(-68px, -32px) scale(1); }
+#floralMenu.open .petal:nth-child(4) { transition-delay: 0.08s; transform: translate(-68px, 32px) scale(1); }
+#floralMenu.open .petal:nth-child(5) { transition-delay: 0.11s; transform: translate(-14px, 74px) scale(1); }
+
+#floralMenu.open .petal:nth-child(2):hover { transform: translate(-14px, -76px) scale(1.1); }
+#floralMenu.open .petal:nth-child(3):hover { transform: translate(-68px, -35px) scale(1.1); }
+#floralMenu.open .petal:nth-child(4):hover { transform: translate(-68px, 29px) scale(1.1); }
+#floralMenu.open .petal:nth-child(5):hover { transform: translate(-14px, 71px) scale(1.1); }
 
 /* ---------- AI Assistant Widget ---------- */
 #aiWidget {
@@ -957,7 +995,7 @@ p.ftsmall {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease, background 0.15s ease-out;
 }
 
 #aiToggleBtn:hover {
@@ -1202,7 +1240,7 @@ p.ftsmall {
   cursor: pointer;
   flex-shrink: 0;
   font-size: 14px;
-  transition: all 0.25s ease;
+  transition: all 0.15s ease-out;
 }
 #aiMicBtn:hover { background: var(--primary); color: #fff; }
 #aiMicBtn.listening {
@@ -1227,7 +1265,7 @@ p.ftsmall {
   color: #fff;
   cursor: pointer;
   flex-shrink: 0;
-  transition: transform 0.25s ease;
+  transition: transform 0.15s ease-out;
 }
 #aiSendBtn:hover { transform: scale(1.08); }
 #aiSendBtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
@@ -1410,7 +1448,7 @@ footer a { color: #fff; }
   .video-main { max-width: 100%; }
   .videos-grid { grid-template-columns: 1fr; }
 
-  nav a, nav #themeToggle { width: 150px; padding: 5px 10px; font-size: 14px; }
+  nav a { width: 150px; padding: 5px 10px; font-size: 14px; }
 
   html { zoom: 0.9; }
 }

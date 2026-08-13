@@ -57,7 +57,7 @@ header h1 {
   color: #fff;
   font-family: 'DM Serif Display', serif;
   font-weight: 400;
-  font-size: 30px;
+  font-size: 34px;
   text-shadow: 0 0 10px rgba(255,255,255,0.6);
   flex: 1;
 }
@@ -389,23 +389,37 @@ p.ftsmall {
   width: 32px;
   height: 32px;
   background: linear-gradient(90deg, var(--secondary-red), var(--secondary-pink));
-  color: #FFF;
   border: 2px solid #fff;
   border-radius: 50%;
   padding: 0;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  line-height: 1;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
 }
 
+/* Thin, crisp cross drawn from two slim bars instead of the FontAwesome
+   glyph, which renders too thick/bold at small sizes. */
+#popupCloseUnique::before,
+#popupCloseUnique::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  background: #fff;
+  border-radius: 2px;
+}
+#popupCloseUnique::before { transform: translate(-50%, -50%) rotate(45deg); }
+#popupCloseUnique::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
 #popupCloseUnique:hover {
-  transform: scale(1.08);
+  transform: scale(1.1);
   box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+}
+#popupCloseUnique:active {
+  transform: scale(0.92);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
 
 /* ---------- Image Lightbox ---------- */
@@ -1141,11 +1155,28 @@ p.ftsmall {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, transform 0.15s ease-out;
 }
-#aiChatHeaderActions button:hover { background: rgba(255,255,255,0.3); }
+#aiChatHeaderActions button:hover { background: rgba(255,255,255,0.3); transform: scale(1.1); }
+#aiChatHeaderActions button:active { transform: scale(0.9); }
 #aiChatHeaderActions button[hidden] { display: none; }
 #aiSpeechToggle.active { background: rgba(255,255,255,0.35); }
+
+/* Thin, crisp cross for the close button, replacing the thick FA glyph. */
+#aiCloseBtn { position: relative; }
+#aiCloseBtn::before,
+#aiCloseBtn::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 13px;
+  height: 1.6px;
+  background: #fff;
+  border-radius: 2px;
+}
+#aiCloseBtn::before { transform: translate(-50%, -50%) rotate(45deg); }
+#aiCloseBtn::after { transform: translate(-50%, -50%) rotate(-45deg); }
 
 #aiChatMessages {
   flex: 1 1 auto;
@@ -1321,8 +1352,11 @@ p.ftsmall {
   #aiWidget { bottom: 70px; right: 16px; }
   #aiChatWindow {
     right: 16px;
+    left: auto;
     bottom: 70px;
-    width: calc(100vw - 32px);
+    /* Stay anchored to the right like a floating widget instead of
+       stretching edge-to-edge, which made it read as "stuck on the left". */
+    width: min(340px, calc(100vw - 56px));
     max-height: min(420px, calc(100vh - 70px - var(--header-h, 64px) - 16px));
   }
   #aiPreviewBubble { max-width: calc(100vw - 80px); }
@@ -1340,9 +1374,9 @@ p.ftsmall {
 
 @media (max-width: 420px) {
   #aiChatWindow {
-    right: 10px;
-    left: 10px;
-    width: auto;
+    right: 12px;
+    left: auto;
+    width: calc(100vw - 24px);
   }
 }
 
@@ -1478,7 +1512,7 @@ footer a { color: #fff; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 700px) {
-  header h1 { font-size: 20px; }
+  header h1 { font-size: 24px; }
   .container { padding: 12px; margin-top: 20px; }
   .video-main { max-width: 100%; }
   .videos-grid { grid-template-columns: 1fr; }

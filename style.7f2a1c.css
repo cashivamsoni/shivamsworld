@@ -57,7 +57,7 @@ header h1 {
   color: #fff;
   font-family: 'DM Serif Display', serif;
   font-weight: 400;
-  font-size: 26px;
+  font-size: 30px;
   text-shadow: 0 0 10px rgba(255,255,255,0.6);
   flex: 1;
 }
@@ -373,24 +373,39 @@ p.ftsmall {
 }
 
 #popupBoxUnique h1 {
-  font-size: 24px;
+  font-size: 30px;
+  color: var(--primary);
 }
 
 #popupBoxUnique h2 {
   font-size: 18px;
+  color: var(--primary);
 }
 
 #popupCloseUnique {
   position: absolute;
   top: 12px;
   right: 12px;
+  width: 32px;
+  height: 32px;
   background: linear-gradient(90deg, var(--secondary-red), var(--secondary-pink));
   color: #FFF;
   border: 2px solid #fff;
   border-radius: 50%;
-  padding: 2.5px 8px;
+  padding: 0;
   cursor: pointer;
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+#popupCloseUnique:hover {
+  transform: scale(1.08);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.3);
 }
 
 /* ---------- Image Lightbox ---------- */
@@ -1312,6 +1327,15 @@ p.ftsmall {
   }
   #aiPreviewBubble { max-width: calc(100vw - 80px); }
   #aiPreviewBubble p { white-space: normal; }
+
+  /* The launcher bubble shares the same bottom-right anchor as the chat
+     window, so once the panel is open it visually collides with it.
+     The chat header already has its own close button, so hide the
+     floating launcher (and any teaser bubble) while the panel is open. */
+  #aiWidget.open #aiToggleBtn,
+  #aiWidget.open #aiPreviewBubble {
+    display: none;
+  }
 }
 
 @media (max-width: 420px) {
@@ -1454,7 +1478,7 @@ footer a { color: #fff; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 700px) {
-  header h1 { font-size: 16px; }
+  header h1 { font-size: 20px; }
   .container { padding: 12px; margin-top: 20px; }
   .video-main { max-width: 100%; }
   .videos-grid { grid-template-columns: 1fr; }

@@ -57,7 +57,7 @@ header h1 {
   color: #fff;
   font-family: 'DM Serif Display', serif;
   font-weight: 400;
-  font-size: 34px;
+  font-size: 40px;
   text-shadow: 0 0 10px rgba(255,255,255,0.6);
   flex: 1;
 }
@@ -394,7 +394,6 @@ p.ftsmall {
   padding: 0;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
 }
 
 /* Thin, crisp cross drawn from two slim bars instead of the FontAwesome
@@ -412,26 +411,6 @@ p.ftsmall {
 }
 #popupCloseUnique::before { transform: translate(-50%, -50%) rotate(45deg); }
 #popupCloseUnique::after { transform: translate(-50%, -50%) rotate(-45deg); }
-
-#popupCloseUnique:hover {
-  transform: rotate(90deg);
-  box-shadow: 0 3px 12px rgba(0,0,0,0.3);
-}
-#popupCloseUnique:active {
-  transform: scale(0.92);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-}
-
-/* Click-driven spin: on touch devices the button closes the popup
-   instantly on tap, so there's no hover state to animate. This class
-   is added by JS just before closing, giving the spin time to play. */
-@keyframes popupCloseSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(180deg); }
-}
-#popupCloseUnique.is-closing {
-  animation: popupCloseSpin 0.22s ease-out forwards;
-}
 
 /* ---------- Image Lightbox ---------- */
 #imgLightboxOverlay {

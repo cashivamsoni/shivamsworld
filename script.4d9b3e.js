@@ -147,14 +147,8 @@
   // Close when clicking the X button
   if (closeBtn) {
     closeBtn.onclick = function () {
-      // Play the spin animation before actually hiding the popup; an
-      // instant display:none gives touch devices (no real hover state)
-      // no time to render any transition.
-      closeBtn.classList.add("is-closing");
-      setTimeout(function () {
-        overlay.style.display = "none";
-        document.body.style.overflow = "";
-      }, 200);
+      overlay.style.display = "none";
+      document.body.style.overflow = "";
     };
   }
 

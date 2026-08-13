@@ -414,7 +414,7 @@ p.ftsmall {
 #popupCloseUnique::after { transform: translate(-50%, -50%) rotate(-45deg); }
 
 #popupCloseUnique:hover {
-  transform: scale(1.1);
+  transform: rotate(90deg);
   box-shadow: 0 3px 12px rgba(0,0,0,0.3);
 }
 #popupCloseUnique:active {

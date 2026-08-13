@@ -422,6 +422,17 @@ p.ftsmall {
   box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
 
+/* Click-driven spin: on touch devices the button closes the popup
+   instantly on tap, so there's no hover state to animate. This class
+   is added by JS just before closing, giving the spin time to play. */
+@keyframes popupCloseSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(180deg); }
+}
+#popupCloseUnique.is-closing {
+  animation: popupCloseSpin 0.22s ease-out forwards;
+}
+
 /* ---------- Image Lightbox ---------- */
 #imgLightboxOverlay {
   display: none;

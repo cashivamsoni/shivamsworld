@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About Shivam Soni - Shivam's World</title>
+
+    <!-- Favicons -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/images/logo.png" />
+
+    <meta name="theme-color" content="#6f00ff" />
+
+    <meta name="keywords" content="Shivam Soni, About Shivam, CA Intermediate, BCom, Kanpur, Calligraphy, Front-End Developer, Content Creator, Shivam's World" />
+    <meta name="description" content="Get to know Shivam Soni - a CA Intermediate & BCom student from Kanpur, self-taught front-end developer, calligrapher, and the creator behind Shivam's World." />
+    <link rel="canonical" href="https://shivams-world.vercel.app/about" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="style.7f2a1c.css" />
+
+    <!-- Open Graph tags -->
+    <meta property="og:title" content="About Shivam Soni - Shivam's World" />
+    <meta property="og:description" content="Get to know Shivam Soni - a CA Intermediate & BCom student from Kanpur, self-taught front-end developer, calligrapher, and the creator behind Shivam's World." />
+    <meta property="og:image" content="https://shivams-world.vercel.app/images/logo.jpg" />
+    <meta property="og:url" content="https://shivams-world.vercel.app/about" />
+    <meta property="og:type" content="profile" />
+
+    <!-- ===== PAGE-SPECIFIC STYLES (extends the shared stylesheet's variables/patterns) ===== -->
+    <style>
+      /* ---- Hero ---- */
+      .about-hero {
+        display: flex;
+        gap: 34px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .about-hero-photo-wrap { flex: 0 0 240px; text-align: center; }
+      .about-hero-photo {
+        display: block;
+        width: 240px;
+        aspect-ratio: 4 / 5;
+        object-fit: cover;
+        object-position: center top;
+        border-radius: 20px;
+        border: 3px solid rgba(255,255,255,0.85);
+        box-shadow: 0 0 24px rgba(111,0,255,0.45), 0 10px 30px rgba(0,0,0,0.15);
+        margin: 0 auto 10px;
+        transition: transform 0.5s ease, box-shadow 0.5s ease;
+      }
+      .about-hero-photo:hover { transform: scale(1.04) rotate(-0.5deg); box-shadow: 0 0 30px var(--secondary-pink); }
+      .photo-caption { font-size: 13px; color: #666; }
+      [data-theme="dark"] .photo-caption { color: #cbb3ff; }
+      .about-hero-text { flex: 1; min-width: 260px; }
+      .eyebrow {
+        display: inline-block;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: #fff;
+        background: linear-gradient(90deg, var(--primary), var(--secondary-pink));
+        padding: 5px 14px;
+        border-radius: 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 0 10px rgba(255,255,255,0.5);
+      }
+      .about-hero-text h1 { font-size: 40px; }
+      .role-line {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary-dark);
+        margin: 4px 0 14px;
+      }
+      [data-theme="dark"] .role-line { color: #cbb3ff; }
+
+      /* ---- Snapshot stat cards ---- */
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+      .stat-card {
+        background: rgba(255,255,255,0.6);
+        border: 2px solid rgba(255,255,255,0.6);
+        box-shadow: 0 0 12px rgba(255,255,255,0.4);
+        border-radius: 14px;
+        padding: 14px 16px;
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .stat-card:hover { transform: translateY(-4px); box-shadow: 0 0 18px rgba(255,255,255,0.7); }
+      [data-theme="dark"] .stat-card { background: rgba(30,0,60,0.9); border-color: rgba(160,110,255,0.4); }
+      .stat-card .stat-icon { font-size: 22px; color: var(--primary); margin-bottom: 6px; }
+      [data-theme="dark"] .stat-card .stat-icon { color: #cbb3ff; }
+      .stat-card .stat-label { font-size: 12.5px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+      [data-theme="dark"] .stat-card .stat-label { color: #e6d9ff; }
+      .stat-card .stat-value { font-size: 15px; font-weight: 700; color: var(--primary-dark); margin-top: 3px; }
+      [data-theme="dark"] .stat-card .stat-value { color: #f0eaff; }
+
+      /* ---- Timeline ---- */
+      .timeline { position: relative; margin-top: 22px; padding-left: 26px; }
+      .timeline::before {
+        content: "";
+        position: absolute;
+        left: 6px;
+        top: 6px;
+        bottom: 6px;
+        width: 3px;
+        border-radius: 3px;
+        background: linear-gradient(180deg, var(--primary), var(--secondary-pink), var(--secondary-yellow));
+      }
+      .timeline-item { position: relative; padding: 0 0 26px 22px; }
+      .timeline-item:last-child { padding-bottom: 0; }
+      .timeline-item::before {
+        content: "";
+        position: absolute;
+        left: -26px;
+        top: 4px;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: #fff;
+        border: 3px solid var(--primary);
+        box-shadow: 0 0 8px rgba(111,0,255,0.6);
+      }
+      [data-theme="dark"] .timeline-item::before { background: #1c1c2e; border-color: #cbb3ff; }
+      .timeline-year {
+        display: inline-block;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #fff;
+        background: var(--primary);
+        padding: 2px 12px;
+        border-radius: 12px;
+        margin-bottom: 6px;
+      }
+      .timeline-item h3 { margin: 4px 0 4px; font-size: 18px; }
+      .timeline-item p { margin: 0; }
+
+      /* ---- Skills / What I Do (reuses .feature-card look) ---- */
+      .skills-intro { margin-bottom: 6px; }
+
+      /* ---- Personal details grid ---- */
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 14px;
+        margin-top: 18px;
+      }
+      .info-item {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        background: rgba(255,255,255,0.55);
+        border: 1.5px solid rgba(255,255,255,0.6);
+        border-radius: 14px;
+        padding: 12px 14px;
+      }
+      [data-theme="dark"] .info-item { background: rgba(30,0,60,0.75); border-color: rgba(160,110,255,0.35); }
+      .info-item i {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        font-size: 15px;
+      }
+      .info-item .info-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #666; font-weight: 700; }
+      [data-theme="dark"] .info-item .info-label { color: #cbb3ff; }
+      .info-item .info-value { font-size: 15.5px; font-weight: 600; color: #111; word-break: break-word; }
+      [data-theme="dark"] .info-item .info-value { color: #f0eaff; }
+      .info-item a.info-value { color: var(--primary-dark); text-decoration: none; }
+      [data-theme="dark"] .info-item a.info-value { color: #cbb3ff; }
+      .info-item a.info-value:hover { text-decoration: underline; }
+
+      /* ---- Goals / chip list ---- */
+      .chip-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--primary-dark);
+        background: rgba(255,255,255,0.75);
+        border: 1.5px solid rgba(111,0,255,0.25);
+        padding: 7px 14px;
+        border-radius: 20px;
+      }
+      [data-theme="dark"] .chip { background: rgba(160,110,255,0.15); color: #e6d9ff; border-color: rgba(160,110,255,0.4); }
+
+      /* ---- Quote block ---- */
+      .quote-block {
+        margin-top: 18px;
+        padding: 18px 22px;
+        border-left: 4px solid var(--primary);
+        background: rgba(255,255,255,0.5);
+        border-radius: 0 14px 14px 0;
+        font-family: 'DM Serif Display', serif;
+        font-size: 19px;
+        font-style: italic;
+        color: var(--primary-dark);
+      }
+      [data-theme="dark"] .quote-block { background: rgba(30,0,60,0.7); color: #e6d9ff; border-left-color: #cbb3ff; }
+
+      @media (max-width: 640px) {
+        .about-hero { text-align: center; justify-content: center; }
+        .about-hero-photo-wrap { flex: 0 0 auto; width: 100%; }
+        .about-hero-text h1 { font-size: 30px; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- ===== SNOWFALL ===== -->
+    <div aria-hidden="true" class="snowflakes">
+      <div class="snowflake">❅</div>
+      <div class="snowflake">❆</div>
+      <div class="snowflake">❅</div>
+      <div class="snowflake">❆</div>
+      <div class="snowflake">❅</div>
+      <div class="snowflake">❆</div>
+      <div class="snowflake">❅</div>
+      <div class="snowflake">❆</div>
+      <div class="snowflake">❅</div>
+    </div>
+
+    <!-- ===== HEADER ===== -->
+    <header>
+      <div id="headerBrand">
+        <div id="headerlogo">
+          <img src="https://yt3.ggpht.com/BhLXKi7aTZ4-IIw_9G3srLqh-QsE4uBxIAfIjAiZ4VEeb2DhURWjfqJUlQLRfMwapt329oed=s600-c-k-c0x00ffffff-no-rj-rp-mo" alt="Shivam's World Logo" width="55px" height="55px" style="border-radius:50%;border:2px solid #fff;box-shadow:0 0 10px #fff;">
+        </div>
+        <h1>Shivam's World</h1>
+      </div>
+      <button id="menuToggle" aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="mainNav" class="nav" aria-label="Main navigation">
+        <a href="/#home">Home</a>
+        <a href="/#about">About the Brand</a>
+        <a href="/about">About Shivam</a>
+        <a href="/#videos">Videos</a>
+        <a href="/#shorts">Shorts</a>
+        <a href="/#featured">Featured</a>
+        <a href="/#customised-orders">Customised Orders</a>
+        <a href="/#download-qr-codes">Download QR Codes</a>
+        <a href="/#contact">Contact</a>
+      </nav>
+    </header>
+
+    <!-- Image Lightbox -->
+    <div id="imgLightboxOverlay">
+      <div id="imgLightboxBox">
+        <button id="imgLightboxClose" aria-label="Close">×</button>
+        <img id="imgLightboxImg" src="" alt="">
+      </div>
+    </div>
+
+    <!-- ===== FIXED SOCIAL ICONS (LEFT) ===== -->
+    <div class="social-fixed">
+      <a href="https://www.youtube.com/c/ShivamsWorld" class="fa fa-youtube" target="_blank" rel="noopener" title="YouTube"></a>
+      <a href="https://www.facebook.com/shivamscreativeworld" class="fa fa-facebook" target="_blank" rel="noopener" title="Facebook"></a>
+      <a href="https://www.instagram.com/shivams.world" class="fa fa-instagram" target="_blank" rel="noopener" title="Instagram"></a>
+      <a href="https://www.linkedin.com/in/shivam-soni-ca-aspirant" class="fa fa-linkedin" target="_blank" rel="noopener" title="LinkedIn"></a>
+      <a href="https://wa.link/zvaoa9" class="fa fa-whatsapp" target="_blank" rel="noopener" title="WhatsApp"></a>
+    </div>
+
+    <!-- ===== FIXED RIGHT BUTTONS ===== -->
+    <button id="topBtn" aria-label="Scroll to top" title="Scroll to top"><i class="fa fa-arrow-up" aria-hidden="true"></i></button>
+
+    <!-- Floral Quick Menu -->
+    <div id="floralMenu">
+      <button id="floralMain" aria-label="Quick actions" aria-expanded="false">
+        <i class="fa fa-plus" aria-hidden="true"></i>
+      </button>
+      <button class="petal" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode"><i class="fa fa-moon-o" aria-hidden="true"></i></button>
+      <a class="petal" id="subscribeBtn" href="https://www.youtube.com/c/ShivamsWorld?sub_confirmation=1" target="_blank" rel="noopener" aria-label="Subscribe on YouTube" title="Subscribe on YouTube"><i class="fa fa-youtube-play" aria-hidden="true"></i></a>
+      <a class="petal" id="floralCallBtn" href="tel:+919005325544" aria-label="Call Now" title="Call Now"><i class="fa fa-phone" aria-hidden="true"></i></a>
+      <button class="petal" id="shareBtn" aria-label="Share" title="Share"><i class="fa fa-share-alt" aria-hidden="true"></i></button>
+    </div>
+
+    <main class="container">
+
+      <!-- ===== HERO ===== -->
+      <section id="hero" class="section card">
+        <div class="about-hero">
+          <div class="about-hero-photo-wrap">
+            <!-- Replace this src with your own photo, e.g. /images/shivam-about.jpg -->
+            <img src="https://placehold.co/480x600/5500cc/ffffff?text=Shivam+Soni" alt="Shivam Soni" class="about-hero-photo">
+            <p class="photo-caption">📍 Kanpur, Uttar Pradesh, India</p>
+          </div>
+          <div class="about-hero-text">
+            <span class="eyebrow">The Face Behind Shivam's World</span>
+            <h1>Hi, I'm Shivam Soni 👋</h1>
+            <p class="role-line">CA Intermediate & BCom Student · Self-Taught Front-End Developer · Content Creator</p>
+            <p class="small">
+              I'm a student from Kanpur who splits his time between balance sheets and brushstrokes. By day, I'm working toward becoming a Chartered Accountant; by night (and most weekends), I'm designing websites, practicing calligraphy, and building Shivam's World - a brand for everything I love to create. I believe discipline and creativity aren't opposites - they're the two halves that make good work possible.
+            </p>
+            <div style="margin-top:14px" class="flex">
+              <a class="btn-inline" href="https://wa.link/zvaoa9" target="_blank" rel="noopener">💬 Say Hello</a>
+              <a class="btn-inline" href="/#featured">See My Work</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fa fa-map-marker"></i></div>
+            <div class="stat-label">Based In</div>
+            <div class="stat-value">Kanpur, India</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fa fa-graduation-cap"></i></div>
+            <div class="stat-label">Studying</div>
+            <div class="stat-value">CA Intermediate & BCom</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fa fa-code"></i></div>
+            <div class="stat-label">Also Builds</div>
+            <div class="stat-value">Websites, Solo</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fa fa-pencil"></i></div>
+            <div class="stat-label">Calligrapher Since</div>
+            <div class="stat-value">2022</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== MY JOURNEY ===== -->
+      <section id="journey" class="section card">
+        <h1>🧭 My Journey</h1>
+        <p class="small">
+          Every skill on this page started as something I taught myself out of curiosity - and most of them are still growing. Here's a quick look at how the pieces came together.
+        </p>
+
+        <div class="timeline">
+          <div class="timeline-item">
+            <span class="timeline-year">School</span>
+            <h3>Topped Class 12</h3>
+            <p class="small">Finished my Class 12 at Laughing Buddha Academy as the top scorer in school, setting the tone for the discipline I carry into everything else I do.</p>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-year">2022</span>
+            <h3>Picked Up Calligraphy</h3>
+            <p class="small">Started practicing calligraphy as a hobby and slowly turned it into a craft people ask me to teach and create for.</p>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-year">2023</span>
+            <h3>Launched Shivam's World</h3>
+            <p class="small">Started my YouTube channel and creative brand to share calligraphy, DIYs, sketches, and handcrafted work with a wider audience.</p>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-year">Ongoing</span>
+            <h3>Taught Myself to Code</h3>
+            <p class="small">Learned front-end development on my own and now design and maintain every website under my name from scratch - including this one.</p>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-year">Ongoing</span>
+            <h3>Co-Founder, Babita Classes</h3>
+            <p class="small">Serve as Co-Founder and Online Editor of Babita Classes, a free, non-profit coaching initiative - handling its website and online presence.</p>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-year">Now</span>
+            <h3>CA Intermediate, Final Stretch</h3>
+            <p class="small">Currently preparing for my CA Intermediate exams while completing the third year of my BCom at CSJMU, Kanpur.</p>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-year">Next</span>
+            <h3>Starting Articleship</h3>
+            <p class="small">Aiming to begin my CA articleship before 31 October, with sights set on eventually working at Deloitte, Lucknow, and later pursuing an MBA in Finance.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== WHAT I DO ===== -->
+      <section id="skills" class="section card">
+        <h1>💡 What I Do</h1>
+        <p class="small skills-intro">Four things I spend most of my time on - and genuinely enjoy.</p><br>
+
+        <div class="feature-card">
+          <div class="feature-img">
+            <img src="https://placehold.co/500x500/6f00ff/ffffff?text=%3C%2F%3E" alt="Front-End Development">
+          </div>
+          <div class="feature-text">
+            <h2>Front-End Development</h2>
+            <p class="small">Self-taught and self-driven, I build and maintain multiple websites end-to-end - design, code, and deployment. I love solving everyday problems with code, and I'm building toward reusing my own codebase for ERP and automation tools once I'm articled as a CA.</p>
+          </div>
+        </div>
+
+        <div class="feature-card reverse">
+          <div class="feature-img">
+            <img src="https://placehold.co/500x500/24d0a8/ffffff?text=%E2%9C%92" alt="Calligraphy & Design">
+          </div>
+          <div class="feature-text">
+            <h2>Calligraphy & Design</h2>
+            <p class="small">Self-taught since 2022, calligraphy is where my patience and precision come together. It's often the first thing people compliment when they meet me - and one of the most satisfying things I make with my hands.</p>
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-img">
+            <img src="https://placehold.co/500x500/f418a0/ffffff?text=%E2%96%B6" alt="Content Creation">
+          </div>
+          <div class="feature-text">
+            <h2>Content Creation</h2>
+            <p class="small">I run Shivam's World on YouTube, turning DIYs, sketches, and craft projects into videos people can follow along with - from concept and filming to editing and publishing.</p>
+          </div>
+        </div>
+
+        <div class="feature-card reverse">
+          <div class="feature-img">
+            <img src="https://placehold.co/500x500/ffd31a/111111?text=%E2%82%B9" alt="Numbers & Finance">
+          </div>
+          <div class="feature-text">
+            <h2>Numbers & Finance</h2>
+            <p class="small">On the academic side, I'm working through CA Intermediate alongside my BCom, building the technical foundation for a career in accounting and finance - with Deloitte, Lucknow, as a goal after qualifying.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== BEYOND WORK ===== -->
+      <section id="beyond-work" class="section card">
+        <h1>🌏 Beyond Work</h1>
+        <p class="small">
+          When I'm not studying or building something, I'm usually planning the next place I want to see or the next idea I want to make. Travel is high on my list - I'd love to visit Tokyo, Paris, and explore more of the USA and Europe someday.
+        </p>
+        <div class="chip-row">
+          <span class="chip">✈️ Wants to visit Tokyo</span>
+          <span class="chip">✈️ Wants to visit Paris</span>
+          <span class="chip">✈️ Wants to explore the USA</span>
+          <span class="chip">✈️ Wants to explore Europe</span>
+        </div>
+        <div class="quote-block">
+          "Discipline gets the work done. Creativity makes it worth doing."
+        </div>
+      </section>
+
+      <!-- ===== GET TO KNOW ME ===== -->
+      <section id="details" class="section card">
+        <h1>📋 Get to Know Me</h1>
+        <p class="small">The quick facts, if you're curious.</p>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <i class="fa fa-user"></i>
+            <div>
+              <div class="info-label">Full Name</div>
+              <div class="info-value">Shivam Soni</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <i class="fa fa-birthday-cake"></i>
+            <div>
+              <div class="info-label">Birthday</div>
+              <div class="info-value">25 August</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <i class="fa fa-map-marker"></i>
+            <div>
+              <div class="info-label">Location</div>
+              <div class="info-value">Kanpur, Uttar Pradesh, India</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <i class="fa fa-graduation-cap"></i>
+            <div>
+              <div class="info-label">Education</div>
+              <div class="info-value">CA Intermediate · BCom (3rd Year), CSJMU Kanpur</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <i class="fa fa-briefcase"></i>
+            <div>
+              <div class="info-label">Also Working On</div>
+              <div class="info-value">Co-Founder & Online Editor, Babita Classes</div>
+            </div>
+          </div>
+          <div class="info-item">
+            <i class="fa fa-envelope"></i>
+            <div>
+              <div class="info-label">Email</div>
+              <a class="info-value" href="mailto:babitavrm60@gmail.com">babitavrm60@gmail.com</a>
+            </div>
+          </div>
+          <div class="info-item">
+            <i class="fa fa-phone"></i>
+            <div>
+              <div class="info-label">Phone</div>
+              <a class="info-value" href="tel:+919005325544">+91 90053 25544</a>
+            </div>
+          </div>
+          <div class="info-item">
+            <i class="fa fa-youtube-play"></i>
+            <div>
+              <div class="info-label">YouTube</div>
+              <a class="info-value" href="https://www.youtube.com/c/ShivamsWorld" target="_blank" rel="noopener">Shivam's World</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;text-align:center;">
+          <a class="btn-inline btn-order" href="https://wa.link/zvaoa9" target="_blank" rel="noopener">📩 Get in Touch</a>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer>
+      <section id="contact" class="contact">
+        <h1>Contact & Social</h1>
+        <p class="ftsmall">
+          <strong>Email</strong>: <a href="mailto:babitavrm60@gmail.com" style="color:#fff;">babitavrm60@gmail.com</a><br>
+          <strong>Call</strong>: <a href="tel:+919005325544" style="color:#fff;">+91 9005325544</a><br>
+          <strong>WhatsApp</strong>: <a href="https://wa.link/zvaoa9" style="color:#fff;">Click to Chat</a><br>
+          <strong>YouTube</strong>: <a href="https://www.youtube.com/c/ShivamsWorld" target="_blank" rel="noopener" style="color:#fff;">youtube.com/c/ShivamsWorld</a><br>
+          <strong>Facebook</strong>: <a href="https://www.facebook.com/shivamscreativeworld" target="_blank" rel="noopener" style="color:#fff;">facebook.com/shivamscreativeworld</a><br>
+          <strong>Instagram</strong>: <a href="https://www.instagram.com/shivams.world" target="_blank" rel="noopener" style="color:#fff;">instagram.com/shivamsworld</a>
+        </p>
+        <br>
+        <p style="font-size:13px;color:#fff;margin:0;text-align:center;">
+          &copy; Shivam's World 2021–2026. https://shivams-world.vercel.app/ All Rights Reserved. <br> Designed &amp; Developed by Shivam Soni. · <a href="https://wa.me/919005325544?text=Hi%20Shivam%2C%20I%20found%20an%20issue%20in%20Shivam%27s%20World%3A%20" target="_blank" rel="noopener">Report a bug</a>
+        </p>
+      </section>
+    </footer>
+
+    <script src="script.4d9b3e.js"></script>
+  </body>
+</html>

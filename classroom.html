@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shivam's Classroom - Live Classes &amp; Study Resources</title>
+
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/images/logo.png" />
+    <meta name="theme-color" content="#6f00ff" />
+    <meta name="description" content="Shivam's Classroom - free live classes on YouTube with PDF notes and revision charts for Class 12, B.Com, BBA and CA students." />
+    <link rel="canonical" href="https://shivams-world.vercel.app/classroom.html" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" href="style.7f2a1c.css" />
+
+    <meta property="og:title" content="Shivam's Classroom - Live Classes & Study Resources" />
+    <meta property="og:description" content="Free live classes on YouTube, PDF notes and revision charts." />
+    <meta property="og:image" content="https://shivams-world.vercel.app/images/logo.jpg" />
+    <meta property="og:url" content="https://shivams-world.vercel.app/classroom.html" />
+    <meta property="og:type" content="website" />
+
+    <style>
+      /* ===== Classroom page only - built on the existing site variables ===== */
+      .cr-left, .cr-left p { text-align: left; }
+      .cr-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+      .cr-chip {
+        padding: 5px 14px; border-radius: 20px; font-size: 14px; font-weight: 600;
+        background: rgba(111,0,255,0.1); color: var(--primary);
+        border: 1.5px solid rgba(111,0,255,0.25); cursor: default;
+      }
+      button.cr-chip { cursor: pointer; font-family: inherit; transition: background .2s, color .2s, transform .15s; }
+      button.cr-chip:hover { transform: translateY(-2px); }
+      button.cr-chip.active { background: linear-gradient(90deg, var(--primary), var(--primary-dark)); color: #fff; border-color: #fff; }
+
+      /* Live status */
+      .cr-status { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin: 6px 0 16px; }
+      .cr-badge {
+        display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 20px;
+        font-weight: 700; font-size: 15px; color: #fff; border: 2px solid #fff;
+        background: linear-gradient(90deg, #555, #333);
+      }
+      .cr-badge .dot { width: 10px; height: 10px; border-radius: 50%; background: #bbb; }
+      .cr-badge.live { background: linear-gradient(90deg, var(--secondary-red), var(--secondary-pink)); }
+      .cr-badge.live .dot { background: #fff; animation: crPulse 1.2s infinite; }
+      .cr-badge.soon { background: linear-gradient(90deg, var(--primary), var(--primary-dark)); }
+      @keyframes crPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,.8); } 50% { box-shadow: 0 0 0 7px rgba(255,255,255,0); } }
+
+      .cr-countdown { display: flex; gap: 10px; }
+      .cr-countdown div {
+        min-width: 62px; text-align: center; padding: 8px 6px; border-radius: 12px;
+        background: rgba(111,0,255,0.08); border: 1.5px solid rgba(111,0,255,0.2);
+      }
+      .cr-countdown b { display: block; font-size: 22px; color: var(--primary); font-family: 'DM Serif Display', serif; font-weight: 400; }
+      .cr-countdown span { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #555; }
+      .cr-next-title { font-weight: 600; font-size: 17px; margin: 0; }
+
+      .cr-live-grid { display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start; }
+      .cr-live-grid.with-chat { grid-template-columns: 2fr 1fr; }
+      .cr-live-grid .video-main { max-width: 100%; margin: 0; }
+      .cr-chat { border-radius: 14px; overflow: hidden; border: 3px solid rgba(255,255,255,0.7); box-shadow: 0 0 20px rgba(255,255,255,0.5); min-height: 360px; background: #fff; display: none; }
+      .cr-live-grid.with-chat .cr-chat { display: block; }
+      .cr-chat iframe { width: 100%; height: 100%; min-height: 360px; border: 0; display: block; }
+      .cr-placeholder {
+        width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 10px; padding: 20px; text-align: center; color: #fff;
+        background: linear-gradient(135deg, #2a0066, #6f00ff 60%, #f418a0);
+      }
+      .cr-placeholder i { font-size: 54px; }
+      .cr-placeholder p { text-align: center; color: #fff; margin: 0; }
+      .cr-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
+      .cr-actions .btn-inline { margin-top: 0; }
+      @media (max-width: 800px) { .cr-live-grid.with-chat { grid-template-columns: 1fr; } }
+
+      /* Steps */
+      .cr-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-top: 14px; }
+      .cr-step { padding: 16px; border-radius: 14px; background: rgba(255,255,255,0.7); border: 2px solid rgba(255,255,255,0.7); box-shadow: 0 0 12px rgba(255,255,255,0.4); text-align: left; }
+      .cr-step .num { display: inline-flex; width: 34px; height: 34px; border-radius: 50%; align-items: center; justify-content: center; font-weight: 700; color: #fff; background: linear-gradient(135deg, var(--primary), var(--secondary-pink)); margin-bottom: 8px; }
+      .cr-step h3 { margin: 0 0 4px; font-size: 17px; }
+      .cr-step p { margin: 0; font-size: 15px; text-align: left; }
+
+      /* Resources */
+      .cr-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0 16px; }
+      .cr-tools .sw-search-wrap { flex: 1 1 240px; width: auto; }
+      .cr-count { font-size: 14px; color: #555; margin: 0 0 10px; text-align: left; }
+      .cr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+      .cr-res {
+        display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 14px; text-align: left;
+        background: rgba(255,255,255,0.72); border: 2px solid rgba(255,255,255,0.7);
+        box-shadow: 0 0 12px rgba(255,255,255,0.4); transition: transform .3s ease, box-shadow .3s ease;
+      }
+      .cr-res:hover { transform: translateY(-4px); box-shadow: 0 0 22px rgba(255,255,255,0.8); }
+      .cr-res .top { display: flex; align-items: center; gap: 10px; }
+      .cr-res .ico { width: 40px; height: 40px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 20px; background: linear-gradient(135deg, var(--primary), var(--secondary-pink)); }
+      .cr-res.fm .ico { background: linear-gradient(135deg, #0077b5, var(--secondary-teal)); }
+      .cr-res.aud .ico { background: linear-gradient(135deg, var(--secondary-red), var(--secondary-yellow)); }
+      .cr-res.sm .ico { background: linear-gradient(135deg, #5500cc, #1877f2); }
+      .cr-res h3 { margin: 0; font-size: 16.5px; line-height: 1.3; }
+      .cr-res .sub { margin: 0; font-size: 13px; color: #555; text-align: left; }
+      .cr-res .desc { margin: 0; font-size: 14.5px; text-align: left; flex: 1; }
+      .cr-res .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+      .cr-res .btn-inline { margin-top: 0; padding: 7px 14px; font-size: 14.5px; }
+      .cr-res .btn-inline.alt { background: rgba(111,0,255,0.1); color: var(--primary); border-color: rgba(111,0,255,0.3); box-shadow: none; }
+      .cr-res .btn-inline.alt:hover { color: #fff; }
+      .cr-empty { display: none; text-align: center; padding: 20px; }
+      .section.always-visible { opacity: 1 !important; transform: none !important; }
+
+      /* Timer */
+      .cr-timer { text-align: center; }
+      .cr-time { font-family: 'DM Serif Display', serif; font-size: 76px; line-height: 1; color: var(--primary); margin: 10px 0; }
+      .cr-ring { height: 8px; border-radius: 6px; background: rgba(111,0,255,0.15); overflow: hidden; max-width: 420px; margin: 0 auto 16px; }
+      .cr-ring i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--primary), var(--secondary-pink)); transition: width 1s linear; }
+      .cr-timer .cr-chips, .cr-timer .cr-actions { justify-content: center; }
+
+      /* FAQ */
+      .cr-faq details { border-radius: 12px; background: rgba(255,255,255,0.7); border: 2px solid rgba(255,255,255,0.7); padding: 12px 16px; margin-bottom: 10px; text-align: left; }
+      .cr-faq summary { cursor: pointer; font-weight: 600; color: var(--primary); }
+      .cr-faq details p { margin: 8px 0 0; font-size: 15.5px; text-align: left; }
+
+      /* Dark mode */
+      [data-theme="dark"] .cr-chip { background: rgba(160,110,255,0.18); color: #e6d9ff; border-color: rgba(160,110,255,0.4); }
+      [data-theme="dark"] button.cr-chip.active { color: #fff; }
+      [data-theme="dark"] .cr-countdown div { background: rgba(160,110,255,0.15); border-color: rgba(160,110,255,0.4); }
+      [data-theme="dark"] .cr-countdown b, [data-theme="dark"] .cr-time, [data-theme="dark"] .cr-faq summary { color: #c9a3ff; }
+      [data-theme="dark"] .cr-countdown span, [data-theme="dark"] .cr-count, [data-theme="dark"] .cr-res .sub { color: #cbb3ff; }
+      [data-theme="dark"] .cr-step, [data-theme="dark"] .cr-res, [data-theme="dark"] .cr-faq details { background: rgba(30,0,60,0.9); border-color: rgba(160,110,255,0.4); color: #f0eaff; }
+      [data-theme="dark"] .cr-res .desc, [data-theme="dark"] .cr-step p, [data-theme="dark"] .cr-faq details p, [data-theme="dark"] .cr-next-title { color: #e6d9ff; }
+      [data-theme="dark"] .cr-res .btn-inline.alt { background: rgba(160,110,255,0.18); color: #e6d9ff; border-color: rgba(160,110,255,0.4); }
+      [data-theme="dark"] .sw-search-input { background: rgba(30,0,60,0.9); color: #f0eaff; border-color: rgba(160,110,255,0.4); }
+      [data-theme="dark"] .cr-ring { background: rgba(160,110,255,0.2); }
+
+      @media (max-width: 700px) { .cr-time { font-size: 58px; } }
+    </style>
+  </head>
+  <body>
+
+    <div aria-hidden="true" class="snowflakes">
+      <div class="snowflake">❅</div><div class="snowflake">❆</div><div class="snowflake">❅</div>
+      <div class="snowflake">❆</div><div class="snowflake">❅</div><div class="snowflake">❆</div>
+      <div class="snowflake">❅</div><div class="snowflake">❆</div><div class="snowflake">❅</div>
+    </div>
+
+    <!-- ===== HEADER ===== -->
+    <header>
+      <div id="headerBrand">
+        <div id="headerlogo">
+          <img src="https://yt3.ggpht.com/BhLXKi7aTZ4-IIw_9G3srLqh-QsE4uBxIAfIjAiZ4VEeb2DhURWjfqJUlQLRfMwapt329oed=s600-c-k-c0x00ffffff-no-rj-rp-mo" alt="Shivam's World Logo" width="55px" height="55px" style="border-radius:50%;border:2px solid #fff;box-shadow:0 0 10px #fff;">
+        </div>
+        <h1>Shivam's Classroom</h1>
+      </div>
+      <button id="menuToggle" aria-label="Menu"><span></span><span></span><span></span></button>
+      <nav id="mainNav" class="nav" aria-label="Main navigation">
+        <a href="index.html">← Shivam's World</a>
+        <a href="#live">Live Class</a>
+        <a href="#how">How It Works</a>
+        <a href="#resources">Study Resources</a>
+        <a href="#recordings">Recordings</a>
+        <a href="#timer">Study Timer</a>
+        <a href="#faq">FAQ</a>
+        <a href="#doubt">Ask a Doubt</a>
+      </nav>
+    </header>
+
+    <!-- Fixed social icons -->
+    <div class="social-fixed">
+      <a href="https://www.youtube.com/c/ShivamsWorld" class="fa fa-youtube" target="_blank" rel="noopener" title="YouTube"></a>
+      <a href="https://www.instagram.com/shivams.world" class="fa fa-instagram" target="_blank" rel="noopener" title="Instagram"></a>
+      <a href="https://www.linkedin.com/in/shivam-soni-ca-aspirant" class="fa fa-linkedin" target="_blank" rel="noopener" title="LinkedIn"></a>
+      <a href="https://wa.link/zvaoa9" class="fa fa-whatsapp" target="_blank" rel="noopener" title="WhatsApp"></a>
+    </div>
+
+    <button id="topBtn" aria-label="Scroll to top" title="Scroll to top"><i class="fa fa-arrow-up" aria-hidden="true"></i></button>
+
+    <!-- Floral quick menu (same markup/IDs as home page) -->
+    <div id="floralMenu">
+      <button id="floralMain" aria-label="Quick actions" aria-expanded="false"><i class="fa fa-plus" aria-hidden="true"></i></button>
+      <button class="petal" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark mode"><i class="fa fa-moon-o" aria-hidden="true"></i></button>
+      <a class="petal" id="subscribeBtn" href="https://www.youtube.com/c/ShivamsWorld?sub_confirmation=1" target="_blank" rel="noopener" aria-label="Subscribe on YouTube" title="Subscribe on YouTube"><i class="fa fa-youtube-play" aria-hidden="true"></i></a>
+      <a class="petal" id="floralCallBtn" href="tel:+919005325544" aria-label="Call Now" title="Call Now"><i class="fa fa-phone" aria-hidden="true"></i></a>
+      <button class="petal" id="shareBtn" aria-label="Share" title="Share"><i class="fa fa-share-alt" aria-hidden="true"></i></button>
+    </div>
+
+    <main class="container">
+
+      <!-- ===== HERO ===== -->
+      <section id="home" class="section card">
+        <h1>Welcome to Shivam's Classroom 🎓</h1>
+        <p class="small cr-left">
+          Free live classes on YouTube, with crisp PDF notes and visual revision charts to go with every topic. Join the live stream, open the notes alongside, and revise with the charts - everything for your exam prep in one place.
+        </p>
+        <div class="cr-chips">
+          <span class="cr-chip">Class 12</span>
+          <span class="cr-chip">B.Com</span>
+          <span class="cr-chip">BBA</span>
+          <span class="cr-chip">CA Foundation</span>
+          <span class="cr-chip">CA Inter</span>
+        </div>
+        <div style="margin-top:16px" class="flex">
+          <a class="btn-inline" href="#live">▶ Join the Live Class</a>
+          <a class="btn-inline" href="#resources">📚 Open Study Resources</a>
+        </div>
+      </section>
+
+      <!-- ===== LIVE CLASS ===== -->
+      <section id="live" class="section card">
+        <h1>🔴 Live Class</h1>
+        <div class="cr-status">
+          <span class="cr-badge" id="crBadge"><span class="dot"></span><span id="crBadgeText">Checking schedule…</span></span>
+          <p class="cr-next-title" id="crNextTitle"></p>
+        </div>
+        <div class="cr-countdown" id="crCountdown" style="display:none;margin-bottom:16px">
+          <div><b id="cdD">0</b><span>Days</span></div>
+          <div><b id="cdH">0</b><span>Hours</span></div>
+          <div><b id="cdM">0</b><span>Mins</span></div>
+          <div><b id="cdS">0</b><span>Secs</span></div>
+        </div>
+
+        <div class="cr-live-grid" id="crLiveGrid">
+          <div class="video-main" id="crPlayer"></div>
+          <div class="cr-chat" id="crChat"></div>
+        </div>
+
+        <div class="cr-actions">
+          <a class="btn-inline btn-order" id="crWatchYT" href="https://www.youtube.com/@ShivamsWorld/live" target="_blank" rel="noopener">▶ Watch on YouTube</a>
+          <a class="btn-inline" href="https://www.youtube.com/c/ShivamsWorld?sub_confirmation=1" target="_blank" rel="noopener">🔔 Subscribe &amp; Turn On the Bell</a>
+          <a class="btn-inline" id="crCalBtn" href="#" target="_blank" rel="noopener" style="display:none">📅 Add to Google Calendar</a>
+          <span id="crSubWidget"></span>
+        </div>
+      </section>
+
+      <!-- ===== HOW IT WORKS ===== -->
+      <section id="how" class="section card">
+        <h1>How a Class Works</h1>
+        <p class="small cr-left">Four simple steps to get the most out of every session.</p>
+        <div class="cr-steps">
+          <div class="cr-step"><span class="num">1</span><h3>Join Live</h3><p>Open the stream a few minutes early and say hi in the live chat.</p></div>
+          <div class="cr-step"><span class="num">2</span><h3>Open the Notes</h3><p>Keep the topic's PDF open beside the video and follow along.</p></div>
+          <div class="cr-step"><span class="num">3</span><h3>Solve Along</h3><p>Pause and try the solved question yourself before the answer.</p></div>
+          <div class="cr-step"><span class="num">4</span><h3>Revise</h3><p>Use the revision charts and recordings for quick revision before exams.</p></div>
+        </div>
+      </section>
+
+      <!-- ===== STUDY RESOURCES ===== -->
+      <section id="resources" class="section card always-visible">
+        <h1>📚 Study Resources</h1>
+        <p class="small cr-left">Tap a button to open the PDF in a new tab. Filter by subject or search by topic.</p>
+        <div class="cr-tools">
+          <div class="sw-search-wrap"><input type="text" id="crSearch" class="sw-search-input" placeholder="Search e.g. ratio, debentures, audit..."></div>
+        </div>
+        <div class="cr-chips" id="crFilters" style="margin:0 0 14px"></div>
+        <p class="cr-count" id="crCount"></p>
+        <div class="cr-grid" id="crGrid"></div>
+        <p class="small cr-empty" id="crEmpty">No resources match your search. Try another keyword.</p>
+      </section>
+
+      <!-- ===== RECORDINGS ===== -->
+      <section id="recordings" class="section card">
+        <h1>🎞️ Class Recordings</h1>
+        <p class="small cr-left">Missed a live class? Watch the recordings anytime, at your own pace.</p>
+        <div class="video-main" id="crPlaylist" style="margin-top:14px"></div>
+        <div class="cr-actions">
+          <a class="btn-inline" href="https://www.youtube.com/@ShivamsWorld/playlists" target="_blank" rel="noopener">▶ Browse All Playlists</a>
+        </div>
+      </section>
+
+      <!-- ===== STUDY TIMER ===== -->
+      <section id="timer" class="section card cr-timer">
+        <h1>⏱️ Study Timer</h1>
+        <p class="small" style="text-align:center">Stay focused with short study sprints and breaks - works great alongside a class.</p>
+        <div class="cr-chips" id="crModes">
+          <button class="cr-chip active" data-min="25" data-label="Focus">Focus 25</button>
+          <button class="cr-chip" data-min="5" data-label="Short break">Break 5</button>
+          <button class="cr-chip" data-min="15" data-label="Long break">Long break 15</button>
+        </div>
+        <div class="cr-time" id="crTime">25:00</div>
+        <div class="cr-ring"><i id="crBar"></i></div>
+        <div class="cr-actions">
+          <button class="btn-inline" id="crStart">▶ Start</button>
+          <button class="btn-inline" id="crReset">↺ Reset</button>
+        </div>
+        <p class="small-note" id="crTimerNote" style="text-align:center">Sessions completed today: 0</p>
+      </section>
+
+      <!-- ===== FAQ ===== -->
+      <section id="faq" class="section card cr-faq">
+        <h1>Frequently Asked Questions</h1>
+        <details><summary>Are the classes free?</summary><p>Yes. Live classes, recordings and all PDF notes on this page are free for every student.</p></details>
+        <details><summary>When are the live classes?</summary><p>The next class and its countdown are shown at the top of the Live Class section. Subscribe and turn on the bell on YouTube to get notified.</p></details>
+        <details><summary>I missed the live class. What now?</summary><p>Every class is saved on the channel. Open the Class Recordings section and pick up where you left off.</p></details>
+        <details><summary>Why is the stream quality kept light?</summary><p>Streams are kept lightweight so they run smoothly on mobile data. The PDF notes carry all the formats and details in full clarity.</p></details>
+        <details><summary>Which classes does this cover?</summary><p>Class 12, B.Com and BBA topics, with CA Foundation added wherever it is relevant, plus visual revision charts for CA Inter.</p></details>
+      </section>
+
+      <!-- ===== ASK A DOUBT ===== -->
+      <section id="doubt" class="section card">
+        <h1>💬 Ask a Doubt</h1>
+        <p class="small cr-left">Stuck on a topic? Write to Shivam on WhatsApp with the topic name and your question, or ask in the live chat during a class.</p>
+        <div class="cr-actions">
+          <a class="btn-inline btn-order" href="https://wa.me/919005325544?text=Hi%20Shivam%2C%20I%20have%20a%20doubt%20in%20the%20class%3A%20" target="_blank" rel="noopener">📩 Ask on WhatsApp</a>
+          <a class="btn-inline" href="index.html">← Back to Shivam's World</a>
+        </div>
+      </section>
+
+    </main>
+
+    <footer>
+      <section id="contact" class="contact">
+        <h1>Contact &amp; Social</h1>
+        <p class="ftsmall">
+          <strong>Email</strong>: <a href="mailto:babitavrm60@gmail.com" style="color:#fff;">babitavrm60@gmail.com</a><br>
+          <strong>Call</strong>: <a href="tel:+919005325544" style="color:#fff;">+91 9005325544</a><br>
+          <strong>WhatsApp</strong>: <a href="https://wa.link/zvaoa9" style="color:#fff;">Click to Chat</a><br>
+          <strong>YouTube</strong>: <a href="https://www.youtube.com/c/ShivamsWorld" target="_blank" rel="noopener" style="color:#fff;">youtube.com/c/ShivamsWorld</a>
+        </p>
+        <br>
+        <p style="font-size:13px;color:#fff;margin:0;text-align:center;">
+          &copy; Shivam's World 2021–2026. All Rights Reserved. Designed &amp; Developed by Shivam Soni. · <a href="https://wa.me/919005325544?text=Hi%20Shivam%2C%20I%20found%20an%20issue%20in%20Shivam%27s%20Classroom%3A%20" target="_blank" rel="noopener">Report a bug</a><br><br><br><br>
+        </p>
+      </section>
+    </footer>
+
+    <script>
+    /* =========================================================
+       Shivam's Classroom - EDIT THIS BLOCK TO UPDATE THE PAGE
+       ========================================================= */
+    const CONFIG = {
+      // YouTube channel ID (starts with UC...). YouTube Studio > Settings > Channel > Advanced settings.
+      // Lets the player below auto-show your live stream whenever you are live.
+      channelId: "",
+      // Optional: paste the video ID of today's live stream to also show the live chat beside the player.
+      liveVideoId: "",
+      // Optional: playlist ID (starts with PL...) of your class recordings, shown in the Recordings section.
+      playlistId: "",
+      // Next live class. start is in IST, e.g. "2026-10-12T19:00:00+05:30". Leave "" if not scheduled.
+      nextLive: { title: "", start: "", durationMin: 90 }
+    };
+
+    // Each resource: cat (filter key), title, sub (small line), desc, file (path to the PDF)
+    const CATEGORIES = [
+      { key: "all", label: "All" },
+      { key: "ca", label: "Company Accounts" },
+      { key: "aud", label: "Auditing & Ethics" },
+      { key: "fm", label: "Financial Management" },
+      { key: "sm", label: "Strategic Management" }
+    ];
+    const RESOURCES = [
+      { cat: "ca", icon: "fa-file-pdf-o", title: "Unit 1 Notes", sub: "Company Accounts · Notes", desc: "Share capital, debentures and preference shares with journal entries, key points and a solved question.", file: "pdfs/company-accounts/unit-1-notes.pdf" },
+      { cat: "ca", icon: "fa-file-pdf-o", title: "Unit 2 Notes", sub: "Company Accounts · Notes", desc: "Journal entry formats, common mistakes to avoid and a solved question.", file: "pdfs/company-accounts/unit-2-notes.pdf" },
+      { cat: "ca", icon: "fa-file-pdf-o", title: "Unit 3 Notes", sub: "Company Accounts · Notes", desc: "Liquidation of companies with the textbook method, step by step.", file: "pdfs/company-accounts/unit-3-notes.pdf" },
+      { cat: "ca", icon: "fa-file-pdf-o", title: "Unit 4 Notes", sub: "Company Accounts · Notes", desc: "Journal entry formats, key points and a solved question.", file: "pdfs/company-accounts/unit-4-notes.pdf" },
+
+      { cat: "aud", icon: "fa-line-chart", title: "Ch. 9 - Special Features of Different Entity Audits", sub: "CA Inter · Revision Chart", desc: "Visual revision chart following ICAI's headings.", file: "pdfs/ca-inter/auditing-ch09.pdf" },
+      { cat: "aud", icon: "fa-line-chart", title: "Ch. 10 - Audit of Banks", sub: "CA Inter · Revision Chart", desc: "Visual revision chart following ICAI's headings.", file: "pdfs/ca-inter/auditing-ch10.pdf" },
+      { cat: "aud", icon: "fa-line-chart", title: "Ch. 11", sub: "CA Inter · Revision Chart", desc: "Visual revision chart following ICAI's headings.", file: "pdfs/ca-inter/auditing-ch11.pdf" },
+
+      { cat: "fm", icon: "fa-line-chart", title: "Ch. 3 - Ratio Analysis", sub: "CA Inter · Revision Chart", desc: "All ratios and their interpretation at a glance.", file: "pdfs/ca-inter/fm-ch03.pdf" },
+      { cat: "fm", icon: "fa-line-chart", title: "Ch. 5 - Capital Structure", sub: "CA Inter · Revision Chart", desc: "Capital structure theories including Modigliani-Miller.", file: "pdfs/ca-inter/fm-ch05.pdf" },
+      { cat: "fm", icon: "fa-line-chart", title: "Ch. 9 - Working Capital", sub: "CA Inter · Revision Chart", desc: "Working capital management in one visual chart.", file: "pdfs/ca-inter/fm-ch09.pdf" },
+
+      { cat: "sm", icon: "fa-line-chart", title: "Ch. 1 - Introduction", sub: "CA Inter · Revision Chart", desc: "Introduction to strategic management, revision-ready.", file: "pdfs/ca-inter/sm-ch01.pdf" },
+      { cat: "sm", icon: "fa-line-chart", title: "Ch. 2 - External Environment", sub: "CA Inter · Revision Chart", desc: "External environment analysis at a glance.", file: "pdfs/ca-inter/sm-ch02.pdf" }
+    ];
+    </script>
+
+    <script>
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+      var YT = "https://www.youtube.com/@ShivamsWorld";
+
+      function iframe(src, title) {
+        var f = document.createElement("iframe");
+        f.src = src; f.title = title; f.setAttribute("frameborder", "0"); f.loading = "lazy";
+        f.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture");
+        f.allowFullscreen = true;
+        f.style.cssText = "width:100%;height:100%;display:block;border:0";
+        return f;
+      }
+      function placeholder(icon, text, href, label) {
+        var d = document.createElement("div");
+        d.className = "cr-placeholder";
+        d.innerHTML = '<i class="fa ' + icon + '" aria-hidden="true"></i><p></p>';
+        d.querySelector("p").textContent = text;
+        var a = document.createElement("a");
+        a.className = "btn-inline"; a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = label;
+        d.appendChild(a);
+        return d;
+      }
+
+      /* ---------- Live player + chat ---------- */
+      var host = location.hostname || "localhost";
+      var player = $("crPlayer");
+      if (CONFIG.liveVideoId) {
+        player.appendChild(iframe("https://www.youtube.com/embed/" + CONFIG.liveVideoId + "?rel=0", "Shivam's World live class"));
+        $("crChat").appendChild(iframe("https://www.youtube.com/live_chat?v=" + CONFIG.liveVideoId + "&embed_domain=" + host, "Live chat"));
+        $("crLiveGrid").classList.add("with-chat");
+        $("crWatchYT").href = "https://www.youtube.com/watch?v=" + CONFIG.liveVideoId;
+      } else if (CONFIG.channelId) {
+        player.appendChild(iframe("https://www.youtube.com/embed/live_stream?channel=" + CONFIG.channelId + "&rel=0", "Shivam's World live stream"));
+      } else {
+        player.appendChild(placeholder("fa-youtube-play", "Live classes stream on YouTube. Tap below to join the current or upcoming class.", YT + "/live", "▶ Go to Live Stream"));
+      }
+
+      /* Official YouTube subscribe button (only when channel ID is set) */
+      if (CONFIG.channelId) {
+        var w = document.createElement("div");
+        w.className = "g-ytsubscribe"; w.setAttribute("data-channelid", CONFIG.channelId);
+        w.setAttribute("data-layout", "default"); w.setAttribute("data-count", "default");
+        $("crSubWidget").appendChild(w);
+        var s = document.createElement("script"); s.src = "https://apis.google.com/js/platform.js"; s.async = true;
+        document.body.appendChild(s);
+      }
+
+      /* ---------- Recordings ---------- */
+      var pl = $("crPlaylist");
+      if (CONFIG.playlistId) {
+        pl.appendChild(iframe("https://www.youtube.com/embed/videoseries?list=" + CONFIG.playlistId, "Class recordings playlist"));
+      } else {
+        pl.appendChild(placeholder("fa-film", "All class recordings are saved on the channel.", YT + "/playlists", "▶ Open Playlists"));
+      }
+
+      /* ---------- Next class: status + countdown + calendar ---------- */
+      var nl = CONFIG.nextLive || {};
+      var startMs = nl.start ? new Date(nl.start).getTime() : NaN;
+      var endMs = startMs + (nl.durationMin || 90) * 60000;
+      var badge = $("crBadge"), badgeText = $("crBadgeText"), cd = $("crCountdown");
+      function pad(n) { return n < 10 ? "0" + n : "" + n; }
+      function tick() {
+        if (isNaN(startMs)) {
+          badge.className = "cr-badge"; badgeText.textContent = "Next class will be announced soon";
+          $("crNextTitle").textContent = "Subscribe and turn on the bell to get notified.";
+          cd.style.display = "none"; return;
+        }
+        $("crNextTitle").textContent = nl.title || "";
+        var now = Date.now();
+        if (now >= startMs && now <= endMs) {
+          badge.className = "cr-badge live"; badgeText.textContent = "LIVE NOW"; cd.style.display = "none"; return;
+        }
+        if (now > endMs) {
+          badge.className = "cr-badge"; badgeText.textContent = "Last class ended - watch the recording";
+          $("crNextTitle").textContent = "Next class will be announced soon."; cd.style.display = "none"; return;
+        }
+        var diff = Math.floor((startMs - now) / 1000);
+        badge.className = "cr-badge soon"; badgeText.textContent = "Next class";
+        cd.style.display = "flex";
+        $("cdD").textContent = Math.floor(diff / 86400);
+        $("cdH").textContent = pad(Math.floor(diff % 86400 / 3600));
+        $("cdM").textContent = pad(Math.floor(diff % 3600 / 60));
+        $("cdS").textContent = pad(diff % 60);
+      }
+      tick(); setInterval(tick, 1000);
+      if (!isNaN(startMs)) {
+        var fmt = function (ms) { return new Date(ms).toISOString().replace(/[-:]|\.\d{3}/g, ""); };
+        var cal = $("crCalBtn");
+        cal.style.display = "";
+        cal.href = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" +
+          encodeURIComponent(nl.title || "Shivam's World Live Class") +
+          "&dates=" + fmt(startMs) + "/" + fmt(endMs) +
+          "&details=" + encodeURIComponent("Live class on YouTube: " + YT + "/live") +
+          "&location=" + encodeURIComponent(YT + "/live");
+      }
+
+      /* ---------- Resources: filter + search ---------- */
+      var activeCat = "all", grid = $("crGrid");
+      var filters = $("crFilters");
+      CATEGORIES.forEach(function (c) {
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "cr-chip" + (c.key === "all" ? " active" : "");
+        b.textContent = c.label; b.dataset.key = c.key;
+        b.addEventListener("click", function () {
+          activeCat = c.key;
+          filters.querySelectorAll(".cr-chip").forEach(function (x) { x.classList.toggle("active", x === b); });
+          render();
+        });
+        filters.appendChild(b);
+      });
+      function card(r) {
+        var d = document.createElement("div");
+        d.className = "cr-res " + r.cat;
+        d.innerHTML =
+          '<div class="top"><span class="ico"><i class="fa ' + r.icon + '" aria-hidden="true"></i></span>' +
+          '<div><h3></h3><p class="sub"></p></div></div><p class="desc"></p>' +
+          '<div class="btns"><a class="btn-inline" target="_blank" rel="noopener">📄 Open PDF</a>' +
+          '<a class="btn-inline alt" download>⬇ Download</a></div>';
+        d.querySelector("h3").textContent = r.title;
+        d.querySelector(".sub").textContent = r.sub;
+        d.querySelector(".desc").textContent = r.desc;
+        d.querySelectorAll("a").forEach(function (a) { a.href = r.file; });
+        return d;
+      }
+      function render() {
+        var q = $("crSearch").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        grid.innerHTML = "";
+        var n = 0;
+        RESOURCES.forEach(function (r) {
+          if (activeCat !== "all" && r.cat !== activeCat) return;
+          var txt = (r.title + " " + r.sub + " " + r.desc).toLowerCase();
+          if (!q.every(function (k) { return txt.indexOf(k) > -1; })) return;
+          grid.appendChild(card(r)); n++;
+        });
+        $("crCount").textContent = n + (n === 1 ? " resource" : " resources");
+        $("crEmpty").style.display = n ? "none" : "block";
+      }
+      $("crSearch").addEventListener("input", render);
+      render();
+
+      /* ---------- Study timer ---------- */
+      var total = 25 * 60, left = total, timer = null, label = "Focus";
+      var done = 0, key = "sw-classroom-sessions-" + new Date().toDateString();
+      try { done = parseInt(localStorage.getItem(key) || "0", 10) || 0; } catch (e) {}
+      function show() {
+        $("crTime").textContent = pad(Math.floor(left / 60)) + ":" + pad(left % 60);
+        $("crBar").style.width = ((total - left) / total * 100) + "%";
+        $("crTimerNote").textContent = "Sessions completed today: " + done;
+        document.title = timer ? pad(Math.floor(left / 60)) + ":" + pad(left % 60) + " · " + label : "Shivam's Classroom - Live Classes & Study Resources";
+      }
+      function stop() { clearInterval(timer); timer = null; $("crStart").textContent = "▶ Start"; }
+      function beep() {
+        try {
+          var Ctx = window.AudioContext || window.webkitAudioContext, c = new Ctx(), o = c.createOscillator(), g = c.createGain();
+          o.connect(g); g.connect(c.destination); o.frequency.value = 880; g.gain.value = 0.15;
+          o.start(); o.stop(c.currentTime + 0.5);
+        } catch (e) {}
+      }
+      $("crStart").addEventListener("click", function () {
+        if (timer) { stop(); show(); return; }
+        $("crStart").textContent = "⏸ Pause";
+        timer = setInterval(function () {
+          left--;
+          if (left <= 0) {
+            left = 0; stop(); beep();
+            if (label === "Focus") { done++; try { localStorage.setItem(key, done); } catch (e) {} }
+          }
+          show();
+        }, 1000);
+        show();
+      });
+      $("crReset").addEventListener("click", function () { stop(); left = total; show(); });
+      $("crModes").querySelectorAll(".cr-chip").forEach(function (b) {
+        b.addEventListener("click", function () {
+          $("crModes").querySelectorAll(".cr-chip").forEach(function (x) { x.classList.toggle("active", x === b); });
+          stop(); total = left = parseInt(b.dataset.min, 10) * 60; label = b.dataset.label; show();
+        });
+      });
+      show();
+    })();
+    </script>
+    <script src="script.4d9b3e.js"></script>
+  </body>
+</html>

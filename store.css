@@ -417,22 +417,10 @@ body.store-locked { overflow: hidden; }
   border: 0;
 }
 
-.track-card { margin-top: 22px; scroll-margin-top: 90px; }
 
-.track-form { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
-.track-form input {
-  flex: 1 1 200px;
-  min-width: 0;
-  padding: 10px 14px;
-  font: inherit;
-  font-size: 16px;
-  letter-spacing: 0.04em;
-  color: inherit;
-  background: #fff;
-  border: 2px solid rgba(111,0,255,0.25);
-  border-radius: 12px;
-}
-.track-form input:focus { outline: 3px solid rgba(111,0,255,0.3); border-color: var(--primary); }
+.track-form { margin-top: 6px; }
+.track-form .wide { margin-top: 10px; }
+.track-form input { letter-spacing: 0.04em; }
 
 .track-result { margin-top: 16px; }
 .track-result:empty { margin-top: 0; }
@@ -468,7 +456,7 @@ body.store-locked { overflow: hidden; }
 .track-updated { margin: 6px 0 0; font-size: 13px; color: #666; text-align: left; }
 
 .my-orders-box { margin-top: 22px; padding-top: 14px; border-top: 1px solid rgba(111,0,255,0.2); }
-.my-orders-box h2 { font-size: 18px; margin-bottom: 8px; }
+.my-orders-box h3 { font-size: 17px; margin: 0 0 8px; }
 .my-orders { list-style: none; margin: 0; padding: 0; }
 .my-order {
   display: flex;
@@ -481,11 +469,11 @@ body.store-locked { overflow: hidden; }
 .my-order-meta { font-size: 13px; color: #555; }
 .my-orders-box .link-btn { margin: 10px 0 0; }
 
-[data-theme="dark"] .track-form input { background: #2d0057; border-color: rgba(160,110,255,0.5); }
 [data-theme="dark"] .track-step { color: #b9a3e6; }
 [data-theme="dark"] .track-step.done { color: #f0eaff; }
 [data-theme="dark"] .track-step.current { color: #e6d9ff; }
 [data-theme="dark"] .track-updated,
 [data-theme="dark"] .my-order-meta { color: #cdb8f5; }
-[data-theme="dark"] .my-orders-box h2 { color: #c9a3ff; }
+[data-theme="dark"] .my-orders-box h3,
+[data-theme="dark"] .track-result h3 { color: #c9a3ff; }
 [data-theme="dark"] .track-msg.error { color: #ff8a9c; }

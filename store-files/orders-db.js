@@ -19,11 +19,13 @@ export function saveOrder(o) {
     }),
     subtotal: o.subtotal,
     deliveryCharge: o.deliveryCharge,
+    discount: o.discount || 0,
     total: o.total,
     utr: o.utr,
     status: "pending",
     createdAt: serverTimestamp()
   };
+  if (o.couponCode) order.couponCode = o.couponCode;
   if (o.location) order.location = { lat: o.location.lat, lng: o.location.lng };
   batch.set(doc(db, "orders", o.id), order);
   batch.set(doc(db, "tracking", o.id), {

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Store - Shivam's World</title>
+
+    <!-- Favicons -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/images/logo.png" />
+
+    <meta name="theme-color" content="#6f00ff" />
+    <meta name="description" content="Shop handmade calligraphy, sketches, cards, bracelets, keychains, project files and custom gifts from Shivam's World." />
+    <link rel="canonical" href="https://shivams-world.vercel.app/store.html" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <!-- Shared site styles (header, cards, buttons, dark mode) -->
+    <link rel="stylesheet" href="style.7f2a1c.css" />
+    <!-- Store-only styles -->
+    <link rel="stylesheet" href="store.css" />
+  </head>
+  <body>
+
+    <!-- ===== HEADER (same as homepage) ===== -->
+    <header>
+      <div id="headerBrand">
+        <div id="headerlogo">
+          <img src="https://yt3.ggpht.com/BhLXKi7aTZ4-IIw_9G3srLqh-QsE4uBxIAfIjAiZ4VEeb2DhURWjfqJUlQLRfMwapt329oed=s600-c-k-c0x00ffffff-no-rj-rp-mo" alt="Shivam's World Logo" width="55px" height="55px" style="border-radius:50%;border:2px solid #fff;box-shadow:0 0 10px #fff;">
+        </div>
+        <h1>Shivam's World</h1>
+      </div>
+      <button id="storeThemeToggle" class="store-theme-btn" aria-label="Switch to dark mode" title="Switch to dark mode"><i class="fa fa-moon-o" aria-hidden="true"></i></button>
+      <button id="menuToggle" aria-label="Menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav id="mainNav" class="nav" aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        <a href="store.html" aria-current="page">🛍️ Store</a>
+        <a href="index.html#featured">Featured</a>
+        <a href="index.html#customised-orders">Customised Orders</a>
+        <a href="classroom.html">🎓 Classroom</a>
+        <a href="index.html#contact">Contact</a>
+      </nav>
+    </header>
+
+    <!-- ===== STORE ===== -->
+    <main class="container">
+      <section id="store" class="card store-intro">
+        <h1>🛍️ Store</h1>
+        <p class="small store-lead">Handmade creations from Shivam's World. Add what you like to the cart, check out, and pay by UPI.</p>
+        <noscript><p class="small">The store needs JavaScript. Please turn it on, or message us on WhatsApp to order.</p></noscript>
+      </section>
+
+      <div id="productGrid" class="product-grid" aria-live="polite"></div>
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer>
+      <section id="contact" class="contact">
+        <p class="ftsmall">
+          <strong>Questions about an order?</strong>
+          <a href="https://wa.me/919005325544" target="_blank" rel="noopener" style="color:#fff;">Message us on WhatsApp</a>
+        </p>
+        <p style="font-size:13px;color:#fff;margin:0;text-align:center;">
+          &copy; Shivam's World 2021–2026. All Rights Reserved. Designed &amp; Developed by Shivam Soni.
+        </p>
+        <br><br><br><br>
+      </section>
+    </footer>
+
+    <!-- ===== FLOATING CART BUTTON ===== -->
+    <button id="cartFab" class="cart-fab" aria-label="Open cart, 0 items" title="Cart">
+      <i class="fa fa-shopping-cart" aria-hidden="true"></i>
+      <span id="cartBadge" class="cart-badge" hidden>0</span>
+    </button>
+
+    <!-- ===== CART DRAWER ===== -->
+    <div id="cartOverlay" class="store-overlay" hidden></div>
+    <aside id="cartDrawer" class="cart-drawer" aria-label="Shopping cart" aria-hidden="true">
+      <div class="drawer-head">
+        <h2>Your cart</h2>
+        <button id="cartClose" class="icon-btn" aria-label="Close cart">&times;</button>
+      </div>
+      <div id="cartItems" class="cart-items"></div>
+      <div class="drawer-foot">
+        <div class="total-row"><span>Total</span><strong id="cartTotal">₹0</strong></div>
+        <button id="checkoutBtn" class="btn-inline checkout-btn" disabled>Checkout</button>
+      </div>
+    </aside>
+
+    <!-- ===== CHECKOUT MODAL ===== -->
+    <div id="checkoutModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle" hidden>
+      <div class="checkout-box">
+        <button id="checkoutClose" class="icon-btn" aria-label="Close checkout">&times;</button>
+
+        <!-- Step 1: delivery details -->
+        <form id="detailsForm" class="step" data-step="details" novalidate>
+          <h2 id="checkoutTitle">Your details</h2>
+          <label for="custName">Full name</label>
+          <input id="custName" name="name" type="text" autocomplete="name" required>
+          <label for="custPhone">Phone number</label>
+          <input id="custPhone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10-digit mobile number" required>
+          <label for="custAddress">Delivery address</label>
+          <textarea id="custAddress" name="address" rows="3" autocomplete="street-address" required></textarea>
+          <label for="custNote">Note (optional)</label>
+          <input id="custNote" name="note" type="text" placeholder="Colour, name to write, occasion…">
+          <p id="detailsError" class="form-error" role="alert" hidden></p>
+          <button type="submit" class="btn-inline wide">Continue to payment</button>
+        </form>
+
+        <!-- Step 2: payment -->
+        <div class="step" data-step="payment" hidden>
+          <h2>Pay with UPI</h2>
+          <p class="pay-meta">Order <strong id="payOrderId"></strong> &middot; Amount <strong id="payAmount"></strong></p>
+          <div id="qrBox" class="qr-box" aria-label="UPI payment QR code"></div>
+          <a id="upiAppBtn" class="btn-inline wide" href="#">Pay with UPI app</a>
+          <p class="hint">On a phone, tap the button. On a computer, scan the QR with any UPI app. The amount and order ID are filled in for you.</p>
+          <label for="utrInput">UPI transaction ID (UTR)</label>
+          <input id="utrInput" type="text" inputmode="numeric" maxlength="12" placeholder="12-digit number from your payment app" autocomplete="off">
+          <p id="payError" class="form-error" role="alert" hidden></p>
+          <button id="paidBtn" class="btn-inline wide" type="button">I've paid &ndash; send order on WhatsApp</button>
+          <button id="backToDetails" class="link-btn" type="button">Back to details</button>
+        </div>
+
+        <!-- Step 3: confirmation -->
+        <div class="step" data-step="done" hidden>
+          <h2>Order received</h2>
+          <p class="small confirm-text">Thanks! Your order <strong id="doneOrderId"></strong> is waiting for payment verification. We'll confirm on WhatsApp once the payment is checked.</p>
+          <a id="waAgainBtn" class="btn-inline wide" href="#" target="_blank" rel="noopener">Open WhatsApp again</a>
+          <button id="doneClose" class="link-btn" type="button">Back to store</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <!-- QR code generator (pinned version) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="store.js"></script>
+  </body>
+</html>

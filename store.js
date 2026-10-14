@@ -241,11 +241,32 @@
   /* ---------- Checkout ---------- */
   var order = null; // { id, name, phone, address, note, items, total }
 
+  // 8 random characters (no look-alikes such as 0/O or 1/I), e.g. SW-7K3Q9M2X
   function newOrderId() {
-    var stamp = Date.now().toString(36).slice(-4).toUpperCase();
-    var rand = Math.floor(Math.random() * 36 * 36).toString(36).toUpperCase();
-    while (rand.length < 2) rand = "0" + rand;
-    return CONFIG.orderPrefix + "-" + stamp + rand;
+    var alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    var bytes = new Uint8Array(8);
+    if (window.crypto && window.crypto.getRandomValues) {
+      window.crypto.getRandomValues(bytes);
+    } else {
+      for (var i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    }
+    var id = "";
+    for (var j = 0; j < bytes.length; j++) id += alphabet.charAt(bytes[j] % alphabet.length);
+    return CONFIG.orderPrefix + "-" + id;
+  }
+
+  // Saves the order to Firestore in the background. The WhatsApp message is
+  // the backup: if this fails, the order still reaches you there.
+  function saveOrderToDb(o, utr) {
+    var payload = {
+      id: o.id, name: o.name, phone: o.phone, address: o.address,
+      note: o.note, items: o.items, total: o.total, utr: utr
+    };
+    return import("./orders-db.js")
+      .then(function (m) { return m.saveOrder(payload); })
+      .catch(function (err) {
+        console.error("Order could not be saved online (WhatsApp message still sent):", err);
+      });
   }
 
   function showStep(name) {
@@ -272,6 +293,7 @@
     showError("payError", "");
     showStep("details");
     $("custName").focus();
+    import("./orders-db.js").catch(function () { /* saved later, WhatsApp is the backup */ });
   }
 
   function closeCheckout() {
@@ -357,6 +379,7 @@
     showError("payError", "");
 
     var url = buildWhatsAppUrl(utr);
+    saveOrderToDb(order, utr); // background; WhatsApp opens even if this fails
     var opened = window.open(url, "_blank", "noopener");
 
     $("doneOrderId").textContent = order.id;

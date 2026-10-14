@@ -10,7 +10,7 @@
   /* ---------- Settings: edit these ---------- */
   var CONFIG = {
     upiId: "9005325544@ibl",
-    payeeName: "Shivam's World",
+    payeeName: "Shivam Soni",
     whatsapp: "919005325544", // country code + number, no + or spaces
     currency: "\u20B9",
     orderPrefix: "SW",
@@ -405,7 +405,7 @@
     if (name.length < 2) return showError("detailsError", "Enter your full name.");
     if (!/^[6-9]\d{9}$/.test(phone)) return showError("detailsError", "Enter a valid 10-digit mobile number.");
     if (address.length < 10) return showError("detailsError", "Enter your full delivery address.");
-    if (!pickedLocation) {
+    if (!checkoutLoc.get()) {
       showError("detailsError", "");
       showError("locError", "Please pin your exact delivery location to continue.");
       $("locBox").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -460,7 +460,7 @@
       couponKey: appliedCoupon && appliedCoupon.key ? appliedCoupon.key : "",
       uid: currentUser ? currentUser.uid : "",
       total: orderTotal(),
-      location: pickedLocation ? { lat: pickedLocation.lat, lng: pickedLocation.lng } : null
+      location: checkoutLoc.get() ? { lat: checkoutLoc.get().lat, lng: checkoutLoc.get().lng } : null
     };
 
     $("payOrderId").textContent = order.id;
@@ -496,6 +496,7 @@
   }
 
   function onPaid() {
+    if (!currentUser) { showError("payError", "Please sign in to place your order."); return; }
     var utr = $("utrInput").value.replace(/\s/g, "");
     if (!/^\d{12}$/.test(utr)) {
       return showError("payError", "Enter the 12-digit UPI transaction ID shown in your payment app.");
@@ -507,7 +508,6 @@
     var opened = window.open(url, "_blank", "noopener");
 
     lastOrderId = order.id;
-    rememberOrder(order);
     if (currentUser && $("saveDetails").checked) {
       saveProfileNow({ name: order.name, phone: order.phone, address: order.address, location: order.location }, true);
     }
@@ -520,9 +520,9 @@
     saveCart();
     renderCart();
     order = null;
-    clearLocation();
+    checkoutLoc.clear();
+    checkoutLoc.hideMap();
     resetCoupon();
-    $("mapBox").hidden = true;
 
     if (!opened) toast("Tap Open WhatsApp to send your order");
   }
@@ -632,123 +632,140 @@
   }
 
   /* ---------- Delivery location (GPS or map pin) ---------- */
-  var DEFAULT_CENTER = [26.4499, 80.3319]; // Kanpur, where the map opens if no GPS
-  var pickedLocation = null;
-  var locMap = null;
-  var locMarker = null;
+  var DEFAULT_CENTER = [26.4499, 80.3319]; // Kanpur, where the map opens if there is no GPS fix
+  var checkoutLoc = null; // location picker in checkout
+  var acctLoc = null;     // location picker in the customer's account
 
   function round6(n) { return Math.round(n * 1e6) / 1e6; }
   function mapsUrl(loc) { return "https://www.google.com/maps?q=" + loc.lat + "," + loc.lng; }
 
-  function renderLocStatus(accuracy) {
-    var box = $("locStatus");
-    box.innerHTML = "";
-    if (!pickedLocation) { box.hidden = true; return; }
-    box.hidden = false;
-    var text = document.createElement("span");
-    text.textContent = "\uD83D\uDCCD Location pinned: " + pickedLocation.lat.toFixed(5) + ", " +
-      pickedLocation.lng.toFixed(5) +
-      (accuracy ? " (GPS accuracy about " + Math.round(accuracy) + " m, drag the pin if it's off)" : "") + " ";
-    var link = document.createElement("a");
-    link.href = mapsUrl(pickedLocation);
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.textContent = "Check in Maps";
-    var remove = document.createElement("button");
-    remove.type = "button";
-    remove.className = "link-btn inline";
-    remove.textContent = "Remove";
-    remove.addEventListener("click", clearLocation);
-    box.appendChild(text);
-    box.appendChild(link);
-    box.appendChild(document.createTextNode(" \u00B7 "));
-    box.appendChild(remove);
-  }
+  // One location picker (GPS button, map, status line); `ids` names its page elements
+  function createLocationPicker(ids) {
+    var picked = null;
+    var map = null;
+    var marker = null;
 
-  function setLocation(lat, lng, accuracy) {
-    pickedLocation = { lat: round6(lat), lng: round6(lng) };
-    showError("locError", "");
-    renderLocStatus(accuracy);
-  }
-
-  function clearLocation() {
-    pickedLocation = null;
-    renderLocStatus();
-  }
-
-  function showMap(lat, lng) {
-    if (typeof L === "undefined") {
-      showError("locError", "The map could not load. Use the current-location button, or add landmarks to your address.");
-      return;
+    function renderStatus(accuracy) {
+      var box = $(ids.status);
+      box.innerHTML = "";
+      if (!picked) { box.hidden = true; return; }
+      box.hidden = false;
+      var text = document.createElement("span");
+      text.textContent = "\uD83D\uDCCD Location pinned: " + picked.lat.toFixed(5) + ", " + picked.lng.toFixed(5) +
+        (accuracy ? " (GPS accuracy about " + Math.round(accuracy) + " m, drag the pin if it's off)" : "") + " ";
+      var link = document.createElement("a");
+      link.href = mapsUrl(picked);
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "Check in Maps";
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "link-btn inline";
+      remove.textContent = "Remove";
+      remove.addEventListener("click", clear);
+      box.appendChild(text);
+      box.appendChild(link);
+      box.appendChild(document.createTextNode(" \u00B7 "));
+      box.appendChild(remove);
     }
-    $("mapBox").hidden = false;
-    var at = [lat, lng];
-    if (!locMap) {
-      locMap = L.map("map", { scrollWheelZoom: false }).setView(at, 16);
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap contributors"
-      }).addTo(locMap);
-      locMarker = L.marker(at, { draggable: true }).addTo(locMap);
-      locMarker.on("dragend", function () {
-        var p = locMarker.getLatLng();
-        setLocation(p.lat, p.lng);
-      });
-      locMap.on("click", function (e) {
-        locMarker.setLatLng(e.latlng);
-        setLocation(e.latlng.lat, e.latlng.lng);
-      });
-    } else {
-      locMap.setView(at, 16);
-      locMarker.setLatLng(at);
+
+    function set(lat, lng, accuracy) {
+      picked = { lat: round6(lat), lng: round6(lng) };
+      showError(ids.error, "");
+      renderStatus(accuracy);
     }
-    setTimeout(function () { locMap.invalidateSize(); }, 60); // the map was hidden until now
-  }
 
-  function useGps() {
-    if (!navigator.geolocation) {
-      showError("locError", "This browser can't share your location. Choose your spot on the map instead.");
-      return;
+    function clear() {
+      picked = null;
+      renderStatus();
     }
-    var btn = $("gpsBtn");
-    var original = btn.innerHTML;
-    btn.disabled = true;
-    btn.textContent = "Locating\u2026";
-    navigator.geolocation.getCurrentPosition(function (pos) {
-      btn.innerHTML = original;
-      btn.disabled = false;
-      setLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
-      showMap(pos.coords.latitude, pos.coords.longitude);
-    }, function (err) {
-      btn.innerHTML = original;
-      btn.disabled = false;
-      showError("locError",
-        err.code === 1 ? "Location access was blocked. Allow it in your browser, or choose your spot on the map." :
-        err.code === 3 ? "Finding your location took too long. Try again, or choose your spot on the map." :
-        "Couldn't get your location. Choose your spot on the map instead.");
-    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+
+    function showMap(lat, lng) {
+      if (typeof L === "undefined") {
+        showError(ids.error, "The map could not load. Use the current-location button instead.");
+        return;
+      }
+      $(ids.mapBox).hidden = false;
+      var at = [lat, lng];
+      if (!map) {
+        map = L.map(ids.map, { scrollWheelZoom: false }).setView(at, 16);
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "&copy; OpenStreetMap contributors"
+        }).addTo(map);
+        marker = L.marker(at, { draggable: true }).addTo(map);
+        marker.on("dragend", function () {
+          var p = marker.getLatLng();
+          set(p.lat, p.lng);
+        });
+        map.on("click", function (e) {
+          marker.setLatLng(e.latlng);
+          set(e.latlng.lat, e.latlng.lng);
+        });
+      } else {
+        map.setView(at, 16);
+        marker.setLatLng(at);
+      }
+      setTimeout(function () { map.invalidateSize(); }, 60); // the map was hidden until now
+    }
+
+    function useGps() {
+      if (!navigator.geolocation) {
+        showError(ids.error, "This browser can't share your location. Choose your spot on the map instead.");
+        return;
+      }
+      var btn = $(ids.gps);
+      var original = btn.innerHTML;
+      btn.disabled = true;
+      btn.textContent = "Locating\u2026";
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        btn.innerHTML = original;
+        btn.disabled = false;
+        set(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+        showMap(pos.coords.latitude, pos.coords.longitude);
+      }, function (err) {
+        btn.innerHTML = original;
+        btn.disabled = false;
+        showError(ids.error,
+          err.code === 1 ? "Location access was blocked. Allow it in your browser, or choose your spot on the map." :
+          err.code === 3 ? "Finding your location took too long. Try again, or choose your spot on the map." :
+          "Couldn't get your location. Choose your spot on the map instead.");
+      }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    }
+
+    function chooseOnMap() {
+      showError(ids.error, "");
+      var at = picked ? [picked.lat, picked.lng] : DEFAULT_CENTER;
+      showMap(at[0], at[1]);
+    }
+
+    $(ids.gps).addEventListener("click", useGps);
+    $(ids.choose).addEventListener("click", chooseOnMap);
+
+    return {
+      get: function () { return picked; },
+      set: set,
+      clear: clear,
+      hideMap: function () { $(ids.mapBox).hidden = true; }
+    };
   }
 
-  function chooseOnMap() {
-    showError("locError", "");
-    var at = pickedLocation ? [pickedLocation.lat, pickedLocation.lng] : DEFAULT_CENTER;
-    showMap(at[0], at[1]);
-  }
-
-  /* ---------- Customer account (Google sign-in) ---------- */
+  /* ---------- Customer account (Google sign-in, required to order) ---------- */
   var currentUser = null; // { uid, name, email } when signed in
   var profile = null;     // saved details from the customer's account
   var accountLoad = null;
   var stopOrders = null;
   var ordersToken = 0;
   var acctReturnFocus = null;
+  var pendingTrack = null; // order ID from a WhatsApp link, opened after sign-in
+  var lastOrderId = "";
 
   var STATUS_LABELS = {
     pending: "Payment being verified", confirmed: "Payment confirmed", packed: "Packed",
     shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled"
   };
 
-  // Loads the sign-in code only when it's needed; guests are never blocked by it
+  // Loads the sign-in code only when it's needed
   function accountModule() {
     if (!accountLoad) {
       accountLoad = import("./account.js").catch(function (err) { accountLoad = null; throw err; });
@@ -773,30 +790,22 @@
       btn.setAttribute("aria-label", "Sign in");
       btn.setAttribute("title", "Sign in");
     }
+    $("cartSignInNote").hidden = !!currentUser;
     renderCheckoutAuth();
   }
 
   function renderCheckoutAuth() {
-    var box = $("checkoutAuthNote");
-    box.innerHTML = "";
+    $("checkoutAuthNote").textContent = currentUser ? "Signed in as " + currentUser.email + "." : "";
     $("saveDetailsRow").hidden = !currentUser;
-    if (currentUser) {
-      box.textContent = "Signed in as " + currentUser.email + ".";
-      return;
-    }
-    box.appendChild(document.createTextNode("Have an account? "));
-    var b = document.createElement("button");
-    b.type = "button";
-    b.className = "link-btn inline";
-    b.textContent = "Sign in with Google";
-    b.addEventListener("click", signIn);
-    box.appendChild(b);
-    box.appendChild(document.createTextNode(" to fill in your details and keep your orders together, or just continue as a guest."));
   }
 
+  // Resolves with the signed-in user, or nothing if the pop-up was closed or failed
   function signIn() {
     return accountModule()
       .then(function (m) { return m.signInGoogle(); })
+      .then(function (cred) {
+        if (cred && cred.user) { onAuthChange(cred.user); return cred.user; }
+      })
       .catch(function (err) {
         if (err && (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request")) return;
         console.error(err);
@@ -810,7 +819,7 @@
     closeAccount();
     accountModule().then(function (m) { return m.signOutUser(); }).catch(function (err) { console.error(err); });
     $("detailsForm").reset();
-    clearLocation();
+    checkoutLoc.clear();
     resetCoupon();
     toast("Signed out");
   }
@@ -820,6 +829,10 @@
       currentUser = null;
       profile = null;
       renderAccountButton();
+      if (!$("checkoutModal").hidden) { closeCheckout(); toast("Please sign in to place your order"); }
+      if (!$("accountModal").hidden) closeAccount();
+      if (!$("trackModal").hidden) closeTrack();
+      if (pendingTrack) toast("Sign in with Google to see your order status");
       return;
     }
     currentUser = { uid: user.uid, name: user.displayName || "", email: user.email || "" };
@@ -831,6 +844,11 @@
         if (!$("checkoutModal").hidden) prefillFromProfile();
       })
       .catch(function (err) { console.error(err); });
+    if (pendingTrack) {
+      var id = pendingTrack;
+      pendingTrack = null;
+      openTrack(id);
+    }
   }
 
   function fillIfEmpty(id, value) {
@@ -844,8 +862,8 @@
     fillIfEmpty("custName", (profile && profile.name) || currentUser.name);
     fillIfEmpty("custPhone", profile && profile.phone);
     fillIfEmpty("custAddress", profile && profile.address);
-    if (!pickedLocation && profile && profile.location && typeof profile.location.lat === "number") {
-      setLocation(profile.location.lat, profile.location.lng);
+    if (!checkoutLoc.get() && profile && profile.location && typeof profile.location.lat === "number") {
+      checkoutLoc.set(profile.location.lat, profile.location.lng);
     }
   }
 
@@ -856,37 +874,11 @@
       .then(function () {
         profile = { name: data.name, phone: data.phone, address: data.address, location: data.location || null };
         if (!silent) toast("Details saved");
-        renderAcctPin();
       })
       .catch(function (err) {
         console.error(err);
         if (!silent) toast("Couldn't save your details. Please try again.");
       });
-  }
-
-  function renderAcctPin() {
-    var p = $("acctPin");
-    p.innerHTML = "";
-    if (!(profile && profile.location && typeof profile.location.lat === "number")) {
-      p.textContent = "No saved delivery pin. Pin your spot at checkout and tick \u201CSave these details\u201D.";
-      return;
-    }
-    p.appendChild(document.createTextNode("Saved delivery pin: "));
-    var link = document.createElement("a");
-    link.href = mapsUrl(profile.location);
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.textContent = "Open in Maps";
-    var rm = document.createElement("button");
-    rm.type = "button";
-    rm.className = "link-btn inline";
-    rm.textContent = "Remove";
-    rm.addEventListener("click", function () {
-      saveProfileNow({ name: profile.name, phone: profile.phone, address: profile.address, location: null });
-    });
-    p.appendChild(link);
-    p.appendChild(document.createTextNode(" \u00B7 "));
-    p.appendChild(rm);
   }
 
   function renderMyOrders(list) {
@@ -895,7 +887,7 @@
     if (!list.length) {
       var none = document.createElement("p");
       none.className = "acct-empty";
-      none.textContent = "No orders on this account yet. Orders you place while signed in show up here.";
+      none.textContent = "No orders yet. Orders you place appear here, with live status.";
       box.appendChild(none);
       return;
     }
@@ -967,7 +959,11 @@
     $("acctPhone").value = (profile && profile.phone) || "";
     $("acctAddress").value = (profile && profile.address) || "";
     showError("acctError", "");
-    renderAcctPin();
+    acctLoc.clear();
+    acctLoc.hideMap();
+    if (profile && profile.location && typeof profile.location.lat === "number") {
+      acctLoc.set(profile.location.lat, profile.location.lng);
+    }
     $("accountModal").hidden = false;
     document.body.classList.add("store-locked");
     startMyOrders();
@@ -981,6 +977,24 @@
     if (acctReturnFocus && acctReturnFocus.focus) acctReturnFocus.focus();
   }
 
+  // Opens the account window at the orders list; asks to sign in first if needed
+  function openMyOrders() {
+    if (!currentUser) {
+      signIn().then(function (user) { if (user) openMyOrders(); });
+      return;
+    }
+    openAccount();
+    var head = $("acctOrdersHead");
+    if (head && head.scrollIntoView) head.scrollIntoView({ block: "start" });
+  }
+
+  // Checkout needs an account: sign in first, then carry straight on
+  function startCheckout() {
+    if (!cartCount()) return;
+    if (currentUser) { openCheckout(); return; }
+    signIn().then(function (user) { if (user && cartCount()) openCheckout(); });
+  }
+
   function onAcctSubmit(e) {
     e.preventDefault();
     var name = $("acctName").value.trim();
@@ -989,11 +1003,10 @@
     if (name.length < 2) return showError("acctError", "Enter your full name.");
     if (phone && !/^[6-9]\d{9}$/.test(phone)) return showError("acctError", "Enter a valid 10-digit mobile number, or leave it empty.");
     showError("acctError", "");
-    saveProfileNow({ name: name, phone: phone, address: address, location: profile ? profile.location : null });
+    saveProfileNow({ name: name, phone: phone, address: address, location: acctLoc.get() });
   }
 
-  /* ---------- Order tracking ---------- */
-  var MY_ORDERS_KEY = "sw-my-orders";
+  /* ---------- Order tracking (each customer sees only their own orders) ---------- */
   var TRACK_STEPS = [
     { key: "pending",   label: "Order received, payment being verified" },
     { key: "confirmed", label: "Payment confirmed" },
@@ -1001,52 +1014,9 @@
     { key: "shipped",   label: "Shipped" },
     { key: "delivered", label: "Delivered" }
   ];
-  var lastOrderId = "";
-  var trackRequest = 0;
-
-  function loadMyOrders() {
-    try {
-      var list = JSON.parse(storeGet(MY_ORDERS_KEY) || "[]");
-      return Array.isArray(list) ? list : [];
-    } catch (e) { return []; }
-  }
-
-  // Remember this customer's own orders on their device only
-  function rememberOrder(o) {
-    var list = loadMyOrders().filter(function (x) { return x.id !== o.id; });
-    list.unshift({ id: o.id, total: o.total, at: Date.now() });
-    storeSet(MY_ORDERS_KEY, JSON.stringify(list.slice(0, 10)));
-    renderMyOrders();
-  }
-
-  function renderMyOrders() {
-    var list = loadMyOrders();
-    var ul = $("myOrdersList");
-    ul.innerHTML = "";
-    $("myOrders").hidden = !list.length;
-    list.forEach(function (item) {
-      if (!item || typeof item.id !== "string") return;
-      var li = document.createElement("li");
-      li.className = "my-order";
-      var info = document.createElement("div");
-      var idEl = document.createElement("strong");
-      idEl.textContent = item.id;
-      var meta = document.createElement("div");
-      meta.className = "my-order-meta";
-      meta.textContent = new Date(item.at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) +
-        " \u00B7 " + money(item.total);
-      info.appendChild(idEl);
-      info.appendChild(meta);
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "btn-inline add-btn";
-      btn.textContent = "Check status";
-      btn.addEventListener("click", function () { trackOrder(item.id); });
-      li.appendChild(info);
-      li.appendChild(btn);
-      ul.appendChild(li);
-    });
-  }
+  var trackStop = null;
+  var trackToken = 0;
+  var trackReturnFocus = null;
 
   function showTrackMessage(msg, isError) {
     var box = $("trackResult");
@@ -1126,47 +1096,36 @@
     }
   }
 
-  function trackOrder(rawId) {
-    var id = String(rawId || "").trim().toUpperCase();
-    $("trackInput").value = id;
-    if (!/^SW-[A-Z0-9]{8}$/.test(id)) {
-      showTrackMessage("Enter the order ID exactly as shown, like SW-7K3Q9M2X.", true);
+  function openTrack(id) {
+    if (!id) { openMyOrders(); return; }
+    if (!currentUser) {
+      pendingTrack = id;
+      signIn(); // onAuthChange reopens this order once signed in
       return;
     }
-    var req = ++trackRequest;
-    showTrackMessage("Checking\u2026", false);
-    import("./orders-db.js")
-      .then(function (m) { return m.getTracking(id); })
-      .then(function (data) {
-        if (req !== trackRequest) return;
-        if (!data) {
-          showTrackMessage("We couldn't find this order yet. If you just placed it, wait a minute and try again. Still missing? Message us on WhatsApp with your order ID.", true);
-        } else {
-          renderTrackResult(id, data);
-        }
-      })
-      .catch(function (err) {
-        if (req !== trackRequest) return;
-        console.error(err);
-        showTrackMessage("Couldn't check the status right now. Please try again in a moment, or message us on WhatsApp.", true);
-      });
-  }
-
-  var trackReturnFocus = null;
-
-  function openTrack(id) {
     trackReturnFocus = document.activeElement;
     $("trackModal").hidden = false;
     document.body.classList.add("store-locked");
-    if (id) {
-      trackOrder(id);
-    } else {
-      $("trackResult").innerHTML = "";
-      $("trackInput").focus();
-    }
+    showTrackMessage("Checking\u2026", false);
+    var token = ++trackToken;
+    var failed = function (err) {
+      if (token !== trackToken) return;
+      console.error(err);
+      showTrackMessage("We couldn't open this order. It may belong to a different account.", true);
+    };
+    accountModule().then(function (m) {
+      var stop = m.watchOrder(id, function (o) {
+        if (token !== trackToken) return;
+        if (!o) { failed(new Error("order not found")); return; }
+        renderTrackResult(id, { status: o.status, note: o.adminNote, updatedAt: o.updatedAt || o.createdAt });
+      }, failed);
+      if (token === trackToken && !$("trackModal").hidden) trackStop = stop; else stop();
+    }).catch(failed);
   }
 
   function closeTrack() {
+    trackToken++;
+    if (trackStop) { trackStop(); trackStop = null; }
     $("trackModal").hidden = true;
     document.body.classList.remove("store-locked");
     if (trackReturnFocus && trackReturnFocus.focus) trackReturnFocus.focus();
@@ -1209,6 +1168,8 @@
   /* ---------- Init ---------- */
   function init() {
     loadCart();
+    checkoutLoc = createLocationPicker({ gps: "gpsBtn", choose: "mapBtn", error: "locError", mapBox: "mapBox", map: "map", status: "locStatus" });
+    acctLoc = createLocationPicker({ gps: "acctGpsBtn", choose: "acctMapBtn", error: "acctLocError", mapBox: "acctMapBox", map: "acctMap", status: "acctLocStatus" });
     renderProducts();
     renderCart();
     setupThemeAndMenu();
@@ -1216,7 +1177,7 @@
     $("cartFab").addEventListener("click", openCart);
     $("cartClose").addEventListener("click", closeCart);
     $("cartOverlay").addEventListener("click", closeCart);
-    $("checkoutBtn").addEventListener("click", openCheckout);
+    $("checkoutBtn").addEventListener("click", startCheckout);
 
     $("detailsForm").addEventListener("submit", onDetailsSubmit);
     $("backToDetails").addEventListener("click", function () { showStep("details"); });
@@ -1244,8 +1205,6 @@
 
     // Delivery charge note and location buttons
     $("introDelivery").textContent = " A flat " + money(CONFIG.deliveryCharge) + " delivery charge is added to every order.";
-    $("gpsBtn").addEventListener("click", useGps);
-    $("mapBtn").addEventListener("click", chooseOnMap);
     $("couponApply").addEventListener("click", applyCoupon);
     $("couponInput").addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); applyCoupon(); }
@@ -1272,15 +1231,7 @@
       closeProduct();
     });
 
-    // Order tracking
-    $("trackForm").addEventListener("submit", function (e) {
-      e.preventDefault();
-      trackOrder($("trackInput").value);
-    });
-    $("clearMyOrders").addEventListener("click", function () {
-      storeSet(MY_ORDERS_KEY, "[]");
-      renderMyOrders();
-    });
+    // Order tracking lives under the customer's account
     $("trackNowBtn").addEventListener("click", function () {
       closeCheckout();
       openTrack(lastOrderId);
@@ -1289,17 +1240,16 @@
     $("trackModal").addEventListener("click", function (e) {
       if (e.target === $("trackModal")) closeTrack();
     });
-    // Every "#track" link (menu, intro text) opens the tracking window
+    // Every "#track" link (menu, intro text) opens My orders
     Array.prototype.forEach.call(document.querySelectorAll('a[href="#track"]'), function (a) {
       a.addEventListener("click", function (e) {
         e.preventDefault();
-        openTrack();
+        openMyOrders();
       });
     });
-    renderMyOrders();
+    // A status link from WhatsApp (?track=ORDER-ID) opens once the customer is signed in
     var linked = window.location.search.match(/[?&]track=([A-Za-z0-9-]+)/);
-    if (linked) openTrack(linked[1]); // link from the WhatsApp status message
-    else if (window.location.hash === "#track") openTrack();
+    if (linked) pendingTrack = linked[1].toUpperCase();
 
     // Keep the UTR field to digits only
     $("utrInput").addEventListener("input", function () {

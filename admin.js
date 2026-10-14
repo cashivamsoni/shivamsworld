@@ -11,7 +11,7 @@
 import {
   auth, db,
   GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-  collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc, serverTimestamp
+  collection, query, orderBy, onSnapshot, doc, writeBatch, serverTimestamp
 } from "./firebase-init.js";
 
 const ADMIN_EMAIL = "babitavrm60@gmail.com";
@@ -108,6 +108,9 @@ function customerMessage(o, key, note) {
   };
   let text = lines[key];
   if (note) text += `\n${note}`;
+  if (key !== "cancelled") {
+    text += `\nTrack your order: ${location.origin}/store.html?track=${id}`;
+  }
   return text;
 }
 
@@ -120,11 +123,13 @@ async function saveOrder(o, btn) {
   const d = drafts[o.id] || {};
   btn.disabled = true;
   try {
-    await updateDoc(doc(db, "orders", o.id), {
-      status: d.status !== undefined ? d.status : statusKey(o),
-      adminNote: d.note !== undefined ? d.note : (o.adminNote || ""),
-      updatedAt: serverTimestamp()
-    });
+    const status = d.status !== undefined ? d.status : statusKey(o);
+    const adminNote = d.note !== undefined ? d.note : (o.adminNote || "");
+    // Private order + public tracking record are always updated together
+    const batch = writeBatch(db);
+    batch.update(doc(db, "orders", o.id), { status, adminNote, updatedAt: serverTimestamp() });
+    batch.set(doc(db, "tracking", o.id), { orderId: o.id, status, note: adminNote, updatedAt: serverTimestamp() });
+    await batch.commit();
     delete drafts[o.id];
     toast("Saved");
   } catch (err) {
@@ -138,7 +143,10 @@ async function saveOrder(o, btn) {
 async function removeOrder(o) {
   if (!confirm(`Delete order ${o.id} permanently? This cannot be undone.`)) return;
   try {
-    await deleteDoc(doc(db, "orders", o.id));
+    const batch = writeBatch(db);
+    batch.delete(doc(db, "orders", o.id));
+    batch.delete(doc(db, "tracking", o.id));
+    await batch.commit();
     openIds.delete(o.id);
     delete drafts[o.id];
     toast("Order deleted");
@@ -256,7 +264,7 @@ function orderCard(o) {
     drafts[o.id] = Object.assign(drafts[o.id] || {}, { status: select.value });
   });
 
-  const noteLabel = el("label", "", "Note for the customer (e.g. courier name and tracking number)");
+  const noteLabel = el("label", "", "Note shown to the customer on their tracking page (e.g. courier name and tracking number)");
   noteLabel.htmlFor = noteId;
   const note = el("input");
   note.id = noteId;

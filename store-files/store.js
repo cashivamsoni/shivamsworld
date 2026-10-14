@@ -737,7 +737,12 @@
         var mark = document.createElement("span");
         mark.className = "mark";
         mark.setAttribute("aria-hidden", "true");
-        mark.textContent = i <= idx ? "\u2713" : "";
+        if (i <= idx) {
+          var tick = document.createElement("i");
+          tick.className = "fa fa-check";
+          tick.setAttribute("aria-hidden", "true");
+          mark.appendChild(tick);
+        }
         var label = document.createElement("span");
         label.className = "label";
         var title = document.createElement("span");

@@ -94,8 +94,8 @@
     }, 0);
   }
 
-  function addToCart(id) {
-    cart[id] = Math.min((cart[id] || 0) + 1, 99);
+  function addToCart(id, qty) {
+    cart[id] = Math.min((cart[id] || 0) + (qty || 1), 99);
     saveCart();
     renderCart();
     bumpFab();
@@ -117,16 +117,43 @@
   }
 
   /* ---------- Rendering ---------- */
+  var searchTerm = "";
+  var sortMode = "featured";
+
+  function visibleProducts() {
+    var term = searchTerm.trim().toLowerCase();
+    var list = PRODUCTS.filter(function (p) {
+      return !term || (p.name + " " + p.desc).toLowerCase().indexOf(term) !== -1;
+    });
+    if (sortMode === "low") list.sort(function (x, y) { return x.price - y.price; });
+    else if (sortMode === "high") list.sort(function (x, y) { return y.price - x.price; });
+    else if (sortMode === "name") list.sort(function (x, y) { return x.name.localeCompare(y.name); });
+    return list;
+  }
+
   function renderProducts() {
     var grid = $("productGrid");
+    var list = visibleProducts();
     grid.innerHTML = "";
-    PRODUCTS.forEach(function (p) {
+    $("resultCount").textContent = list.length === PRODUCTS.length
+      ? PRODUCTS.length + " products"
+      : list.length + " of " + PRODUCTS.length + " products";
+
+    if (!list.length) {
+      var none = document.createElement("p");
+      none.className = "no-results";
+      none.textContent = "No products match your search. Try a different word.";
+      grid.appendChild(none);
+      return;
+    }
+
+    list.forEach(function (p) {
       var card = document.createElement("article");
       card.className = "product-card";
       card.innerHTML =
         '<div class="product-img"><img loading="lazy" alt=""></div>' +
         '<div class="product-body">' +
-          '<h2></h2>' +
+          '<h2><button type="button" class="product-title-btn"></button></h2>' +
           '<p class="product-desc"></p>' +
           '<div class="product-foot">' +
             '<span class="product-price"></span>' +
@@ -136,14 +163,47 @@
       var img = card.querySelector("img");
       img.src = p.image;
       img.alt = p.name;
-      card.querySelector("h2").textContent = p.name;
+      var title = card.querySelector(".product-title-btn");
+      title.textContent = p.name;
+      title.setAttribute("aria-label", "View details: " + p.name);
       card.querySelector(".product-desc").textContent = p.desc;
       card.querySelector(".product-price").textContent = money(p.price);
+      // Clicking the picture or the name opens the product
+      card.querySelector(".product-img").addEventListener("click", function () { openProduct(p.id); });
+      title.addEventListener("click", function () { openProduct(p.id); });
       var btn = card.querySelector(".add-btn");
       btn.setAttribute("aria-label", "Add " + p.name + " to cart");
       btn.addEventListener("click", function () { addToCart(p.id); });
       grid.appendChild(card);
     });
+  }
+
+  /* ---------- Product details modal ---------- */
+  var pmProduct = null;
+  var pmQty = 1;
+  var pmReturnFocus = null;
+
+  function openProduct(id) {
+    var p = findProduct(id);
+    if (!p) return;
+    pmProduct = p;
+    pmQty = 1;
+    pmReturnFocus = document.activeElement;
+    $("pmImg").src = p.image;
+    $("pmImg").alt = p.name;
+    $("pmName").textContent = p.name;
+    $("pmPrice").textContent = money(p.price);
+    $("pmDesc").textContent = p.desc;
+    $("pmQty").textContent = "1";
+    $("productModal").hidden = false;
+    document.body.classList.add("store-locked");
+    $("pmAdd").focus();
+  }
+
+  function closeProduct() {
+    $("productModal").hidden = true;
+    document.body.classList.remove("store-locked");
+    if (pmReturnFocus && pmReturnFocus.focus) pmReturnFocus.focus();
   }
 
   function renderCart() {
@@ -615,6 +675,27 @@
       if (e.target === $("checkoutModal")) closeCheckout();
     });
 
+    // Search, sort and product details
+    $("searchInput").addEventListener("input", function () { searchTerm = this.value; renderProducts(); });
+    $("sortSelect").addEventListener("change", function () { sortMode = this.value; renderProducts(); });
+    $("pmClose").addEventListener("click", closeProduct);
+    $("productModal").addEventListener("click", function (e) {
+      if (e.target === $("productModal")) closeProduct();
+    });
+    $("pmMinus").addEventListener("click", function () {
+      pmQty = Math.max(1, pmQty - 1);
+      $("pmQty").textContent = pmQty;
+    });
+    $("pmPlus").addEventListener("click", function () {
+      pmQty = Math.min(99, pmQty + 1);
+      $("pmQty").textContent = pmQty;
+    });
+    $("pmAdd").addEventListener("click", function () {
+      if (!pmProduct) return;
+      addToCart(pmProduct.id, pmQty);
+      closeProduct();
+    });
+
     // Order tracking
     $("trackForm").addEventListener("submit", function (e) {
       e.preventDefault();
@@ -653,6 +734,7 @@
       if (e.key !== "Escape") return;
       if (!$("checkoutModal").hidden) closeCheckout();
       else if (!$("trackModal").hidden) closeTrack();
+      else if (!$("productModal").hidden) closeProduct();
       else if ($("cartDrawer").classList.contains("open")) closeCart();
     });
 

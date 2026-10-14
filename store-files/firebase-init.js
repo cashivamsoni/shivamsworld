@@ -23,7 +23,7 @@ export const auth = getAuth(app);
 
 // Re-exported so every page uses the same pinned SDK version
 export {
-  doc, setDoc, getDoc, updateDoc, deleteDoc, writeBatch, collection, query, orderBy, onSnapshot, serverTimestamp
+  doc, setDoc, getDoc, updateDoc, deleteDoc, writeBatch, collection, query, where, orderBy, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 export {
   GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged

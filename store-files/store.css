@@ -592,3 +592,35 @@ body.store-locked { overflow: hidden; }
   .product-card, .product-img img { transition: none !important; }
   .product-card:hover, .product-card:hover .product-img img { transform: none !important; }
 }
+
+/* ---------- Delivery charge rows ---------- */
+.sub-row { display: flex; justify-content: space-between; font-size: 15px; color: #444; margin-bottom: 6px; }
+.pay-breakdown { margin-top: -6px; }
+[data-theme="dark"] .sub-row { color: #cdb8f5; }
+
+/* ---------- Delivery location ---------- */
+.loc-box { margin-top: 14px; padding: 12px; border: 2px dashed rgba(111,0,255,0.3); border-radius: 14px; }
+.loc-title { margin: 0; font-weight: 600; font-size: 14px; text-align: left; }
+.loc-box .hint { margin: 2px 0 8px; }
+.loc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.loc-btn {
+  padding: 8px 14px;
+  border-radius: 16px;
+  border: 2px solid rgba(111,0,255,0.35);
+  background: #fff;
+  color: var(--primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.loc-btn:hover:not(:disabled) { background: var(--primary); color: #fff; }
+.loc-btn:disabled { opacity: 0.6; cursor: wait; }
+.loc-map { height: 240px; margin-top: 10px; border-radius: 12px; border: 2px solid rgba(111,0,255,0.25); position: relative; z-index: 0; }
+.loc-status { margin: 10px 0 0; font-size: 14px; text-align: left; overflow-wrap: anywhere; }
+.loc-status a { color: var(--primary); font-weight: 600; }
+.link-btn.inline { display: inline; margin: 0; }
+[data-theme="dark"] .loc-box { border-color: rgba(160,110,255,0.5); }
+[data-theme="dark"] .loc-btn { background: #2d0057; color: #e6d9ff; border-color: rgba(160,110,255,0.5); }
+[data-theme="dark"] .loc-btn:hover:not(:disabled) { background: #4b0091; }
+[data-theme="dark"] .loc-status a { color: #c9a3ff; }

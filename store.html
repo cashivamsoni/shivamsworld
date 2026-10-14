@@ -115,6 +115,7 @@
         <div class="sub-row"><span>Subtotal</span><span id="cartSubtotal">₹0</span></div>
         <div class="sub-row"><span>Delivery charge</span><span id="cartDelivery">₹0</span></div>
         <div class="total-row"><span>Total</span><strong id="cartTotal">₹0</strong></div>
+        <p id="cartSignInNote" class="hint cart-note">You'll sign in with Google to place your order.</p>
         <button id="checkoutBtn" class="btn-inline checkout-btn" disabled>Checkout</button>
       </div>
     </aside>
@@ -191,7 +192,7 @@
 
         <!-- Step 3: confirmation -->
         <div class="step" data-step="done" hidden>
-          <p class="small confirm-text">Thanks! Your order <strong id="doneOrderId"></strong> is waiting for payment verification. Keep this order ID to track it. We'll also confirm on WhatsApp once the payment is checked.</p>
+          <p class="small confirm-text">Thanks! Your order <strong id="doneOrderId"></strong> is waiting for payment verification. You can follow it any time under My orders. We'll also confirm on WhatsApp once the payment is checked.</p>
           <button id="trackNowBtn" class="btn-inline wide" type="button">Track this order</button>
           <a id="waAgainBtn" class="link-btn"  href="#" target="_blank" rel="noopener">Open WhatsApp again</a>
           <button id="doneClose" class="link-btn" type="button">Back to store</button>
@@ -238,38 +239,39 @@
           <input id="acctPhone" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel" placeholder="10-digit mobile number">
           <label for="acctAddress">Delivery address</label>
           <textarea id="acctAddress" rows="3" maxlength="500" autocomplete="street-address"></textarea>
-          <p id="acctPin" class="hint"></p>
+          <div class="loc-box">
+            <p class="loc-title">Saved delivery location</p>
+            <p class="hint">Pin your exact spot once. It fills in at checkout.</p>
+            <div class="loc-actions">
+              <button id="acctGpsBtn" type="button" class="loc-btn"><i class="fa fa-crosshairs" aria-hidden="true"></i> Use my current location</button>
+              <button id="acctMapBtn" type="button" class="loc-btn"><i class="fa fa-map-marker" aria-hidden="true"></i> Choose on map</button>
+            </div>
+            <p id="acctLocError" class="form-error" role="alert" hidden></p>
+            <div id="acctMapBox" hidden>
+              <div id="acctMap" class="loc-map"></div>
+              <p class="hint">Tap the map or drag the pin to your exact spot.</p>
+            </div>
+            <p id="acctLocStatus" class="loc-status" hidden></p>
+          </div>
           <p id="acctError" class="form-error" role="alert" hidden></p>
           <button type="submit" class="btn-inline wide">Save details</button>
         </form>
 
-        <h3 class="acct-h">My orders</h3>
+        <h3 id="acctOrdersHead" class="acct-h">My orders</h3>
         <div id="acctOrders" class="acct-orders" aria-live="polite"></div>
 
         <button id="signOutBtn" class="link-btn" type="button">Sign out</button>
       </div>
     </div>
 
-    <!-- ===== TRACK ORDER MODAL ===== -->
+    <!-- ===== ORDER TRACKING MODAL ===== -->
     <div id="trackModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="trackTitle" hidden>
       <div class="checkout-box with-head">
         <div class="modal-head">
-          <h2 id="trackTitle">Track my order</h2>
+          <h2 id="trackTitle">Order tracking</h2>
           <button id="trackClose" class="icon-btn" aria-label="Close order tracking">&times;</button>
         </div>
-        <p class="small store-lead">Enter the order ID from your order screen or our WhatsApp message to see where your order is.</p>
-        <form id="trackForm" class="track-form" novalidate>
-          <label for="trackInput" class="sr-only">Order ID</label>
-          <input id="trackInput" type="text" placeholder="e.g. SW-7K3Q9M2X" maxlength="11" autocomplete="off" autocapitalize="characters" spellcheck="false">
-          <button type="submit" class="btn-inline wide">Check status</button>
-        </form>
         <div id="trackResult" class="track-result" aria-live="polite"></div>
-
-        <div id="myOrders" class="my-orders-box" hidden>
-          <h3>Your recent orders on this device</h3>
-          <ul id="myOrdersList" class="my-orders"></ul>
-          <button id="clearMyOrders" class="link-btn" type="button">Clear this list</button>
-        </div>
       </div>
     </div>
 

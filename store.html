@@ -118,11 +118,13 @@
     <!-- ===== CHECKOUT MODAL ===== -->
     <div id="checkoutModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle" hidden>
       <div class="checkout-box">
-        <button id="checkoutClose" class="icon-btn" aria-label="Close checkout">&times;</button>
+        <div class="modal-head">
+          <h2 id="checkoutTitle">Your details</h2>
+          <button id="checkoutClose" class="icon-btn" aria-label="Close checkout">&times;</button>
+        </div>
 
         <!-- Step 1: delivery details -->
         <form id="detailsForm" class="step" data-step="details" novalidate>
-          <h2 id="checkoutTitle">Your details</h2>
           <label for="custName">Full name</label>
           <input id="custName" name="name" type="text" autocomplete="name" maxlength="100" required>
           <label for="custPhone">Phone number</label>
@@ -146,7 +148,7 @@
           </div>
           <label for="custNote">Note (optional)</label>
           <input id="custNote" name="note" type="text" maxlength="300" placeholder="Colour, name to write, occasion…">
-          <label for="couponInput">Coupon code (optional)</label>
+          <label for="couponInput">Coupon code (optional, one use per customer)</label>
           <div class="coupon-row">
             <input id="couponInput" type="text" placeholder="Have a coupon? Enter your code here" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30">
             <button id="couponApply" type="button" class="loc-btn">Apply</button>
@@ -166,7 +168,6 @@
 
         <!-- Step 2: payment -->
         <div class="step" data-step="payment" hidden>
-          <h2>Pay with UPI</h2>
           <p class="pay-meta">Order <strong id="payOrderId"></strong> &middot; Amount <strong id="payAmount"></strong></p>
           <p id="payBreakdown" class="hint pay-breakdown"></p>
           <div id="qrBox" class="qr-box" aria-label="UPI payment QR code"></div>
@@ -181,7 +182,6 @@
 
         <!-- Step 3: confirmation -->
         <div class="step" data-step="done" hidden>
-          <h2>Order received</h2>
           <p class="small confirm-text">Thanks! Your order <strong id="doneOrderId"></strong> is waiting for payment verification. Keep this order ID to track it. We'll also confirm on WhatsApp once the payment is checked.</p>
           <button id="trackNowBtn" class="btn-inline wide" type="button">Track this order</button>
           <a id="waAgainBtn" class="link-btn"  href="#" target="_blank" rel="noopener">Open WhatsApp again</a>
@@ -215,8 +215,10 @@
     <!-- ===== TRACK ORDER MODAL ===== -->
     <div id="trackModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="trackTitle" hidden>
       <div class="checkout-box">
-        <button id="trackClose" class="icon-btn" aria-label="Close order tracking">&times;</button>
-        <h2 id="trackTitle">Track my order</h2>
+        <div class="modal-head">
+          <h2 id="trackTitle">Track my order</h2>
+          <button id="trackClose" class="icon-btn" aria-label="Close order tracking">&times;</button>
+        </div>
         <p class="small store-lead">Enter the order ID from your order screen or our WhatsApp message to see where your order is.</p>
         <form id="trackForm" class="track-form" novalidate>
           <label for="trackInput" class="sr-only">Order ID</label>

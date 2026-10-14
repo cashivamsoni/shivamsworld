@@ -775,3 +775,93 @@ body.store-locked { overflow: hidden; }
 [data-theme="dark"] .acct-h { color: #c9a3ff; }
 
 .cart-note { margin: 0 0 10px; text-align: center; }
+
+/* =========================================================
+   Styled dropdown (replaces the browser's own <select> list)
+   ========================================================= */
+.cselect { position: relative; display: inline-block; max-width: 100%; }
+.cselect > select {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.cselect-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 190px;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: inherit;
+  text-align: left;
+  background: #fff;
+  border: 2px solid rgba(111,0,255,0.25);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.cselect-btn:hover { border-color: rgba(111,0,255,0.5); }
+.cselect-btn:focus-visible,
+.cselect.open .cselect-btn { outline: 3px solid rgba(111,0,255,0.3); border-color: var(--primary); }
+.cselect-chev { font-size: 12px; color: var(--primary); transition: transform 0.2s ease; }
+.cselect.open .cselect-chev { transform: rotate(180deg); }
+.o-controls .cselect { display: block; width: 100%; }
+.sort-wrap label { font-weight: 600; }
+
+.cselect-list {
+  position: fixed;
+  display: none;
+  z-index: 600;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  overflow-y: auto;
+  background: #fff;
+  color: #111;
+  border: 2px solid rgba(111,0,255,0.25);
+  border-radius: 14px;
+  box-shadow: 0 14px 36px rgba(111,0,255,0.3);
+}
+.cselect-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 15px;
+  cursor: pointer;
+  outline: none;
+}
+.cselect-opt:hover,
+.cselect-opt:focus { background: rgba(111,0,255,0.1); }
+.cselect-opt[aria-selected="true"] { font-weight: 700; color: var(--primary-dark); }
+.cselect-tick { visibility: hidden; color: var(--primary); }
+.cselect-opt[aria-selected="true"] .cselect-tick { visibility: visible; }
+.cselect-opt[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+
+[data-theme="dark"] .cselect-btn { background: #2d0057; border-color: rgba(160,110,255,0.5); color: #f0eaff; }
+[data-theme="dark"] .cselect-chev,
+[data-theme="dark"] .cselect-tick { color: #c9a3ff; }
+[data-theme="dark"] .cselect-list { background: #1e003c; color: #f0eaff; border-color: rgba(160,110,255,0.5); }
+[data-theme="dark"] .cselect-opt:hover,
+[data-theme="dark"] .cselect-opt:focus { background: rgba(160,110,255,0.22); }
+[data-theme="dark"] .cselect-opt[aria-selected="true"] { color: #e6d9ff; }
+
+/* =========================================================
+   Styled confirm dialog (replaces the browser's own pop-up)
+   ========================================================= */
+.ui-confirm { z-index: 500; }
+.ui-confirm-box { width: min(420px, 100%); }
+.ui-confirm-box .ui-confirm-title { margin: 0 0 10px; }
+.ui-confirm-msg { margin: 0; text-align: left; white-space: pre-line; }
+.ui-confirm-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.btn-inline.danger { background: linear-gradient(90deg, var(--secondary-red), #a3102a); }

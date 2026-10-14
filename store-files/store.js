@@ -13,7 +13,8 @@
     payeeName: "Shivam's World",
     whatsapp: "919005325544", // country code + number, no + or spaces
     currency: "\u20B9",
-    orderPrefix: "SW"
+    orderPrefix: "SW",
+    deliveryCharge: 50 // flat charge added to every order (keep in sync with firestore.rules)
   };
 
   /* ---------- Products: edit names, prices, descriptions ----------
@@ -251,7 +252,9 @@
     });
 
     var count = cartCount();
-    $("cartTotal").textContent = money(cartTotal());
+    $("cartSubtotal").textContent = money(cartTotal());
+    $("cartDelivery").textContent = money(count ? CONFIG.deliveryCharge : 0);
+    $("cartTotal").textContent = money(count ? cartTotal() + CONFIG.deliveryCharge : 0);
     $("checkoutBtn").disabled = count === 0;
     var badge = $("cartBadge");
     badge.textContent = count;
@@ -320,7 +323,8 @@
   function saveOrderToDb(o, utr) {
     var payload = {
       id: o.id, name: o.name, phone: o.phone, address: o.address,
-      note: o.note, items: o.items, total: o.total, utr: utr
+      note: o.note, items: o.items, subtotal: o.subtotal, deliveryCharge: o.deliveryCharge,
+      total: o.total, location: o.location, utr: utr
     };
     return import("./orders-db.js")
       .then(function (m) { return m.saveOrder(payload); })
@@ -404,11 +408,15 @@
       address: address,
       note: $("custNote").value.trim(),
       items: items,
-      total: cartTotal()
+      subtotal: cartTotal(),
+      deliveryCharge: CONFIG.deliveryCharge,
+      total: cartTotal() + CONFIG.deliveryCharge,
+      location: pickedLocation ? { lat: pickedLocation.lat, lng: pickedLocation.lng } : null
     };
 
     $("payOrderId").textContent = order.id;
     $("payAmount").textContent = money(order.total);
+    $("payBreakdown").textContent = "Items " + money(order.subtotal) + " + delivery " + money(order.deliveryCharge);
     var link = upiLink(order);
     $("upiAppBtn").setAttribute("href", link);
     renderQr(link);
@@ -422,10 +430,14 @@
     order.items.forEach(function (it, i) {
       lines.push((i + 1) + ". " + it.name + " x " + it.qty + " = " + money(it.price * it.qty));
     });
-    lines.push("", "*Total: " + money(order.total) + "*", "",
+    lines.push("",
+      "Items subtotal: " + money(order.subtotal),
+      "Delivery charge: " + money(order.deliveryCharge),
+      "*Total: " + money(order.total) + "*", "",
       "Name: " + order.name,
       "Phone: " + order.phone,
       "Address: " + order.address);
+    if (order.location) lines.push("Pinned location: " + mapsUrl(order.location));
     if (order.note) lines.push("Note: " + order.note);
     lines.push("", "UPI transaction ID (UTR): " + utr, "Payment status: Pending verification");
     return "https://wa.me/" + CONFIG.whatsapp + "?text=" + encodeURIComponent(lines.join("\n"));
@@ -453,8 +465,114 @@
     saveCart();
     renderCart();
     order = null;
+    clearLocation();
+    $("mapBox").hidden = true;
 
     if (!opened) toast("Tap Open WhatsApp to send your order");
+  }
+
+  /* ---------- Delivery location (GPS or map pin) ---------- */
+  var DEFAULT_CENTER = [26.4499, 80.3319]; // Kanpur, where the map opens if no GPS
+  var pickedLocation = null;
+  var locMap = null;
+  var locMarker = null;
+
+  function round6(n) { return Math.round(n * 1e6) / 1e6; }
+  function mapsUrl(loc) { return "https://www.google.com/maps?q=" + loc.lat + "," + loc.lng; }
+
+  function renderLocStatus(accuracy) {
+    var box = $("locStatus");
+    box.innerHTML = "";
+    if (!pickedLocation) { box.hidden = true; return; }
+    box.hidden = false;
+    var text = document.createElement("span");
+    text.textContent = "\uD83D\uDCCD Location pinned: " + pickedLocation.lat.toFixed(5) + ", " +
+      pickedLocation.lng.toFixed(5) +
+      (accuracy ? " (GPS accuracy about " + Math.round(accuracy) + " m, drag the pin if it's off)" : "") + " ";
+    var link = document.createElement("a");
+    link.href = mapsUrl(pickedLocation);
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "Check in Maps";
+    var remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "link-btn inline";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", clearLocation);
+    box.appendChild(text);
+    box.appendChild(link);
+    box.appendChild(document.createTextNode(" \u00B7 "));
+    box.appendChild(remove);
+  }
+
+  function setLocation(lat, lng, accuracy) {
+    pickedLocation = { lat: round6(lat), lng: round6(lng) };
+    showError("locError", "");
+    renderLocStatus(accuracy);
+  }
+
+  function clearLocation() {
+    pickedLocation = null;
+    renderLocStatus();
+  }
+
+  function showMap(lat, lng) {
+    if (typeof L === "undefined") {
+      showError("locError", "The map could not load. Use the current-location button, or add landmarks to your address.");
+      return;
+    }
+    $("mapBox").hidden = false;
+    var at = [lat, lng];
+    if (!locMap) {
+      locMap = L.map("map", { scrollWheelZoom: false }).setView(at, 16);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(locMap);
+      locMarker = L.marker(at, { draggable: true }).addTo(locMap);
+      locMarker.on("dragend", function () {
+        var p = locMarker.getLatLng();
+        setLocation(p.lat, p.lng);
+      });
+      locMap.on("click", function (e) {
+        locMarker.setLatLng(e.latlng);
+        setLocation(e.latlng.lat, e.latlng.lng);
+      });
+    } else {
+      locMap.setView(at, 16);
+      locMarker.setLatLng(at);
+    }
+    setTimeout(function () { locMap.invalidateSize(); }, 60); // the map was hidden until now
+  }
+
+  function useGps() {
+    if (!navigator.geolocation) {
+      showError("locError", "This browser can't share your location. Choose your spot on the map instead.");
+      return;
+    }
+    var btn = $("gpsBtn");
+    var original = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = "Locating\u2026";
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      btn.innerHTML = original;
+      btn.disabled = false;
+      setLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+      showMap(pos.coords.latitude, pos.coords.longitude);
+    }, function (err) {
+      btn.innerHTML = original;
+      btn.disabled = false;
+      showError("locError",
+        err.code === 1 ? "Location access was blocked. Allow it in your browser, or choose your spot on the map." :
+        err.code === 3 ? "Finding your location took too long. Try again, or choose your spot on the map." :
+        "Couldn't get your location. Choose your spot on the map instead.");
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  }
+
+  function chooseOnMap() {
+    showError("locError", "");
+    var at = pickedLocation ? [pickedLocation.lat, pickedLocation.lng] : DEFAULT_CENTER;
+    showMap(at[0], at[1]);
   }
 
   /* ---------- Order tracking ---------- */
@@ -674,6 +792,11 @@
     $("checkoutModal").addEventListener("click", function (e) {
       if (e.target === $("checkoutModal")) closeCheckout();
     });
+
+    // Delivery charge note and location buttons
+    $("introDelivery").textContent = " A flat " + money(CONFIG.deliveryCharge) + " delivery charge is added to every order.";
+    $("gpsBtn").addEventListener("click", useGps);
+    $("mapBtn").addEventListener("click", chooseOnMap);
 
     // Search, sort and product details
     $("searchInput").addEventListener("input", function () { searchTerm = this.value; renderProducts(); });

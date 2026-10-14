@@ -624,3 +624,17 @@ body.store-locked { overflow: hidden; }
 [data-theme="dark"] .loc-btn { background: #2d0057; color: #e6d9ff; border-color: rgba(160,110,255,0.5); }
 [data-theme="dark"] .loc-btn:hover:not(:disabled) { background: #4b0091; }
 [data-theme="dark"] .loc-status a { color: #c9a3ff; }
+
+/* ---------- Coupon & order summary ---------- */
+.coupon-row { display: flex; gap: 8px; }
+.coupon-row input { flex: 1; width: auto; min-width: 0; text-transform: uppercase; letter-spacing: 0.04em; }
+.coupon-row input::placeholder { text-transform: none; letter-spacing: normal; }
+.coupon-row .loc-btn { flex: 0 0 auto; }
+.coupon-msg { min-height: 1.2em; }
+.coupon-msg.good { color: #0b6b52; font-weight: 600; }
+.coupon-msg.bad { color: var(--secondary-red); font-weight: 600; }
+.summary-box { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(111,0,255,0.06); border: 1px solid rgba(111,0,255,0.2); }
+.summary-box .total-row { margin: 8px 0 0; font-size: 17px; }
+[data-theme="dark"] .coupon-msg.good { color: #6fe3c1; }
+[data-theme="dark"] .coupon-msg.bad { color: #ff8a9c; }
+[data-theme="dark"] .summary-box { background: rgba(160,110,255,0.12); border-color: rgba(160,110,255,0.4); }

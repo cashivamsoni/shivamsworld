@@ -329,7 +329,7 @@
     var payload = {
       id: o.id, name: o.name, phone: o.phone, address: o.address,
       note: o.note, items: o.items, subtotal: o.subtotal, deliveryCharge: o.deliveryCharge,
-      discount: o.discount, couponCode: o.couponCode,
+      discount: o.discount, couponCode: o.couponCode, couponKey: o.couponKey,
       total: o.total, location: o.location, utr: utr
     };
     return import("./orders-db.js")
@@ -344,6 +344,8 @@
     for (var i = 0; i < steps.length; i++) {
       steps[i].hidden = steps[i].getAttribute("data-step") !== name;
     }
+    var titles = { details: "Your details", payment: "Pay with UPI", done: "Order received" };
+    $("checkoutTitle").textContent = titles[name] || "";
     var box = document.querySelector(".checkout-box");
     box.scrollTop = 0;
   }
@@ -395,7 +397,7 @@
   function onDetailsSubmit(e) {
     e.preventDefault();
     var name = $("custName").value.trim();
-    var phone = $("custPhone").value.replace(/[\s-]/g, "").replace(/^(\+91|91)(?=\d{10}$)/, "");
+    var phone = normalizePhone($("custPhone").value);
     var address = $("custAddress").value.trim();
 
     if (name.length < 2) return showError("detailsError", "Enter your full name.");
@@ -409,6 +411,34 @@
     }
     showError("detailsError", "");
 
+    // A coupon is re-checked against the final name, phone and address
+    if (appliedCoupon) {
+      var submitBtn = $("detailsForm").querySelector('button[type="submit"]');
+      var submitLabel = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Checking coupon\u2026";
+      checkCouponUnused(name, phone, address).then(function (r) {
+        if (r.used) {
+          resetCoupon();
+          couponMessage("This coupon has already been used for this name, phone number and address, so it was removed.", "bad");
+          showError("detailsError", "The coupon was removed. Check your new total, then continue.");
+          return;
+        }
+        appliedCoupon.key = r.key;
+        proceedToPayment(name, phone, address);
+      }).catch(function (err) {
+        console.error(err);
+        showError("detailsError", "Couldn't verify the coupon right now. Try again, or remove the coupon.");
+      }).then(function () {
+        submitBtn.disabled = false;
+        submitBtn.textContent = submitLabel;
+      });
+      return;
+    }
+    proceedToPayment(name, phone, address);
+  }
+
+  function proceedToPayment(name, phone, address) {
     var items = Object.keys(cart).map(function (id) {
       var p = findProduct(id);
       return { name: p.name, qty: cart[id], price: p.price };
@@ -425,6 +455,7 @@
       deliveryCharge: CONFIG.deliveryCharge,
       discount: discountAmount(),
       couponCode: appliedCoupon ? appliedCoupon.code : "",
+      couponKey: appliedCoupon && appliedCoupon.key ? appliedCoupon.key : "",
       total: orderTotal(),
       location: pickedLocation ? { lat: pickedLocation.lat, lng: pickedLocation.lng } : null
     };
@@ -524,6 +555,36 @@
     renderSummary();
   }
 
+  // Same name + phone + address (ignoring case, spacing and punctuation) = same customer
+  function normalizeText(v) {
+    return String(v || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  }
+  function normalizePhone(v) {
+    return String(v || "").replace(/[\s-]/g, "").replace(/^(\+91|91)(?=\d{10}$)/, "");
+  }
+
+  // A fingerprint of coupon + customer. Only this hash is stored, never the details.
+  function couponIdentityKey(name, phone, address) {
+    if (!(window.crypto && window.crypto.subtle && window.TextEncoder)) {
+      return Promise.reject(new Error("crypto unavailable"));
+    }
+    var text = [String(CONFIG.couponCode).toUpperCase(), normalizeText(name), phone, normalizeText(address)].join("|");
+    return window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)).then(function (buf) {
+      return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+        return ("0" + b.toString(16)).slice(-2);
+      }).join("");
+    });
+  }
+
+  // Resolves { key, used }
+  function checkCouponUnused(name, phone, address) {
+    return couponIdentityKey(name, phone, address).then(function (key) {
+      return import("./orders-db.js")
+        .then(function (m) { return m.isCouponUsed(key); })
+        .then(function (used) { return { key: key, used: used }; });
+    });
+  }
+
   function applyCoupon() {
     if (appliedCoupon) { resetCoupon(); return; } // the button reads "Remove" once applied
     var code = $("couponInput").value.trim().toUpperCase();
@@ -532,12 +593,36 @@
       couponMessage("That coupon code isn't valid.", "bad");
       return;
     }
-    appliedCoupon = { code: CONFIG.couponCode, percent: CONFIG.couponPercent };
-    $("couponInput").value = CONFIG.couponCode;
-    $("couponInput").disabled = true;
-    $("couponApply").textContent = "Remove";
-    couponMessage("Coupon applied: " + CONFIG.couponPercent + "% off your items (not on delivery).", "good");
-    renderSummary();
+    var name = $("custName").value.trim();
+    var phone = normalizePhone($("custPhone").value);
+    var address = $("custAddress").value.trim();
+    if (name.length < 2 || !/^[6-9]\d{9}$/.test(phone) || address.length < 10) {
+      couponMessage("Fill in your name, phone number and address above first. Each customer can use the coupon once.", "bad");
+      return;
+    }
+
+    var btn = $("couponApply");
+    btn.disabled = true;
+    btn.textContent = "Checking\u2026";
+    checkCouponUnused(name, phone, address).then(function (r) {
+      if (r.used) {
+        couponMessage("This coupon has already been used for this name, phone number and address.", "bad");
+        btn.textContent = "Apply";
+        return;
+      }
+      appliedCoupon = { code: CONFIG.couponCode, percent: CONFIG.couponPercent, key: r.key };
+      $("couponInput").value = CONFIG.couponCode;
+      $("couponInput").disabled = true;
+      btn.textContent = "Remove";
+      couponMessage("Coupon applied: " + CONFIG.couponPercent + "% off your items (not on delivery).", "good");
+      renderSummary();
+    }).catch(function (err) {
+      console.error(err);
+      couponMessage("Couldn't verify the coupon right now. Check your connection and try again.", "bad");
+      btn.textContent = "Apply";
+    }).then(function () {
+      btn.disabled = false;
+    });
   }
 
   /* ---------- Delivery location (GPS or map pin) ---------- */

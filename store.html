@@ -22,6 +22,7 @@
     <!-- Shared site styles (header, cards, buttons, dark mode) -->
     <link rel="stylesheet" href="style.7f2a1c.css" />
     <!-- Store-only styles -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link rel="stylesheet" href="store-files/store.css" />
   </head>
   <body>
@@ -55,7 +56,7 @@
     <main class="container">
       <section id="store" class="card store-intro">
         <h1>🛍️ Store</h1>
-        <p class="small store-lead">Handmade creations from Shivam's World. Add what you like to the cart, check out, and pay by UPI. Already ordered? <a href="#track">Track your order</a>.</p>
+        <p class="small store-lead">Handmade creations from Shivam's World. Add what you like to the cart, check out, and pay by UPI. Already ordered? <a href="#track">Track your order</a>.<span id="introDelivery"></span></p>
         <noscript><p class="small">The store needs JavaScript. Please turn it on, or message us on WhatsApp to order.</p></noscript>
       </section>
 
@@ -107,6 +108,8 @@
       </div>
       <div id="cartItems" class="cart-items"></div>
       <div class="drawer-foot">
+        <div class="sub-row"><span>Subtotal</span><span id="cartSubtotal">₹0</span></div>
+        <div class="sub-row"><span>Delivery charge</span><span id="cartDelivery">₹0</span></div>
         <div class="total-row"><span>Total</span><strong id="cartTotal">₹0</strong></div>
         <button id="checkoutBtn" class="btn-inline checkout-btn" disabled>Checkout</button>
       </div>
@@ -126,6 +129,21 @@
           <input id="custPhone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10-digit mobile number" required>
           <label for="custAddress">Delivery address</label>
           <textarea id="custAddress" name="address" rows="3" autocomplete="street-address" maxlength="500" required></textarea>
+
+          <div class="loc-box">
+            <p class="loc-title">Exact delivery location (optional)</p>
+            <p class="hint">Pin your spot so we can find you easily.</p>
+            <div class="loc-actions">
+              <button id="gpsBtn" type="button" class="loc-btn"><i class="fa fa-crosshairs" aria-hidden="true"></i> Use my current location</button>
+              <button id="mapBtn" type="button" class="loc-btn"><i class="fa fa-map-marker" aria-hidden="true"></i> Choose on map</button>
+            </div>
+            <p id="locError" class="form-error" role="alert" hidden></p>
+            <div id="mapBox" hidden>
+              <div id="map" class="loc-map"></div>
+              <p class="hint">Tap the map or drag the pin to your exact spot.</p>
+            </div>
+            <p id="locStatus" class="loc-status" hidden></p>
+          </div>
           <label for="custNote">Note (optional)</label>
           <input id="custNote" name="note" type="text" maxlength="300" placeholder="Colour, name to write, occasion…">
           <p id="detailsError" class="form-error" role="alert" hidden></p>
@@ -136,6 +154,7 @@
         <div class="step" data-step="payment" hidden>
           <h2>Pay with UPI</h2>
           <p class="pay-meta">Order <strong id="payOrderId"></strong> &middot; Amount <strong id="payAmount"></strong></p>
+          <p id="payBreakdown" class="hint pay-breakdown"></p>
           <div id="qrBox" class="qr-box" aria-label="UPI payment QR code"></div>
           <a id="upiAppBtn" class="btn-inline wide" href="#">Pay with UPI app</a>
           <p class="hint">On a phone, tap the button. On a computer, scan the QR with any UPI app. The amount and order ID are filled in for you.</p>
@@ -204,6 +223,7 @@
 
     <!-- QR code generator (pinned version) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script src="store-files/store.js"></script>
   </body>
 </html>

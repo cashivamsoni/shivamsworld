@@ -60,24 +60,6 @@
       </section>
 
       <div id="productGrid" class="product-grid" aria-live="polite"></div>
-
-      <!-- ===== TRACK MY ORDER ===== -->
-      <section id="track" class="card track-card">
-        <h1>📦 Track my order</h1>
-        <p class="small store-lead">Enter the order ID from your order screen or our WhatsApp message to see where your order is.</p>
-        <form id="trackForm" class="track-form" novalidate>
-          <label for="trackInput" class="sr-only">Order ID</label>
-          <input id="trackInput" type="text" placeholder="e.g. SW-7K3Q9M2X" maxlength="11" autocomplete="off" autocapitalize="characters" spellcheck="false">
-          <button type="submit" class="btn-inline">Check status</button>
-        </form>
-        <div id="trackResult" class="track-result" aria-live="polite"></div>
-
-        <div id="myOrders" class="my-orders-box" hidden>
-          <h2>Your recent orders on this device</h2>
-          <ul id="myOrdersList" class="my-orders"></ul>
-          <button id="clearMyOrders" class="link-btn" type="button">Clear this list</button>
-        </div>
-      </section>
     </main>
 
     <!-- ===== FOOTER ===== -->
@@ -155,6 +137,27 @@
           <button id="trackNowBtn" class="btn-inline wide" type="button">Track this order</button>
           <a id="waAgainBtn" class="link-btn"  href="#" target="_blank" rel="noopener">Open WhatsApp again</a>
           <button id="doneClose" class="link-btn" type="button">Back to store</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TRACK ORDER MODAL ===== -->
+    <div id="trackModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="trackTitle" hidden>
+      <div class="checkout-box">
+        <button id="trackClose" class="icon-btn" aria-label="Close order tracking">&times;</button>
+        <h2 id="trackTitle">Track my order</h2>
+        <p class="small store-lead">Enter the order ID from your order screen or our WhatsApp message to see where your order is.</p>
+        <form id="trackForm" class="track-form" novalidate>
+          <label for="trackInput" class="sr-only">Order ID</label>
+          <input id="trackInput" type="text" placeholder="e.g. SW-7K3Q9M2X" maxlength="11" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button type="submit" class="btn-inline wide">Check status</button>
+        </form>
+        <div id="trackResult" class="track-result" aria-live="polite"></div>
+
+        <div id="myOrders" class="my-orders-box" hidden>
+          <h3>Your recent orders on this device</h3>
+          <ul id="myOrdersList" class="my-orders"></ul>
+          <button id="clearMyOrders" class="link-btn" type="button">Clear this list</button>
         </div>
       </div>
     </div>

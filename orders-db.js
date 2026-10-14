@@ -1,12 +1,14 @@
 /* =========================================================
-   Shivam's World — save an order to Firestore
+   Shivam's World — orders in Firestore (store side)
    Loaded on demand by store.js. If Firebase is unreachable the
    store still works: the order also goes to WhatsApp.
    ========================================================= */
-import { db, doc, setDoc, serverTimestamp } from "./firebase-init.js";
+import { db, doc, writeBatch, getDoc, serverTimestamp } from "./firebase-init.js";
 
+// Saves the private order and its public tracking record together.
 export function saveOrder(o) {
-  return setDoc(doc(db, "orders", o.id), {
+  const batch = writeBatch(db);
+  batch.set(doc(db, "orders", o.id), {
     orderId: o.id,
     name: o.name,
     phone: o.phone,
@@ -20,4 +22,17 @@ export function saveOrder(o) {
     status: "pending",
     createdAt: serverTimestamp()
   });
+  batch.set(doc(db, "tracking", o.id), {
+    orderId: o.id,
+    status: "pending",
+    note: "",
+    updatedAt: serverTimestamp()
+  });
+  return batch.commit();
+}
+
+// Returns { status, note, updatedAt } or null if there is no such order.
+export async function getTracking(id) {
+  const snap = await getDoc(doc(db, "tracking", id));
+  return snap.exists() ? snap.data() : null;
 }

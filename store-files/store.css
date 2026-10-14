@@ -703,3 +703,73 @@ body.store-locked { overflow: hidden; }
 
 /* No gap above the fixed header: the scrolling box starts right at the top edge */
 .checkout-box.with-head { padding-top: 0; }
+
+/* ---------- Account button in the header ---------- */
+.account-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  height: 44px;
+  margin-left: auto;
+  padding: 0 14px 0 7px;
+  border: 2px solid #fff;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.9);
+  color: var(--primary);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255,255,255,0.6);
+}
+.account-btn:hover { background: var(--primary); color: #fff; }
+.account-btn + .store-theme-btn { margin-left: 10px; }
+.acct-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+.account-btn:hover .acct-avatar { background: #fff; color: var(--primary); }
+.acct-text { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 699px) {
+  .acct-text { display: none; }
+  .account-btn { padding: 0 6px; }
+}
+[data-theme="dark"] .account-btn { background: rgba(30,0,60,0.9); color: #e6d9ff; }
+[data-theme="dark"] .account-btn:hover { background: #4b0091; }
+[data-theme="dark"] .acct-avatar { background: #7a2bff; }
+
+/* ---------- Sign-in note and save checkbox in checkout ---------- */
+.auth-note { margin: 0 0 4px; font-size: 14px; text-align: left; }
+.check-row { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.check-row input { width: auto; margin: 0; }
+
+/* ---------- My account window ---------- */
+.acct-email { margin: 0 0 4px; text-align: left; overflow-wrap: anywhere; }
+.acct-h { margin: 18px 0 6px; font-size: 18px; }
+.acct-orders { display: grid; gap: 10px; }
+.acct-empty { margin: 0; text-align: left; color: #555; }
+.acct-order { padding: 12px; border: 2px solid rgba(111,0,255,0.2); border-radius: 12px; }
+.acct-order-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; }
+.acct-status {
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: rgba(111,0,255,0.12);
+  color: var(--primary-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+.acct-order p { margin: 4px 0 0; font-size: 14px; text-align: left; overflow-wrap: anywhere; }
+.acct-order .loc-btn { margin-top: 8px; }
+[data-theme="dark"] .acct-empty { color: #cdb8f5; }
+[data-theme="dark"] .acct-order { border-color: rgba(160,110,255,0.4); }
+[data-theme="dark"] .acct-status { background: rgba(160,110,255,0.25); color: #e6d9ff; }
+[data-theme="dark"] .acct-h { color: #c9a3ff; }

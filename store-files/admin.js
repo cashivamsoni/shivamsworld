@@ -228,7 +228,8 @@ function orderCard(o) {
 
   const payBox = el("div");
   payBox.appendChild(el("h3", "", "Payment"));
-  const breakdown = o.deliveryCharge !== undefined ? ` (items ${money(o.subtotal)} + delivery ${money(o.deliveryCharge)})` : "";
+  const coupon = o.discount > 0 ? ` \u2212 coupon ${o.couponCode || ""} ${money(o.discount)}` : "";
+  const breakdown = o.deliveryCharge !== undefined ? ` (items ${money(o.subtotal)}${coupon} + delivery ${money(o.deliveryCharge)})` : "";
   payBox.appendChild(el("p", "o-text", `Amount to match: ${money(o.total)}${breakdown}\nUTR given by customer: ${o.utr || ""}`));
   body.appendChild(payBox);
 

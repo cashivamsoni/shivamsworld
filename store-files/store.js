@@ -758,6 +758,7 @@
   var ordersToken = 0;
   var acctReturnFocus = null;
   var pendingTrack = null; // order ID from a WhatsApp link, opened after sign-in
+  var scrollOrdersOnLoad = false; // jump to My orders once the list has loaded
   var lastOrderId = "";
 
   var STATUS_LABELS = {
@@ -881,7 +882,15 @@
       });
   }
 
+  // Scrolls the account window so the My orders section is in view
+  function scrollToOrdersHead() {
+    var head = $("acctOrdersHead");
+    if (head && head.scrollIntoView) head.scrollIntoView({ block: "start" });
+  }
+
   function renderMyOrders(list) {
+    var doScroll = scrollOrdersOnLoad; // set when opened from "Track order" / My orders links
+    scrollOrdersOnLoad = false;
     var box = $("acctOrders");
     box.innerHTML = "";
     if (!list.length) {
@@ -889,6 +898,7 @@
       none.className = "acct-empty";
       none.textContent = "No orders yet. Orders you place appear here, with live status.";
       box.appendChild(none);
+      if (doScroll) scrollToOrdersHead();
       return;
     }
     list.sort(function (a, b) {
@@ -934,6 +944,7 @@
       card.appendChild(track);
       box.appendChild(card);
     });
+    if (doScroll) scrollToOrdersHead(); // the list has its full height now
   }
 
   function startMyOrders() {
@@ -970,6 +981,7 @@
   }
 
   function closeAccount() {
+    scrollOrdersOnLoad = false;
     ordersToken++;
     if (stopOrders) { stopOrders(); stopOrders = null; }
     $("accountModal").hidden = true;
@@ -983,9 +995,9 @@
       signIn().then(function (user) { if (user) openMyOrders(); });
       return;
     }
+    scrollOrdersOnLoad = true;
     openAccount();
-    var head = $("acctOrdersHead");
-    if (head && head.scrollIntoView) head.scrollIntoView({ block: "start" });
+    scrollToOrdersHead();
   }
 
   // Checkout needs an account: sign in first, then carry straight on

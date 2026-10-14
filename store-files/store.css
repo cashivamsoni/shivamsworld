@@ -674,3 +674,29 @@ body.store-locked { overflow: hidden; }
 [data-theme="dark"] .track-step.done::before { border-left-color: #a06eff; }
 [data-theme="dark"] .track-step .step-time { color: #cdb8f5; }
 @media (prefers-reduced-motion: reduce) { .track-step.current .mark { animation: none; } }
+
+/* ---------- Modal headers that stay put while the content scrolls ---------- */
+.modal-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -24px -22px 14px;
+  padding: 14px 16px 12px 22px;
+  background: #fff;
+  border-bottom: 1px solid rgba(111,0,255,0.15);
+}
+.modal-head h2 { margin: 0; }
+[data-theme="dark"] .modal-head { background: #1e003c; border-bottom-color: rgba(160,110,255,0.3); }
+
+/* ---------- Add to cart button grows a little on hover (mouse devices) ---------- */
+@media (hover: hover) and (pointer: fine) and (min-width: 561px) {
+  .product-card .add-btn { transition: transform 0.15s ease, filter 0.15s ease; }
+  .product-card .add-btn:hover { transform: scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-card .add-btn:hover { transform: none; }
+}

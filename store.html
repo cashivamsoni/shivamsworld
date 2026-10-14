@@ -43,6 +43,7 @@
       <nav id="mainNav" class="nav" aria-label="Main navigation">
         <a href="index.html">Home</a>
         <a href="store.html" aria-current="page">🛍️ Store</a>
+        <a href="#track">📦 Track order</a>
         <a href="index.html#featured">Featured</a>
         <a href="index.html#customised-orders">Customised Orders</a>
         <a href="classroom.html">🎓 Classroom</a>
@@ -54,11 +55,29 @@
     <main class="container">
       <section id="store" class="card store-intro">
         <h1>🛍️ Store</h1>
-        <p class="small store-lead">Handmade creations from Shivam's World. Add what you like to the cart, check out, and pay by UPI.</p>
+        <p class="small store-lead">Handmade creations from Shivam's World. Add what you like to the cart, check out, and pay by UPI. Already ordered? <a href="#track">Track your order</a>.</p>
         <noscript><p class="small">The store needs JavaScript. Please turn it on, or message us on WhatsApp to order.</p></noscript>
       </section>
 
       <div id="productGrid" class="product-grid" aria-live="polite"></div>
+
+      <!-- ===== TRACK MY ORDER ===== -->
+      <section id="track" class="card track-card">
+        <h1>📦 Track my order</h1>
+        <p class="small store-lead">Enter the order ID from your order screen or our WhatsApp message to see where your order is.</p>
+        <form id="trackForm" class="track-form" novalidate>
+          <label for="trackInput" class="sr-only">Order ID</label>
+          <input id="trackInput" type="text" placeholder="e.g. SW-7K3Q9M2X" maxlength="11" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button type="submit" class="btn-inline">Check status</button>
+        </form>
+        <div id="trackResult" class="track-result" aria-live="polite"></div>
+
+        <div id="myOrders" class="my-orders-box" hidden>
+          <h2>Your recent orders on this device</h2>
+          <ul id="myOrdersList" class="my-orders"></ul>
+          <button id="clearMyOrders" class="link-btn" type="button">Clear this list</button>
+        </div>
+      </section>
     </main>
 
     <!-- ===== FOOTER ===== -->
@@ -132,8 +151,9 @@
         <!-- Step 3: confirmation -->
         <div class="step" data-step="done" hidden>
           <h2>Order received</h2>
-          <p class="small confirm-text">Thanks! Your order <strong id="doneOrderId"></strong> is waiting for payment verification. We'll confirm on WhatsApp once the payment is checked.</p>
-          <a id="waAgainBtn" class="btn-inline wide" href="#" target="_blank" rel="noopener">Open WhatsApp again</a>
+          <p class="small confirm-text">Thanks! Your order <strong id="doneOrderId"></strong> is waiting for payment verification. Keep this order ID to track it. We'll also confirm on WhatsApp once the payment is checked.</p>
+          <button id="trackNowBtn" class="btn-inline wide" type="button">Track this order</button>
+          <a id="waAgainBtn" class="link-btn"  href="#" target="_blank" rel="noopener">Open WhatsApp again</a>
           <button id="doneClose" class="link-btn" type="button">Back to store</button>
         </div>
       </div>

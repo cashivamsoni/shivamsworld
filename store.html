@@ -69,14 +69,15 @@
           <i class="fa fa-search" aria-hidden="true"></i>
           <input id="searchInput" type="search" placeholder="Search creations" aria-label="Search products" autocomplete="off">
         </div>
-        <label class="sort-wrap" for="sortSelect">Sort by
+        <div class="sort-wrap">
+          <label for="sortSelect">Sort by</label>
           <select id="sortSelect">
             <option value="featured">Featured</option>
             <option value="low">Price: low to high</option>
             <option value="high">Price: high to low</option>
             <option value="name">Name: A to Z</option>
           </select>
-        </label>
+        </div>
         <p id="resultCount" class="result-count" aria-live="polite"></p>
       </div>
 
@@ -280,6 +281,7 @@
     <!-- QR code generator (pinned version) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="store-files/ui.js"></script>
     <script src="store-files/store.js"></script>
   </body>
 </html>

@@ -540,10 +540,24 @@
       });
   }
 
-  function goTrack(id) {
-    trackOrder(id);
-    var section = $("track");
-    if (section.scrollIntoView) section.scrollIntoView({ behavior: "smooth", block: "start" });
+  var trackReturnFocus = null;
+
+  function openTrack(id) {
+    trackReturnFocus = document.activeElement;
+    $("trackModal").hidden = false;
+    document.body.classList.add("store-locked");
+    if (id) {
+      trackOrder(id);
+    } else {
+      $("trackResult").innerHTML = "";
+      $("trackInput").focus();
+    }
+  }
+
+  function closeTrack() {
+    $("trackModal").hidden = true;
+    document.body.classList.remove("store-locked");
+    if (trackReturnFocus && trackReturnFocus.focus) trackReturnFocus.focus();
   }
 
   /* ---------- Theme & menu (same behaviour as homepage) ---------- */
@@ -612,11 +626,23 @@
     });
     $("trackNowBtn").addEventListener("click", function () {
       closeCheckout();
-      goTrack(lastOrderId);
+      openTrack(lastOrderId);
+    });
+    $("trackClose").addEventListener("click", closeTrack);
+    $("trackModal").addEventListener("click", function (e) {
+      if (e.target === $("trackModal")) closeTrack();
+    });
+    // Every "#track" link (menu, intro text) opens the tracking window
+    Array.prototype.forEach.call(document.querySelectorAll('a[href="#track"]'), function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        openTrack();
+      });
     });
     renderMyOrders();
     var linked = window.location.search.match(/[?&]track=([A-Za-z0-9-]+)/);
-    if (linked) goTrack(linked[1]); // link from the WhatsApp status message
+    if (linked) openTrack(linked[1]); // link from the WhatsApp status message
+    else if (window.location.hash === "#track") openTrack();
 
     // Keep the UTR field to digits only
     $("utrInput").addEventListener("input", function () {
@@ -626,6 +652,7 @@
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
       if (!$("checkoutModal").hidden) closeCheckout();
+      else if (!$("trackModal").hidden) closeTrack();
       else if ($("cartDrawer").classList.contains("open")) closeCart();
     });
 

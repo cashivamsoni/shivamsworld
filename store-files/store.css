@@ -773,3 +773,5 @@ body.store-locked { overflow: hidden; }
 [data-theme="dark"] .acct-order { border-color: rgba(160,110,255,0.4); }
 [data-theme="dark"] .acct-status { background: rgba(160,110,255,0.25); color: #e6d9ff; }
 [data-theme="dark"] .acct-h { color: #c9a3ff; }
+
+.cart-note { margin: 0 0 10px; text-align: center; }

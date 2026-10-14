@@ -137,7 +137,16 @@ async function saveOrder(o, btn) {
 }
 
 async function removeOrder(o) {
-  if (!confirm(`Delete order ${o.id} permanently? This cannot be undone.`)) return;
+  const sure = window.SWUI
+    ? await window.SWUI.confirm({
+        title: "Delete this order?",
+        message: `Order ${o.id} will be deleted permanently. This cannot be undone.`,
+        confirmText: "Delete order",
+        cancelText: "Keep it",
+        danger: true
+      })
+    : confirm(`Delete order ${o.id} permanently? This cannot be undone.`);
+  if (!sure) return;
   try {
     const batch = writeBatch(db);
     batch.delete(doc(db, "orders", o.id));
@@ -280,7 +289,8 @@ function orderCard(o) {
     drafts[o.id] = Object.assign(drafts[o.id] || {}, { note: note.value });
   });
 
-  controls.append(selLabel, select, noteLabel, note);
+  const statusField = window.SWUI ? window.SWUI.customSelect(select, { label: "Delivery status" }) : select;
+  controls.append(selLabel, statusField, noteLabel, note);
 
   const saveRow = el("div", "o-save-row");
   const save = el("button", "btn-inline", "Save changes");

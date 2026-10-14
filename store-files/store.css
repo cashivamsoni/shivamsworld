@@ -428,29 +428,57 @@ body.store-locked { overflow: hidden; }
 .track-msg { margin: 0; text-align: left; font-weight: 600; }
 .track-msg.error { color: var(--secondary-red); }
 
-.track-steps { list-style: none; margin: 0 0 12px; padding: 0; }
+.track-steps { list-style: none; margin: 4px 0 14px; padding: 0; }
 .track-step {
+  position: relative;
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: flex-start;
-  padding: 8px 0;
-  color: #666;
+  padding: 0 0 24px;
+  color: #777;
 }
+.track-step:last-child { padding-bottom: 0; }
+
+/* The line joining each step to the next */
+.track-step::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 28px;
+  bottom: 2px;
+  border-left: 2px dashed rgba(111,0,255,0.3);
+}
+.track-step:last-child::before { display: none; }
+.track-step.done::before { border-left: 3px solid var(--primary); left: 11px; }
+
 .track-step .mark {
+  position: relative;
+  z-index: 1;
   flex: 0 0 26px;
   height: 26px;
   border-radius: 50%;
-  border: 2px solid rgba(111,0,255,0.35);
+  border: 2px solid rgba(111,0,255,0.3);
+  background: #fff;
+  color: #fff;
   text-align: center;
   line-height: 22px;
   font-size: 14px;
   font-weight: 700;
 }
+.track-step.done .mark,
+.track-step.current .mark { background: var(--primary); border-color: var(--primary); }
+.track-step.current .mark { animation: trackPulse 2s ease-out infinite; }
+.track-step.current:last-child .mark { animation: none; box-shadow: 0 0 0 5px rgba(111,0,255,0.18); }
+@keyframes trackPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(111,0,255,0.45); }
+  70%  { box-shadow: 0 0 0 10px rgba(111,0,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(111,0,255,0); }
+}
+
+.track-step .label { display: flex; flex-direction: column; gap: 2px; padding-top: 2px; }
+.track-step .step-time { font-size: 13px; font-weight: 400; color: #666; }
 .track-step.done { color: #111; }
-.track-step.done .mark { background: var(--primary); border-color: var(--primary); color: #fff; }
 .track-step.current { color: var(--primary-dark); font-weight: 700; }
-.track-step.current .mark { background: var(--secondary-yellow); border-color: var(--primary-dark); color: #2a0066; }
-.track-step .label { padding-top: 2px; }
 
 .track-note { margin: 6px 0 0; text-align: left; }
 .track-updated { margin: 6px 0 0; font-size: 13px; color: #666; text-align: left; }
@@ -638,3 +666,11 @@ body.store-locked { overflow: hidden; }
 [data-theme="dark"] .coupon-msg.good { color: #6fe3c1; }
 [data-theme="dark"] .coupon-msg.bad { color: #ff8a9c; }
 [data-theme="dark"] .summary-box { background: rgba(160,110,255,0.12); border-color: rgba(160,110,255,0.4); }
+
+[data-theme="dark"] .track-step .mark { background: #2d0057; border-color: rgba(160,110,255,0.5); }
+[data-theme="dark"] .track-step.done .mark,
+[data-theme="dark"] .track-step.current .mark { background: #7a2bff; border-color: #a06eff; }
+[data-theme="dark"] .track-step::before { border-left-color: rgba(160,110,255,0.45); }
+[data-theme="dark"] .track-step.done::before { border-left-color: #a06eff; }
+[data-theme="dark"] .track-step .step-time { color: #cdb8f5; }
+@media (prefers-reduced-motion: reduce) { .track-step.current .mark { animation: none; } }

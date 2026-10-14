@@ -382,6 +382,8 @@
     saveOrderToDb(order, utr); // background; WhatsApp opens even if this fails
     var opened = window.open(url, "_blank", "noopener");
 
+    lastOrderId = order.id;
+    rememberOrder(order);
     $("doneOrderId").textContent = order.id;
     $("waAgainBtn").setAttribute("href", url);
     showStep("done");
@@ -393,6 +395,155 @@
     order = null;
 
     if (!opened) toast("Tap Open WhatsApp to send your order");
+  }
+
+  /* ---------- Order tracking ---------- */
+  var MY_ORDERS_KEY = "sw-my-orders";
+  var TRACK_STEPS = [
+    { key: "pending",   label: "Order received, payment being verified" },
+    { key: "confirmed", label: "Payment confirmed" },
+    { key: "packed",    label: "Packed" },
+    { key: "shipped",   label: "Shipped" },
+    { key: "delivered", label: "Delivered" }
+  ];
+  var lastOrderId = "";
+  var trackRequest = 0;
+
+  function loadMyOrders() {
+    try {
+      var list = JSON.parse(storeGet(MY_ORDERS_KEY) || "[]");
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+  }
+
+  // Remember this customer's own orders on their device only
+  function rememberOrder(o) {
+    var list = loadMyOrders().filter(function (x) { return x.id !== o.id; });
+    list.unshift({ id: o.id, total: o.total, at: Date.now() });
+    storeSet(MY_ORDERS_KEY, JSON.stringify(list.slice(0, 10)));
+    renderMyOrders();
+  }
+
+  function renderMyOrders() {
+    var list = loadMyOrders();
+    var ul = $("myOrdersList");
+    ul.innerHTML = "";
+    $("myOrders").hidden = !list.length;
+    list.forEach(function (item) {
+      if (!item || typeof item.id !== "string") return;
+      var li = document.createElement("li");
+      li.className = "my-order";
+      var info = document.createElement("div");
+      var idEl = document.createElement("strong");
+      idEl.textContent = item.id;
+      var meta = document.createElement("div");
+      meta.className = "my-order-meta";
+      meta.textContent = new Date(item.at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) +
+        " \u00B7 " + money(item.total);
+      info.appendChild(idEl);
+      info.appendChild(meta);
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-inline add-btn";
+      btn.textContent = "Check status";
+      btn.addEventListener("click", function () { trackOrder(item.id); });
+      li.appendChild(info);
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+  }
+
+  function showTrackMessage(msg, isError) {
+    var box = $("trackResult");
+    box.innerHTML = "";
+    var p = document.createElement("p");
+    p.className = "track-msg" + (isError ? " error" : "");
+    p.textContent = msg;
+    box.appendChild(p);
+  }
+
+  function renderTrackResult(id, data) {
+    var box = $("trackResult");
+    box.innerHTML = "";
+    var head = document.createElement("h3");
+    head.textContent = "Order " + id;
+    box.appendChild(head);
+
+    if (data.status === "cancelled") {
+      showTrackMessage("This order was cancelled. Message us on WhatsApp if you have any questions.", true);
+      box.insertBefore(head, box.firstChild);
+    } else {
+      var idx = 0;
+      TRACK_STEPS.forEach(function (s, i) { if (s.key === data.status) idx = i; });
+      var ol = document.createElement("ol");
+      ol.className = "track-steps";
+      TRACK_STEPS.forEach(function (s, i) {
+        var li = document.createElement("li");
+        li.className = "track-step" + (i < idx ? " done" : (i === idx ? " current" : ""));
+        if (i === idx) li.setAttribute("aria-current", "step");
+        var mark = document.createElement("span");
+        mark.className = "mark";
+        mark.setAttribute("aria-hidden", "true");
+        mark.textContent = i < idx ? "\u2713" : (i === idx ? "\u25CF" : "");
+        var label = document.createElement("span");
+        label.className = "label";
+        label.textContent = s.label;
+        li.appendChild(mark);
+        li.appendChild(label);
+        ol.appendChild(li);
+      });
+      box.appendChild(ol);
+    }
+
+    if (data.note) {
+      var note = document.createElement("p");
+      note.className = "track-note";
+      var strong = document.createElement("strong");
+      strong.textContent = "Note from us: ";
+      note.appendChild(strong);
+      note.appendChild(document.createTextNode(data.note));
+      box.appendChild(note);
+    }
+    if (data.updatedAt && data.updatedAt.toDate) {
+      var upd = document.createElement("p");
+      upd.className = "track-updated";
+      upd.textContent = "Last updated " + data.updatedAt.toDate().toLocaleString("en-IN", {
+        day: "numeric", month: "short", hour: "numeric", minute: "2-digit"
+      });
+      box.appendChild(upd);
+    }
+  }
+
+  function trackOrder(rawId) {
+    var id = String(rawId || "").trim().toUpperCase();
+    $("trackInput").value = id;
+    if (!/^SW-[A-Z0-9]{8}$/.test(id)) {
+      showTrackMessage("Enter the order ID exactly as shown, like SW-7K3Q9M2X.", true);
+      return;
+    }
+    var req = ++trackRequest;
+    showTrackMessage("Checking\u2026", false);
+    import("./orders-db.js")
+      .then(function (m) { return m.getTracking(id); })
+      .then(function (data) {
+        if (req !== trackRequest) return;
+        if (!data) {
+          showTrackMessage("We couldn't find this order yet. If you just placed it, wait a minute and try again. Still missing? Message us on WhatsApp with your order ID.", true);
+        } else {
+          renderTrackResult(id, data);
+        }
+      })
+      .catch(function (err) {
+        if (req !== trackRequest) return;
+        console.error(err);
+        showTrackMessage("Couldn't check the status right now. Please try again in a moment, or message us on WhatsApp.", true);
+      });
+  }
+
+  function goTrack(id) {
+    trackOrder(id);
+    var section = $("track");
+    if (section.scrollIntoView) section.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   /* ---------- Theme & menu (same behaviour as homepage) ---------- */
@@ -449,6 +600,23 @@
     $("checkoutModal").addEventListener("click", function (e) {
       if (e.target === $("checkoutModal")) closeCheckout();
     });
+
+    // Order tracking
+    $("trackForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      trackOrder($("trackInput").value);
+    });
+    $("clearMyOrders").addEventListener("click", function () {
+      storeSet(MY_ORDERS_KEY, "[]");
+      renderMyOrders();
+    });
+    $("trackNowBtn").addEventListener("click", function () {
+      closeCheckout();
+      goTrack(lastOrderId);
+    });
+    renderMyOrders();
+    var linked = window.location.search.match(/[?&]track=([A-Za-z0-9-]+)/);
+    if (linked) goTrack(linked[1]); // link from the WhatsApp status message
 
     // Keep the UTR field to digits only
     $("utrInput").addEventListener("input", function () {

@@ -95,7 +95,7 @@ body.store-locked { overflow: hidden; }
   color: var(--primary-dark);
 }
 .add-btn { padding: 8px 16px; font-size: 15px; }
-.add-btn:hover { transform: translateY(-2px) scale(1.04); }
+.product-card .add-btn:hover { transform: none; filter: brightness(1.08); }
 
 /* ---------- Floating cart button ---------- */
 .cart-fab {
@@ -539,15 +539,15 @@ body.store-locked { overflow: hidden; }
 
 /* Bigger on hover: desktop with a real mouse only */
 @media (hover: hover) and (pointer: fine) and (min-width: 901px) {
-  .product-grid { padding: 14px; }
-  .product-card { transition: transform 0.22s ease, box-shadow 0.22s ease; }
+  .product-grid { padding: 10px 8px 14px; }
+  .product-card { transition: transform 0.2s ease, box-shadow 0.2s ease; will-change: transform; }
   .product-card:hover {
-    transform: scale(1.07);
+    transform: translateY(-5px) scale(1.025);
     z-index: 5;
-    box-shadow: 0 20px 48px rgba(111,0,255,0.38), 0 0 24px rgba(255,255,255,0.6);
+    box-shadow: 0 16px 36px rgba(111,0,255,0.32), 0 0 18px rgba(255,255,255,0.5);
   }
   .product-img img { transition: transform 0.35s ease; }
-  .product-card:hover .product-img img { transform: scale(1.05); }
+  .product-card:hover .product-img img { transform: scale(1.04); }
 }
 
 /* ---------- Product details modal ---------- */

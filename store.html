@@ -35,6 +35,10 @@
         </div>
         <h1>Shivam's World</h1>
       </div>
+      <button id="accountBtn" class="account-btn" type="button" aria-label="Sign in" title="Sign in">
+        <span id="acctAvatar" class="acct-avatar"><i class="fa fa-user-o" aria-hidden="true"></i></span>
+        <span id="acctText" class="acct-text">Sign in</span>
+      </button>
       <button id="storeThemeToggle" class="store-theme-btn" aria-label="Switch to dark mode" title="Switch to dark mode"><i class="fa fa-moon-o" aria-hidden="true"></i></button>
       <button id="menuToggle" aria-label="Menu" aria-expanded="false">
         <span></span>
@@ -125,6 +129,7 @@
 
         <!-- Step 1: delivery details -->
         <form id="detailsForm" class="step" data-step="details" novalidate>
+          <p id="checkoutAuthNote" class="auth-note"></p>
           <label for="custName">Full name</label>
           <input id="custName" name="name" type="text" autocomplete="name" maxlength="100" required>
           <label for="custPhone">Phone number</label>
@@ -161,6 +166,10 @@
             <div class="sub-row"><span>Delivery charge</span><span id="sumDelivery">₹0</span></div>
             <div class="total-row"><span>Total to pay</span><strong id="sumTotal">₹0</strong></div>
           </div>
+
+          <label id="saveDetailsRow" class="check-row" hidden>
+            <input id="saveDetails" type="checkbox" checked> Save these details to my account
+          </label>
 
           <p id="detailsError" class="form-error" role="alert" hidden></p>
           <button type="submit" class="btn-inline wide">Continue to payment</button>
@@ -209,6 +218,35 @@
           </div>
           <button id="pmAdd" class="btn-inline wide" type="button">Add to cart</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ===== MY ACCOUNT MODAL ===== -->
+    <div id="accountModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="acctTitle" hidden>
+      <div class="checkout-box with-head">
+        <div class="modal-head">
+          <h2 id="acctTitle">My account</h2>
+          <button id="acctClose" class="icon-btn" aria-label="Close my account">&times;</button>
+        </div>
+        <p id="acctEmail" class="small acct-email"></p>
+
+        <h3 class="acct-h">Saved details</h3>
+        <form id="acctForm" novalidate>
+          <label for="acctName">Full name</label>
+          <input id="acctName" type="text" maxlength="100" autocomplete="name">
+          <label for="acctPhone">Phone number</label>
+          <input id="acctPhone" type="tel" inputmode="numeric" maxlength="14" autocomplete="tel" placeholder="10-digit mobile number">
+          <label for="acctAddress">Delivery address</label>
+          <textarea id="acctAddress" rows="3" maxlength="500" autocomplete="street-address"></textarea>
+          <p id="acctPin" class="hint"></p>
+          <p id="acctError" class="form-error" role="alert" hidden></p>
+          <button type="submit" class="btn-inline wide">Save details</button>
+        </form>
+
+        <h3 class="acct-h">My orders</h3>
+        <div id="acctOrders" class="acct-orders" aria-live="polite"></div>
+
+        <button id="signOutBtn" class="link-btn" type="button">Sign out</button>
       </div>
     </div>
 

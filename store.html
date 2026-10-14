@@ -59,7 +59,23 @@
         <noscript><p class="small">The store needs JavaScript. Please turn it on, or message us on WhatsApp to order.</p></noscript>
       </section>
 
-      <div id="productGrid" class="product-grid" aria-live="polite"></div>
+      <div class="store-toolbar">
+        <div class="search-wrap">
+          <i class="fa fa-search" aria-hidden="true"></i>
+          <input id="searchInput" type="search" placeholder="Search creations" aria-label="Search products" autocomplete="off">
+        </div>
+        <label class="sort-wrap" for="sortSelect">Sort by
+          <select id="sortSelect">
+            <option value="featured">Featured</option>
+            <option value="low">Price: low to high</option>
+            <option value="high">Price: high to low</option>
+            <option value="name">Name: A to Z</option>
+          </select>
+        </label>
+        <p id="resultCount" class="result-count" aria-live="polite"></p>
+      </div>
+
+      <div id="productGrid" class="product-grid"></div>
     </main>
 
     <!-- ===== FOOTER ===== -->
@@ -137,6 +153,28 @@
           <button id="trackNowBtn" class="btn-inline wide" type="button">Track this order</button>
           <a id="waAgainBtn" class="link-btn"  href="#" target="_blank" rel="noopener">Open WhatsApp again</a>
           <button id="doneClose" class="link-btn" type="button">Back to store</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PRODUCT DETAILS MODAL ===== -->
+    <div id="productModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="pmName" hidden>
+      <div class="checkout-box product-box">
+        <button id="pmClose" class="icon-btn" aria-label="Close product details">&times;</button>
+        <div class="pm-img"><img id="pmImg" alt=""></div>
+        <div class="pm-info">
+          <h2 id="pmName"></h2>
+          <p id="pmPrice" class="product-price"></p>
+          <p id="pmDesc" class="pm-desc"></p>
+          <div class="pm-qty-row">
+            <span id="pmQtyLabel">Quantity</span>
+            <div class="qty" role="group" aria-labelledby="pmQtyLabel">
+              <button id="pmMinus" type="button" aria-label="Decrease quantity">&minus;</button>
+              <span id="pmQty" aria-live="polite">1</span>
+              <button id="pmPlus" type="button" aria-label="Increase quantity">+</button>
+            </div>
+          </div>
+          <button id="pmAdd" class="btn-inline wide" type="button">Add to cart</button>
         </div>
       </div>
     </div>

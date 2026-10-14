@@ -1170,6 +1170,7 @@
     loadCart();
     checkoutLoc = createLocationPicker({ gps: "gpsBtn", choose: "mapBtn", error: "locError", mapBox: "mapBox", map: "map", status: "locStatus" });
     acctLoc = createLocationPicker({ gps: "acctGpsBtn", choose: "acctMapBtn", error: "acctLocError", mapBox: "acctMapBox", map: "acctMap", status: "acctLocStatus" });
+    if (window.SWUI) window.SWUI.customSelect($("sortSelect"), { label: "Sort by" });
     renderProducts();
     renderCart();
     setupThemeAndMenu();

@@ -861,11 +861,11 @@ body.store-locked { overflow: hidden; }
 }
 
 /* =========================================================
-   One button system for the whole store and the admin page
-     primary   = .btn-inline          purple gradient
-     danger    = .btn-inline.danger   red gradient
-     secondary = .mini-btn, .loc-btn  white with a purple outline
-   Same height, shape, text size and hover movement everywhere.
+   One button style for the whole store and the admin page
+   Every action button (Save changes, Keep it, Message status,
+   Use my location, Track order, Delete order...) shares the
+   same look: purple gradient pill. Only the colour changes
+   for destructive actions (.danger = red gradient).
    ========================================================= */
 .btn-inline,
 .mini-btn,
@@ -875,9 +875,13 @@ body.store-locked { overflow: hidden; }
   justify-content: center;
   gap: 8px;
   min-height: 42px;
+  margin: 0;
   padding: 9px 18px;
-  border: 2px solid transparent;
+  border: 2px solid rgba(255,255,255,0.7);
   border-radius: 20px;
+  color: #fff;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 0 12px rgba(255,255,255,0.45);
   font: inherit;
   font-size: 15px;
   font-weight: 600;
@@ -885,16 +889,12 @@ body.store-locked { overflow: hidden; }
   text-align: center;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 0.15s ease-out, box-shadow 0.2s ease, background 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out;
+  transition: transform 0.15s ease-out, box-shadow 0.2s ease, background 0.15s ease-out;
 }
-
-.btn-inline {
+.btn-inline:hover,
+.mini-btn:hover,
+.loc-btn:hover:not(:disabled) {
   color: #fff;
-  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
-  border-color: rgba(255,255,255,0.7);
-  box-shadow: 0 0 12px rgba(255,255,255,0.45);
-}
-.btn-inline:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 18px rgba(111,0,255,0.35);
   background: linear-gradient(90deg, var(--secondary-pink), var(--primary));
@@ -905,29 +905,12 @@ body.store-locked { overflow: hidden; }
   box-shadow: 0 6px 18px rgba(214,20,58,0.35);
 }
 
-.mini-btn,
-.loc-btn {
-  color: var(--primary-dark);
-  background: #fff;
-  border-color: rgba(111,0,255,0.45);
-}
-.mini-btn:hover,
-.loc-btn:hover:not(:disabled) {
-  color: #fff;
-  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
-  border-color: rgba(255,255,255,0.7);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(111,0,255,0.35);
-}
-
 .btn-inline:focus-visible,
 .mini-btn:focus-visible,
 .loc-btn:focus-visible { outline: 3px solid rgba(111,0,255,0.45); outline-offset: 2px; }
 .btn-inline:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 .loc-btn:disabled { opacity: 0.6; cursor: wait; }
-.wide { display: flex; }
+.wide { display: flex; margin-top: 16px; }
 
-[data-theme="dark"] .mini-btn,
-[data-theme="dark"] .loc-btn { color: #e6d9ff; background: #2d0057; border-color: rgba(160,110,255,0.55); }
 [data-theme="dark"] .mini-btn:hover,
-[data-theme="dark"] .loc-btn:hover:not(:disabled) { color: #fff; background: linear-gradient(90deg, #4b0091, #a10e63); border-color: rgba(255,255,255,0.4); }
+[data-theme="dark"] .loc-btn:hover:not(:disabled) { background: linear-gradient(90deg, #a10e63, #4b0091); }

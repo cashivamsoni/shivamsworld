@@ -25,6 +25,7 @@ export function saveOrder(o) {
     status: "pending",
     createdAt: serverTimestamp()
   };
+  if (o.uid) order.uid = o.uid; // links the order to the signed-in customer
   if (o.couponCode) order.couponCode = o.couponCode;
   if (o.couponKey) order.couponKey = o.couponKey;
   if (o.location) order.location = { lat: o.location.lat, lng: o.location.lng };

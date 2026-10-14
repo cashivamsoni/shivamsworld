@@ -5,7 +5,7 @@
    ========================================================= */
 import { db, doc, writeBatch, getDoc, serverTimestamp } from "./firebase-init.js";
 
-// Saves the private order and its public tracking record together.
+// Saves the order (linked to the signed-in customer) and, if a coupon was used, marks it used.
 export function saveOrder(o) {
   const batch = writeBatch(db);
   const order = {
@@ -25,7 +25,7 @@ export function saveOrder(o) {
     status: "pending",
     createdAt: serverTimestamp()
   };
-  if (o.uid) order.uid = o.uid; // links the order to the signed-in customer
+  order.uid = o.uid; // links the order to the signed-in customer
   if (o.couponCode) order.couponCode = o.couponCode;
   if (o.couponKey) order.couponKey = o.couponKey;
   if (o.location) order.location = { lat: o.location.lat, lng: o.location.lng };
@@ -38,19 +38,7 @@ export function saveOrder(o) {
       usedAt: serverTimestamp()
     });
   }
-  batch.set(doc(db, "tracking", o.id), {
-    orderId: o.id,
-    status: "pending",
-    note: "",
-    updatedAt: serverTimestamp()
-  });
   return batch.commit();
-}
-
-// Returns { status, note, updatedAt } or null if there is no such order.
-export async function getTracking(id) {
-  const snap = await getDoc(doc(db, "tracking", id));
-  return snap.exists() ? snap.data() : null;
 }
 
 // True if this coupon was already used by the customer with this fingerprint.

@@ -26,8 +26,17 @@ export function saveOrder(o) {
     createdAt: serverTimestamp()
   };
   if (o.couponCode) order.couponCode = o.couponCode;
+  if (o.couponKey) order.couponKey = o.couponKey;
   if (o.location) order.location = { lat: o.location.lat, lng: o.location.lng };
   batch.set(doc(db, "orders", o.id), order);
+  if (o.couponKey) {
+    // Marks the coupon as used for this customer. It fails if it was already used.
+    batch.set(doc(db, "couponUses", o.couponKey), {
+      code: o.couponCode,
+      orderId: o.id,
+      usedAt: serverTimestamp()
+    });
+  }
   batch.set(doc(db, "tracking", o.id), {
     orderId: o.id,
     status: "pending",
@@ -41,4 +50,10 @@ export function saveOrder(o) {
 export async function getTracking(id) {
   const snap = await getDoc(doc(db, "tracking", id));
   return snap.exists() ? snap.data() : null;
+}
+
+// True if this coupon was already used by the customer with this fingerprint.
+export async function isCouponUsed(key) {
+  const snap = await getDoc(doc(db, "couponUses", key));
+  return snap.exists();
 }

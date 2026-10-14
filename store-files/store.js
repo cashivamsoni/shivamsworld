@@ -716,6 +716,12 @@
     head.textContent = "Order " + id;
     box.appendChild(head);
 
+    var updatedText = (data.updatedAt && data.updatedAt.toDate)
+      ? "Updated " + data.updatedAt.toDate().toLocaleString("en-IN", {
+          day: "numeric", month: "short", hour: "numeric", minute: "2-digit"
+        })
+      : "";
+
     if (data.status === "cancelled") {
       showTrackMessage("This order was cancelled. Message us on WhatsApp if you have any questions.", true);
       box.insertBefore(head, box.firstChild);
@@ -731,10 +737,18 @@
         var mark = document.createElement("span");
         mark.className = "mark";
         mark.setAttribute("aria-hidden", "true");
-        mark.textContent = i < idx ? "\u2713" : (i === idx ? "\u25CF" : "");
+        mark.textContent = i <= idx ? "\u2713" : "";
         var label = document.createElement("span");
         label.className = "label";
-        label.textContent = s.label;
+        var title = document.createElement("span");
+        title.textContent = s.label;
+        label.appendChild(title);
+        if (i === idx && updatedText) {
+          var when = document.createElement("span");
+          when.className = "step-time";
+          when.textContent = updatedText;
+          label.appendChild(when);
+        }
         li.appendChild(mark);
         li.appendChild(label);
         ol.appendChild(li);
@@ -751,12 +765,10 @@
       note.appendChild(document.createTextNode(data.note));
       box.appendChild(note);
     }
-    if (data.updatedAt && data.updatedAt.toDate) {
+    if (data.status === "cancelled" && updatedText) {
       var upd = document.createElement("p");
       upd.className = "track-updated";
-      upd.textContent = "Last updated " + data.updatedAt.toDate().toLocaleString("en-IN", {
-        day: "numeric", month: "short", hour: "numeric", minute: "2-digit"
-      });
+      upd.textContent = updatedText;
       box.appendChild(upd);
     }
   }

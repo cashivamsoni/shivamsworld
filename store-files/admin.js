@@ -146,6 +146,7 @@ async function removeOrder(o) {
     const batch = writeBatch(db);
     batch.delete(doc(db, "orders", o.id));
     batch.delete(doc(db, "tracking", o.id));
+    if (o.couponKey) batch.delete(doc(db, "couponUses", o.couponKey)); // lets that customer use the coupon again
     await batch.commit();
     openIds.delete(o.id);
     delete drafts[o.id];

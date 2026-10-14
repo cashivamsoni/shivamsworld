@@ -684,8 +684,8 @@ body.store-locked { overflow: hidden; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: -24px -22px 14px;
-  padding: 14px 16px 12px 22px;
+  margin: 0 -22px 14px;
+  padding: 16px 16px 12px 22px;
   background: #fff;
   border-bottom: 1px solid rgba(111,0,255,0.15);
 }
@@ -700,3 +700,6 @@ body.store-locked { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .product-card .add-btn:hover { transform: none; }
 }
+
+/* No gap above the fixed header: the scrolling box starts right at the top edge */
+.checkout-box.with-head { padding-top: 0; }

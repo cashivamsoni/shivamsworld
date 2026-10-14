@@ -11,7 +11,7 @@
 import {
   auth, db,
   GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-  collection, query, orderBy, onSnapshot, doc, writeBatch, serverTimestamp
+  collection, query, orderBy, onSnapshot, doc, updateDoc, writeBatch, serverTimestamp
 } from "./firebase-init.js";
 
 const ADMIN_EMAIL = "babitavrm60@gmail.com";
@@ -125,11 +125,7 @@ async function saveOrder(o, btn) {
   try {
     const status = d.status !== undefined ? d.status : statusKey(o);
     const adminNote = d.note !== undefined ? d.note : (o.adminNote || "");
-    // Private order + public tracking record are always updated together
-    const batch = writeBatch(db);
-    batch.update(doc(db, "orders", o.id), { status, adminNote, updatedAt: serverTimestamp() });
-    batch.set(doc(db, "tracking", o.id), { orderId: o.id, status, note: adminNote, updatedAt: serverTimestamp() });
-    await batch.commit();
+    await updateDoc(doc(db, "orders", o.id), { status, adminNote, updatedAt: serverTimestamp() });
     delete drafts[o.id];
     toast("Saved");
   } catch (err) {
@@ -145,7 +141,6 @@ async function removeOrder(o) {
   try {
     const batch = writeBatch(db);
     batch.delete(doc(db, "orders", o.id));
-    batch.delete(doc(db, "tracking", o.id));
     if (o.couponKey) batch.delete(doc(db, "couponUses", o.couponKey)); // lets that customer use the coupon again
     await batch.commit();
     openIds.delete(o.id);
@@ -274,7 +269,7 @@ function orderCard(o) {
     drafts[o.id] = Object.assign(drafts[o.id] || {}, { status: select.value });
   });
 
-  const noteLabel = el("label", "", "Note shown to the customer on their tracking page (e.g. courier name and tracking number)");
+  const noteLabel = el("label", "", "Note shown to the customer under their order (e.g. courier name and tracking number)");
   noteLabel.htmlFor = noteId;
   const note = el("input");
   note.id = noteId;

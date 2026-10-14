@@ -329,7 +329,7 @@
     var payload = {
       id: o.id, name: o.name, phone: o.phone, address: o.address,
       note: o.note, items: o.items, subtotal: o.subtotal, deliveryCharge: o.deliveryCharge,
-      discount: o.discount, couponCode: o.couponCode, couponKey: o.couponKey,
+      discount: o.discount, couponCode: o.couponCode, couponKey: o.couponKey, uid: o.uid,
       total: o.total, location: o.location, utr: utr
     };
     return import("./orders-db.js")
@@ -365,6 +365,8 @@
     showError("payError", "");
     showStep("details");
     renderSummary();
+    renderCheckoutAuth();
+    prefillFromProfile();
     $("custName").focus();
     import("./orders-db.js").catch(function () { /* saved later, WhatsApp is the backup */ });
   }
@@ -456,6 +458,7 @@
       discount: discountAmount(),
       couponCode: appliedCoupon ? appliedCoupon.code : "",
       couponKey: appliedCoupon && appliedCoupon.key ? appliedCoupon.key : "",
+      uid: currentUser ? currentUser.uid : "",
       total: orderTotal(),
       location: pickedLocation ? { lat: pickedLocation.lat, lng: pickedLocation.lng } : null
     };
@@ -505,6 +508,9 @@
 
     lastOrderId = order.id;
     rememberOrder(order);
+    if (currentUser && $("saveDetails").checked) {
+      saveProfileNow({ name: order.name, phone: order.phone, address: order.address, location: order.location }, true);
+    }
     $("doneOrderId").textContent = order.id;
     $("waAgainBtn").setAttribute("href", url);
     showStep("done");
@@ -727,6 +733,263 @@
     showError("locError", "");
     var at = pickedLocation ? [pickedLocation.lat, pickedLocation.lng] : DEFAULT_CENTER;
     showMap(at[0], at[1]);
+  }
+
+  /* ---------- Customer account (Google sign-in) ---------- */
+  var currentUser = null; // { uid, name, email } when signed in
+  var profile = null;     // saved details from the customer's account
+  var accountLoad = null;
+  var stopOrders = null;
+  var ordersToken = 0;
+  var acctReturnFocus = null;
+
+  var STATUS_LABELS = {
+    pending: "Payment being verified", confirmed: "Payment confirmed", packed: "Packed",
+    shipped: "Shipped", delivered: "Delivered", cancelled: "Cancelled"
+  };
+
+  // Loads the sign-in code only when it's needed; guests are never blocked by it
+  function accountModule() {
+    if (!accountLoad) {
+      accountLoad = import("./account.js").catch(function (err) { accountLoad = null; throw err; });
+    }
+    return accountLoad;
+  }
+
+  function firstName(n) { return String(n || "").trim().split(/\s+/)[0] || ""; }
+
+  function renderAccountButton() {
+    var btn = $("accountBtn");
+    var avatar = $("acctAvatar");
+    if (currentUser) {
+      var first = firstName(currentUser.name) || firstName(currentUser.email) || "Me";
+      avatar.textContent = first.charAt(0).toUpperCase();
+      $("acctText").textContent = first;
+      btn.setAttribute("aria-label", "My account");
+      btn.setAttribute("title", "My account");
+    } else {
+      avatar.innerHTML = '<i class="fa fa-user-o" aria-hidden="true"></i>';
+      $("acctText").textContent = "Sign in";
+      btn.setAttribute("aria-label", "Sign in");
+      btn.setAttribute("title", "Sign in");
+    }
+    renderCheckoutAuth();
+  }
+
+  function renderCheckoutAuth() {
+    var box = $("checkoutAuthNote");
+    box.innerHTML = "";
+    $("saveDetailsRow").hidden = !currentUser;
+    if (currentUser) {
+      box.textContent = "Signed in as " + currentUser.email + ".";
+      return;
+    }
+    box.appendChild(document.createTextNode("Have an account? "));
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "link-btn inline";
+    b.textContent = "Sign in with Google";
+    b.addEventListener("click", signIn);
+    box.appendChild(b);
+    box.appendChild(document.createTextNode(" to fill in your details and keep your orders together, or just continue as a guest."));
+  }
+
+  function signIn() {
+    return accountModule()
+      .then(function (m) { return m.signInGoogle(); })
+      .catch(function (err) {
+        if (err && (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request")) return;
+        console.error(err);
+        toast(err && err.code === "auth/popup-blocked"
+          ? "Allow pop-ups for this site to sign in"
+          : "Sign-in failed. If you use an ad blocker, pause it for this site and try again.");
+      });
+  }
+
+  function doSignOut() {
+    closeAccount();
+    accountModule().then(function (m) { return m.signOutUser(); }).catch(function (err) { console.error(err); });
+    $("detailsForm").reset();
+    clearLocation();
+    resetCoupon();
+    toast("Signed out");
+  }
+
+  function onAuthChange(user) {
+    if (!user) {
+      currentUser = null;
+      profile = null;
+      renderAccountButton();
+      return;
+    }
+    currentUser = { uid: user.uid, name: user.displayName || "", email: user.email || "" };
+    renderAccountButton();
+    accountModule()
+      .then(function (m) { return m.loadProfile(user.uid); })
+      .then(function (p) {
+        profile = p;
+        if (!$("checkoutModal").hidden) prefillFromProfile();
+      })
+      .catch(function (err) { console.error(err); });
+  }
+
+  function fillIfEmpty(id, value) {
+    var el = $(id);
+    if (value && !el.value.trim()) el.value = value;
+  }
+
+  // Fills the checkout form from the account, never overwriting what was already typed
+  function prefillFromProfile() {
+    if (!currentUser) return;
+    fillIfEmpty("custName", (profile && profile.name) || currentUser.name);
+    fillIfEmpty("custPhone", profile && profile.phone);
+    fillIfEmpty("custAddress", profile && profile.address);
+    if (!pickedLocation && profile && profile.location && typeof profile.location.lat === "number") {
+      setLocation(profile.location.lat, profile.location.lng);
+    }
+  }
+
+  function saveProfileNow(data, silent) {
+    if (!currentUser) return Promise.resolve();
+    return accountModule()
+      .then(function (m) { return m.saveProfile(currentUser.uid, data); })
+      .then(function () {
+        profile = { name: data.name, phone: data.phone, address: data.address, location: data.location || null };
+        if (!silent) toast("Details saved");
+        renderAcctPin();
+      })
+      .catch(function (err) {
+        console.error(err);
+        if (!silent) toast("Couldn't save your details. Please try again.");
+      });
+  }
+
+  function renderAcctPin() {
+    var p = $("acctPin");
+    p.innerHTML = "";
+    if (!(profile && profile.location && typeof profile.location.lat === "number")) {
+      p.textContent = "No saved delivery pin. Pin your spot at checkout and tick \u201CSave these details\u201D.";
+      return;
+    }
+    p.appendChild(document.createTextNode("Saved delivery pin: "));
+    var link = document.createElement("a");
+    link.href = mapsUrl(profile.location);
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = "Open in Maps";
+    var rm = document.createElement("button");
+    rm.type = "button";
+    rm.className = "link-btn inline";
+    rm.textContent = "Remove";
+    rm.addEventListener("click", function () {
+      saveProfileNow({ name: profile.name, phone: profile.phone, address: profile.address, location: null });
+    });
+    p.appendChild(link);
+    p.appendChild(document.createTextNode(" \u00B7 "));
+    p.appendChild(rm);
+  }
+
+  function renderMyOrders(list) {
+    var box = $("acctOrders");
+    box.innerHTML = "";
+    if (!list.length) {
+      var none = document.createElement("p");
+      none.className = "acct-empty";
+      none.textContent = "No orders on this account yet. Orders you place while signed in show up here.";
+      box.appendChild(none);
+      return;
+    }
+    list.sort(function (a, b) {
+      var x = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+      var y = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+      return y - x;
+    });
+    list.forEach(function (o) {
+      var card = document.createElement("div");
+      card.className = "acct-order";
+      var top = document.createElement("div");
+      top.className = "acct-order-top";
+      var id = document.createElement("strong");
+      id.textContent = o.id;
+      var status = document.createElement("span");
+      status.className = "acct-status";
+      status.textContent = STATUS_LABELS[o.status] || STATUS_LABELS.pending;
+      top.appendChild(id);
+      top.appendChild(status);
+      card.appendChild(top);
+
+      var meta = document.createElement("p");
+      var when = o.createdAt && o.createdAt.toDate
+        ? o.createdAt.toDate().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) + " \u00B7 "
+        : "";
+      meta.textContent = when + money(o.total);
+      card.appendChild(meta);
+
+      var items = document.createElement("p");
+      items.textContent = (o.items || []).map(function (it) { return it.name + " \u00D7 " + it.qty; }).join(", ");
+      card.appendChild(items);
+
+      if (o.adminNote) {
+        var note = document.createElement("p");
+        note.textContent = "Note from us: " + o.adminNote;
+        card.appendChild(note);
+      }
+      var track = document.createElement("button");
+      track.type = "button";
+      track.className = "loc-btn";
+      track.textContent = "Track order";
+      track.addEventListener("click", function () { closeAccount(); openTrack(o.id); });
+      card.appendChild(track);
+      box.appendChild(card);
+    });
+  }
+
+  function startMyOrders() {
+    var token = ++ordersToken;
+    $("acctOrders").textContent = "Loading your orders\u2026";
+    accountModule().then(function (m) {
+      var stop = m.watchMyOrders(currentUser.uid, renderMyOrders, function (err) {
+        console.error(err);
+        $("acctOrders").textContent = "Couldn't load your orders right now. Please try again later.";
+      });
+      if (token === ordersToken && !$("accountModal").hidden) stopOrders = stop; else stop();
+    }).catch(function (err) {
+      console.error(err);
+      $("acctOrders").textContent = "Couldn't load your orders right now. Please try again later.";
+    });
+  }
+
+  function openAccount() {
+    if (!currentUser) return;
+    acctReturnFocus = document.activeElement;
+    $("acctEmail").textContent = currentUser.email;
+    $("acctName").value = (profile && profile.name) || currentUser.name || "";
+    $("acctPhone").value = (profile && profile.phone) || "";
+    $("acctAddress").value = (profile && profile.address) || "";
+    showError("acctError", "");
+    renderAcctPin();
+    $("accountModal").hidden = false;
+    document.body.classList.add("store-locked");
+    startMyOrders();
+  }
+
+  function closeAccount() {
+    ordersToken++;
+    if (stopOrders) { stopOrders(); stopOrders = null; }
+    $("accountModal").hidden = true;
+    document.body.classList.remove("store-locked");
+    if (acctReturnFocus && acctReturnFocus.focus) acctReturnFocus.focus();
+  }
+
+  function onAcctSubmit(e) {
+    e.preventDefault();
+    var name = $("acctName").value.trim();
+    var phone = normalizePhone($("acctPhone").value);
+    var address = $("acctAddress").value.trim();
+    if (name.length < 2) return showError("acctError", "Enter your full name.");
+    if (phone && !/^[6-9]\d{9}$/.test(phone)) return showError("acctError", "Enter a valid 10-digit mobile number, or leave it empty.");
+    showError("acctError", "");
+    saveProfileNow({ name: name, phone: phone, address: address, location: profile ? profile.location : null });
   }
 
   /* ---------- Order tracking ---------- */
@@ -964,6 +1227,21 @@
       if (e.target === $("checkoutModal")) closeCheckout();
     });
 
+    // Customer account
+    $("accountBtn").addEventListener("click", function () {
+      if (currentUser) openAccount(); else signIn();
+    });
+    $("acctClose").addEventListener("click", closeAccount);
+    $("accountModal").addEventListener("click", function (e) {
+      if (e.target === $("accountModal")) closeAccount();
+    });
+    $("acctForm").addEventListener("submit", onAcctSubmit);
+    $("signOutBtn").addEventListener("click", doSignOut);
+    renderAccountButton();
+    accountModule().then(function (m) { m.watchAuth(onAuthChange); }).catch(function (err) {
+      console.error("Accounts are unavailable right now:", err);
+    });
+
     // Delivery charge note and location buttons
     $("introDelivery").textContent = " A flat " + money(CONFIG.deliveryCharge) + " delivery charge is added to every order.";
     $("gpsBtn").addEventListener("click", useGps);
@@ -1032,6 +1310,7 @@
       if (e.key !== "Escape") return;
       if (!$("checkoutModal").hidden) closeCheckout();
       else if (!$("trackModal").hidden) closeTrack();
+      else if (!$("accountModal").hidden) closeAccount();
       else if (!$("productModal").hidden) closeProduct();
       else if ($("cartDrawer").classList.contains("open")) closeCart();
     });

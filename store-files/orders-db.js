@@ -8,7 +8,7 @@ import { db, doc, writeBatch, getDoc, serverTimestamp } from "./firebase-init.js
 // Saves the private order and its public tracking record together.
 export function saveOrder(o) {
   const batch = writeBatch(db);
-  batch.set(doc(db, "orders", o.id), {
+  const order = {
     orderId: o.id,
     name: o.name,
     phone: o.phone,
@@ -17,11 +17,15 @@ export function saveOrder(o) {
     items: o.items.map(function (it) {
       return { name: it.name, qty: it.qty, price: it.price };
     }),
+    subtotal: o.subtotal,
+    deliveryCharge: o.deliveryCharge,
     total: o.total,
     utr: o.utr,
     status: "pending",
     createdAt: serverTimestamp()
-  });
+  };
+  if (o.location) order.location = { lat: o.location.lat, lng: o.location.lng };
+  batch.set(doc(db, "orders", o.id), order);
   batch.set(doc(db, "tracking", o.id), {
     orderId: o.id,
     status: "pending",

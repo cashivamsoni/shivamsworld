@@ -48,3 +48,12 @@ export function watchMyOrders(uid, onData, onError) {
     onError
   );
 }
+
+// Live view of one order (the rules only allow it if it belongs to the signed-in customer)
+export function watchOrder(id, onData, onError) {
+  return onSnapshot(
+    doc(db, "orders", id),
+    (snap) => onData(snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null),
+    onError
+  );
+}

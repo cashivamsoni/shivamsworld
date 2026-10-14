@@ -422,7 +422,7 @@
       checkCouponUnused(name, phone, address).then(function (r) {
         if (r.used) {
           resetCoupon();
-          couponMessage("This coupon has already been used for this name, phone number and address, so it was removed.", "bad");
+          couponMessage("This coupon has already been used for your account, so it was removed.", "bad");
           showError("detailsError", "The coupon was removed. Check your new total, then continue.");
           return;
         }
@@ -612,7 +612,7 @@
     btn.textContent = "Checking\u2026";
     checkCouponUnused(name, phone, address).then(function (r) {
       if (r.used) {
-        couponMessage("This coupon has already been used for this name, phone number and address.", "bad");
+        couponMessage("This coupon has already been used for your account.", "bad");
         btn.textContent = "Apply";
         return;
       }

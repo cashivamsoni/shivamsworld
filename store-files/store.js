@@ -14,7 +14,12 @@
     whatsapp: "919005325544", // country code + number, no + or spaces
     currency: "\u20B9",
     orderPrefix: "SW",
-    deliveryCharge: 50 // flat charge added to every order (keep in sync with firestore.rules)
+    deliveryCharge: 50, // flat charge added to every order (keep in sync with firestore.rules)
+
+    // ===== COUPON: edit the code text and the discount percentage here =====
+    // The discount applies to the items only, never to the delivery charge.
+    couponCode: "SHIVAM10",
+    couponPercent: 10
   };
 
   /* ---------- Products: edit names, prices, descriptions ----------
@@ -324,6 +329,7 @@
     var payload = {
       id: o.id, name: o.name, phone: o.phone, address: o.address,
       note: o.note, items: o.items, subtotal: o.subtotal, deliveryCharge: o.deliveryCharge,
+      discount: o.discount, couponCode: o.couponCode,
       total: o.total, location: o.location, utr: utr
     };
     return import("./orders-db.js")
@@ -356,6 +362,7 @@
     showError("detailsError", "");
     showError("payError", "");
     showStep("details");
+    renderSummary();
     $("custName").focus();
     import("./orders-db.js").catch(function () { /* saved later, WhatsApp is the backup */ });
   }
@@ -394,6 +401,12 @@
     if (name.length < 2) return showError("detailsError", "Enter your full name.");
     if (!/^[6-9]\d{9}$/.test(phone)) return showError("detailsError", "Enter a valid 10-digit mobile number.");
     if (address.length < 10) return showError("detailsError", "Enter your full delivery address.");
+    if (!pickedLocation) {
+      showError("detailsError", "");
+      showError("locError", "Please pin your exact delivery location to continue.");
+      $("locBox").scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     showError("detailsError", "");
 
     var items = Object.keys(cart).map(function (id) {
@@ -410,13 +423,17 @@
       items: items,
       subtotal: cartTotal(),
       deliveryCharge: CONFIG.deliveryCharge,
-      total: cartTotal() + CONFIG.deliveryCharge,
+      discount: discountAmount(),
+      couponCode: appliedCoupon ? appliedCoupon.code : "",
+      total: orderTotal(),
       location: pickedLocation ? { lat: pickedLocation.lat, lng: pickedLocation.lng } : null
     };
 
     $("payOrderId").textContent = order.id;
     $("payAmount").textContent = money(order.total);
-    $("payBreakdown").textContent = "Items " + money(order.subtotal) + " + delivery " + money(order.deliveryCharge);
+    $("payBreakdown").textContent = "Items " + money(order.subtotal) +
+      (order.discount ? " \u2212 coupon " + money(order.discount) : "") +
+      " + delivery " + money(order.deliveryCharge);
     var link = upiLink(order);
     $("upiAppBtn").setAttribute("href", link);
     renderQr(link);
@@ -432,6 +449,7 @@
     });
     lines.push("",
       "Items subtotal: " + money(order.subtotal),
+      order.discount ? "Coupon " + order.couponCode + ": -" + money(order.discount) : "Coupon: none",
       "Delivery charge: " + money(order.deliveryCharge),
       "*Total: " + money(order.total) + "*", "",
       "Name: " + order.name,
@@ -466,9 +484,60 @@
     renderCart();
     order = null;
     clearLocation();
+    resetCoupon();
     $("mapBox").hidden = true;
 
     if (!opened) toast("Tap Open WhatsApp to send your order");
+  }
+
+  /* ---------- Coupon ---------- */
+  var appliedCoupon = null; // { code, percent } once a valid code is applied
+
+  function discountAmount() {
+    return appliedCoupon ? Math.round(cartTotal() * appliedCoupon.percent / 100) : 0;
+  }
+  function orderTotal() {
+    return cartTotal() - discountAmount() + CONFIG.deliveryCharge;
+  }
+
+  function renderSummary() {
+    var disc = discountAmount();
+    $("sumSubtotal").textContent = money(cartTotal());
+    $("sumDiscountRow").hidden = !disc;
+    $("sumDiscount").textContent = "\u2212" + money(disc);
+    $("sumDelivery").textContent = money(CONFIG.deliveryCharge);
+    $("sumTotal").textContent = money(orderTotal());
+  }
+
+  function couponMessage(text, kind) {
+    var msg = $("couponMsg");
+    msg.textContent = text;
+    msg.className = "hint coupon-msg" + (kind ? " " + kind : "");
+  }
+
+  function resetCoupon() {
+    appliedCoupon = null;
+    $("couponInput").value = "";
+    $("couponInput").disabled = false;
+    $("couponApply").textContent = "Apply";
+    couponMessage("", "");
+    renderSummary();
+  }
+
+  function applyCoupon() {
+    if (appliedCoupon) { resetCoupon(); return; } // the button reads "Remove" once applied
+    var code = $("couponInput").value.trim().toUpperCase();
+    if (!code) { couponMessage("Enter a coupon code first.", "bad"); return; }
+    if (code !== String(CONFIG.couponCode).toUpperCase()) {
+      couponMessage("That coupon code isn't valid.", "bad");
+      return;
+    }
+    appliedCoupon = { code: CONFIG.couponCode, percent: CONFIG.couponPercent };
+    $("couponInput").value = CONFIG.couponCode;
+    $("couponInput").disabled = true;
+    $("couponApply").textContent = "Remove";
+    couponMessage("Coupon applied: " + CONFIG.couponPercent + "% off your items (not on delivery).", "good");
+    renderSummary();
   }
 
   /* ---------- Delivery location (GPS or map pin) ---------- */
@@ -797,6 +866,10 @@
     $("introDelivery").textContent = " A flat " + money(CONFIG.deliveryCharge) + " delivery charge is added to every order.";
     $("gpsBtn").addEventListener("click", useGps);
     $("mapBtn").addEventListener("click", chooseOnMap);
+    $("couponApply").addEventListener("click", applyCoupon);
+    $("couponInput").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); applyCoupon(); }
+    });
 
     // Search, sort and product details
     $("searchInput").addEventListener("input", function () { searchTerm = this.value; renderProducts(); });

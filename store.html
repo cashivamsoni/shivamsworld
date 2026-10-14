@@ -104,13 +104,13 @@
         <form id="detailsForm" class="step" data-step="details" novalidate>
           <h2 id="checkoutTitle">Your details</h2>
           <label for="custName">Full name</label>
-          <input id="custName" name="name" type="text" autocomplete="name" required>
+          <input id="custName" name="name" type="text" autocomplete="name" maxlength="100" required>
           <label for="custPhone">Phone number</label>
           <input id="custPhone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10-digit mobile number" required>
           <label for="custAddress">Delivery address</label>
-          <textarea id="custAddress" name="address" rows="3" autocomplete="street-address" required></textarea>
+          <textarea id="custAddress" name="address" rows="3" autocomplete="street-address" maxlength="500" required></textarea>
           <label for="custNote">Note (optional)</label>
-          <input id="custNote" name="note" type="text" placeholder="Colour, name to write, occasion…">
+          <input id="custNote" name="note" type="text" maxlength="300" placeholder="Colour, name to write, occasion…">
           <p id="detailsError" class="form-error" role="alert" hidden></p>
           <button type="submit" class="btn-inline wide">Continue to payment</button>
         </form>

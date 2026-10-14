@@ -130,9 +130,9 @@
           <label for="custAddress">Delivery address</label>
           <textarea id="custAddress" name="address" rows="3" autocomplete="street-address" maxlength="500" required></textarea>
 
-          <div class="loc-box">
-            <p class="loc-title">Exact delivery location (optional)</p>
-            <p class="hint">Pin your spot so we can find you easily.</p>
+          <div id="locBox" class="loc-box">
+            <p class="loc-title">Exact delivery location (required)</p>
+            <p class="hint">Pin your exact spot with GPS or on the map. We need it to deliver to you.</p>
             <div class="loc-actions">
               <button id="gpsBtn" type="button" class="loc-btn"><i class="fa fa-crosshairs" aria-hidden="true"></i> Use my current location</button>
               <button id="mapBtn" type="button" class="loc-btn"><i class="fa fa-map-marker" aria-hidden="true"></i> Choose on map</button>
@@ -146,6 +146,20 @@
           </div>
           <label for="custNote">Note (optional)</label>
           <input id="custNote" name="note" type="text" maxlength="300" placeholder="Colour, name to write, occasion…">
+          <label for="couponInput">Coupon code (optional)</label>
+          <div class="coupon-row">
+            <input id="couponInput" type="text" placeholder="Have a coupon? Enter your code here" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30">
+            <button id="couponApply" type="button" class="loc-btn">Apply</button>
+          </div>
+          <p id="couponMsg" class="hint coupon-msg" role="status" aria-live="polite"></p>
+
+          <div class="summary-box" aria-label="Order summary">
+            <div class="sub-row"><span>Items subtotal</span><span id="sumSubtotal">₹0</span></div>
+            <div id="sumDiscountRow" class="sub-row" hidden><span>Coupon discount</span><span id="sumDiscount">₹0</span></div>
+            <div class="sub-row"><span>Delivery charge</span><span id="sumDelivery">₹0</span></div>
+            <div class="total-row"><span>Total to pay</span><strong id="sumTotal">₹0</strong></div>
+          </div>
+
           <p id="detailsError" class="form-error" role="alert" hidden></p>
           <button type="submit" class="btn-inline wide">Continue to payment</button>
         </form>

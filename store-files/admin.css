@@ -155,3 +155,18 @@
 [data-theme="dark"] .pill-delivered { color: #8be08b; background: rgba(80,200,80,0.16); }
 [data-theme="dark"] .pill-cancelled { color: #ff8a9c; background: rgba(255,80,110,0.16); }
 [data-theme="dark"] .danger-btn { color: #ff8a9c; }
+
+/* ---------- Search hint and the purple pulse on a jumped-to result ---------- */
+.search-hint { margin: 8px 4px 0; min-height: 1.2em; font-size: 13px; color: #555; text-align: left; }
+[data-theme="dark"] .search-hint { color: #cdb8f5; }
+
+@keyframes pulsePurple {
+  0%   { box-shadow: 0 0 0 0 rgba(111,0,255,0.7), 0 6px 24px rgba(111,0,255,0.2); }
+  70%  { box-shadow: 0 0 0 20px rgba(111,0,255,0), 0 6px 24px rgba(111,0,255,0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(111,0,255,0), 0 6px 24px rgba(111,0,255,0.2); }
+}
+.order-card.pulse { border-color: var(--primary); animation: pulsePurple 0.95s ease-out 2; }
+[data-theme="dark"] .order-card.pulse { border-color: #a06eff; }
+@media (prefers-reduced-motion: reduce) {
+  .order-card.pulse { animation: none; outline: 3px solid var(--primary); outline-offset: 2px; }
+}

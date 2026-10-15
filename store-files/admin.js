@@ -82,8 +82,11 @@ function applyTheme(theme) {
   applyTheme(saved);
   $("storeThemeToggle").addEventListener("click", () => {
     const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-    applyTheme(next);
-    try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* ignore */ }
+    const change = () => {
+      applyTheme(next);
+      try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* ignore */ }
+    };
+    if (window.SWUI && window.SWUI.fadeTheme) window.SWUI.fadeTheme(change); else change();
   });
 })();
 

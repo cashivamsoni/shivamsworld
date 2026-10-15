@@ -917,3 +917,98 @@ body.store-locked { overflow: hidden; }
 
 /* Section headings stop below the fixed window header when scrolled to */
 .acct-h { scroll-margin-top: 84px; }
+
+/* =========================================================
+   Open menu: a dropdown under the header (it no longer
+   stretches the header or squeezes the logo)
+   ========================================================= */
+#mainNav.show {
+  position: absolute;
+  top: 100%;
+  right: 14px;
+  z-index: 110;
+  width: auto;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  margin-top: 10px;
+  padding: 12px;
+  gap: 8px;
+  background: rgba(90,0,200,0.55);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 2px solid rgba(255,255,255,0.6);
+  border-radius: 22px;
+  box-shadow: 0 12px 34px rgba(60,0,140,0.45), 0 0 18px rgba(255,255,255,0.35);
+}
+[data-theme="dark"] #mainNav.show { background: rgba(30,0,60,0.92); border-color: rgba(160,110,255,0.5); }
+
+/* =========================================================
+   Search bar and sort menu: same height and the same rounded shape
+   ========================================================= */
+.store-toolbar .search-wrap input,
+.store-toolbar .cselect-btn { min-height: 46px; border-radius: 24px; font-size: 16px; }
+
+.no-js { margin: 0 0 16px; padding: 12px 16px; border-radius: 14px; background: #fff; font-weight: 600; }
+
+/* =========================================================
+   Scrolling announcement banner
+   ========================================================= */
+.marquee {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 18px;
+  border: 2px solid rgba(255,255,255,0.88);
+  border-radius: 16px;
+  background: linear-gradient(100deg, #5a00d6, #b10fc7, #ff3f94, #ff8a3d, #b10fc7, #5a00d6);
+  background-size: 300% 100%;
+  box-shadow: 0 8px 28px rgba(111,0,255,0.3), 0 0 18px rgba(255,255,255,0.4);
+  animation: marqueeBg 16s ease-in-out infinite alternate;
+}
+.marquee::after { /* a soft shine that glides across */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.28) 50%, rgba(255,255,255,0) 70%);
+  transform: translateX(-100%);
+  animation: marqueeShine 7s ease-in-out infinite;
+  pointer-events: none;
+}
+.marquee-viewport {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marqueeScroll 42s linear infinite;
+}
+.marquee:hover .marquee-track { animation-play-state: paused; }
+.marquee-group { display: flex; flex-shrink: 0; }
+.marquee-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 12px 0;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.3);
+}
+.marquee-item::after { content: "\2726"; margin: 0 26px; opacity: 0.85; }
+
+@keyframes marqueeScroll { to { transform: translateX(-50%); } }
+@keyframes marqueeBg { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+@keyframes marqueeShine { 0%, 55% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+[data-theme="dark"] .marquee {
+  background: linear-gradient(100deg, #2d0057, #6a0a8f, #a10e63, #b3541e, #6a0a8f, #2d0057);
+  background-size: 300% 100%;
+  border-color: rgba(160,110,255,0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee, .marquee::after, .marquee-track { animation: none; }
+  .marquee-viewport { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
+  .marquee-group[aria-hidden="true"] { display: none; }
+}

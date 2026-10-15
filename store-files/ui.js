@@ -262,5 +262,20 @@
     });
   }
 
-  window.SWUI = { customSelect: customSelect, confirm: confirmDialog };
+  /* ---------- Smooth light/dark switch ---------- */
+  // Runs `change` (the function that flips the theme) with a soft cross-fade of the whole page
+  function fadeTheme(change) {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { change(); return; }
+    if (document.startViewTransition) { // modern browsers fade the old page into the new one
+      document.startViewTransition(change);
+      return;
+    }
+    var root = document.documentElement; // others: fade colours and borders
+    root.classList.add("theme-fade");
+    change();
+    setTimeout(function () { root.classList.remove("theme-fade"); }, 500);
+  }
+
+  window.SWUI = { customSelect: customSelect, confirm: confirmDialog, fadeTheme: fadeTheme };
 })();

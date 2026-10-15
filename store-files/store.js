@@ -893,6 +893,22 @@
       });
   }
 
+  function downloadInvoiceFor(o, btn) {
+    var label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Preparing\u2026";
+    import("./invoice.js")
+      .then(function (m) { return m.downloadInvoice(o); })
+      .catch(function (err) {
+        console.error(err);
+        toast("Couldn't create the invoice. Please try again.");
+      })
+      .then(function () {
+        btn.disabled = false;
+        btn.textContent = label;
+      });
+  }
+
   // Scrolls the account window so the My orders section is in view
   function scrollToOrdersHead() {
     var head = $("acctOrdersHead");
@@ -947,12 +963,24 @@
         note.textContent = "Note from us: " + o.adminNote;
         card.appendChild(note);
       }
+      var actions = document.createElement("div");
+      actions.className = "acct-order-actions";
       var track = document.createElement("button");
       track.type = "button";
       track.className = "loc-btn";
       track.textContent = "Track order";
       track.addEventListener("click", function () { closeAccount(); openTrack(o.id); });
-      card.appendChild(track);
+      actions.appendChild(track);
+      // an invoice is available once the payment has been confirmed
+      if (o.status && o.status !== "pending" && o.status !== "cancelled") {
+        var inv = document.createElement("button");
+        inv.type = "button";
+        inv.className = "loc-btn";
+        inv.textContent = "Download invoice";
+        inv.addEventListener("click", function () { downloadInvoiceFor(o, inv); });
+        actions.appendChild(inv);
+      }
+      card.appendChild(actions);
       box.appendChild(card);
     });
     if (doScroll) scrollToOrdersHead(); // the list has its full height now

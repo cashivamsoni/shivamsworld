@@ -146,3 +146,12 @@
   .order-card > summary { grid-template-columns: 1fr; }
   .o-total, .o-date { text-align: left; }
 }
+
+/* ---------- Dark mode: status pills and the delete link ---------- */
+[data-theme="dark"] .pill-pending   { color: #ffd36e; background: rgba(255,190,60,0.16); }
+[data-theme="dark"] .pill-confirmed { color: #6fe3c1; background: rgba(60,200,160,0.16); }
+[data-theme="dark"] .pill-packed    { color: #c9a3ff; background: rgba(160,110,255,0.2); }
+[data-theme="dark"] .pill-shipped   { color: #8fc2ff; background: rgba(80,150,255,0.18); }
+[data-theme="dark"] .pill-delivered { color: #8be08b; background: rgba(80,200,80,0.16); }
+[data-theme="dark"] .pill-cancelled { color: #ff8a9c; background: rgba(255,80,110,0.16); }
+[data-theme="dark"] .danger-btn { color: #ff8a9c; }

@@ -58,11 +58,7 @@
 
     <!-- ===== STORE ===== -->
     <main class="container">
-      <section id="store" class="card store-intro">
-        <h1>🛍️ Store</h1>
-        <p class="small store-lead">Handmade creations from Shivam's World. Add what you like to the cart, check out, and pay by UPI. Already ordered? <a href="#track">Track your order</a>.<span id="introDelivery"></span></p>
-        <noscript><p class="small">The store needs JavaScript. Please turn it on, or message us on WhatsApp to order.</p></noscript>
-      </section>
+      <noscript><p class="no-js">The store needs JavaScript. Please turn it on, or message us on WhatsApp to order.</p></noscript>
 
       <div class="store-toolbar">
         <div class="search-wrap">
@@ -79,6 +75,13 @@
           </select>
         </div>
         <p id="resultCount" class="result-count" aria-live="polite"></p>
+      </div>
+
+      <!-- Scrolling announcements: edit the text in CONFIG.announcements (store.js) -->
+      <div class="marquee" role="region" aria-label="Store announcements">
+        <div class="marquee-viewport">
+          <div id="marqueeTrack" class="marquee-track"></div>
+        </div>
       </div>
 
       <div id="productGrid" class="product-grid"></div>

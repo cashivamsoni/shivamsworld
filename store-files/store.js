@@ -1228,7 +1228,13 @@
     loadCart();
     checkoutLoc = createLocationPicker({ gps: "gpsBtn", choose: "mapBtn", error: "locError", mapBox: "mapBox", map: "map", status: "locStatus" });
     acctLoc = createLocationPicker({ gps: "acctGpsBtn", choose: "acctMapBtn", error: "acctLocError", mapBox: "acctMapBox", map: "acctMap", status: "acctLocStatus" });
-    if (window.SWUI) window.SWUI.customSelect($("sortSelect"), { label: "Sort by" });
+    if (window.SWUI) {
+      window.SWUI.customSelect($("sortSelect"), { label: "Sort by" });
+      // every pop-up window (and the cart's backdrop) fades/pops on open and close
+      ["checkoutModal", "accountModal", "trackModal", "productModal", "cartOverlay"].forEach(function (id) {
+        window.SWUI.animateModal($(id));
+      });
+    }
     renderProducts();
     renderCart();
     setupThemeAndMenu();

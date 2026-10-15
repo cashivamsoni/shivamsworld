@@ -232,12 +232,19 @@
       if (lockedHere) document.body.classList.add("store-locked");
       document.body.appendChild(overlay);
 
+      var done = false;
       function finish(answer) {
+        if (done) return;
+        done = true;
         document.removeEventListener("keydown", onKey, true);
-        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
         if (lockedHere) document.body.classList.remove("store-locked");
         if (previous && previous.focus) previous.focus();
         resolve(answer);
+        // let the dialog fade out before it is removed
+        var remove = function () { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); };
+        if (reducedMotion()) { remove(); return; }
+        overlay.classList.add("closing");
+        setTimeout(remove, 210);
       }
 
       function onKey(e) {
@@ -262,11 +269,50 @@
     });
   }
 
+  function reducedMotion() {
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  /* ---------- Pop-up windows: animate on open and on close ---------- */
+  // Opening plays by itself (CSS) whenever `hidden` is removed. For closing, this wraps the
+  // element's `hidden` property: setting it to true first plays the closing animation, then hides.
+  // While it plays, `hidden` already reads as true, so the rest of the code treats it as closed.
+  function animateModal(el) {
+    if (!el || el._animated) return el;
+    el._animated = true;
+    var native = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "hidden");
+    var timer = null;
+    var closing = false;
+    function finish() {
+      closing = false;
+      el.classList.remove("closing");
+      native.set.call(el, true);
+    }
+    Object.defineProperty(el, "hidden", {
+      configurable: true,
+      get: function () { return closing || native.get.call(el); },
+      set: function (value) {
+        if (value) {
+          if (closing || native.get.call(el)) return;
+          if (reducedMotion()) { native.set.call(el, true); return; }
+          closing = true;
+          el.classList.add("closing");
+          timer = setTimeout(finish, 220);
+        } else {
+          clearTimeout(timer);
+          closing = false;
+          el.classList.remove("closing");
+          native.set.call(el, false);
+        }
+      }
+    });
+    return el;
+  }
+
   /* ---------- Smooth light/dark switch ---------- */
   // Runs `change` (the function that flips the theme) with a soft cross-fade of the whole page
   function fadeTheme(change) {
-    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) { change(); return; }
+    if (reducedMotion()) { change(); return; }
     if (document.startViewTransition) { // modern browsers fade the old page into the new one
       document.startViewTransition(change);
       return;
@@ -277,5 +323,5 @@
     setTimeout(function () { root.classList.remove("theme-fade"); }, 500);
   }
 
-  window.SWUI = { customSelect: customSelect, confirm: confirmDialog, fadeTheme: fadeTheme };
+  window.SWUI = { customSelect: customSelect, confirm: confirmDialog, fadeTheme: fadeTheme, animateModal: animateModal };
 })();

@@ -1012,3 +1012,53 @@ body.store-locked { overflow: hidden; }
   .marquee-viewport { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
   .marquee-group[aria-hidden="true"] { display: none; }
 }
+
+/* =========================================================
+   Dark mode: buttons use the deeper dark-theme purples
+   ========================================================= */
+[data-theme="dark"] .btn-inline,
+[data-theme="dark"] .mini-btn,
+[data-theme="dark"] .loc-btn {
+  background: linear-gradient(90deg, #4b0091, #2d0057);
+  border-color: rgba(160,110,255,0.55);
+  box-shadow: 0 0 10px rgba(160,110,255,0.25);
+}
+[data-theme="dark"] .btn-inline.danger { background: linear-gradient(90deg, #a3102a, #6b0a1c); }
+[data-theme="dark"] .btn-inline.danger:hover {
+  background: linear-gradient(90deg, #d6143a, #a3102a);
+  box-shadow: 0 6px 18px rgba(214,20,58,0.35);
+}
+[data-theme="dark"] .form-error { color: #ff8a9c; }
+
+/* =========================================================
+   Smooth light/dark switch
+   ========================================================= */
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 0.45s; animation-timing-function: ease; }
+html.theme-fade,
+html.theme-fade *,
+html.theme-fade *::before,
+html.theme-fade *::after {
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, fill 0.4s ease !important;
+}
+
+/* =========================================================
+   Phone layout of the search / sort / count block
+   search bar, then one full-width sort pill ("Sort by: Featured"), then the count
+   ========================================================= */
+@media (max-width: 640px) {
+  .store-toolbar { gap: 10px; }
+  .store-toolbar .sort-wrap { position: relative; display: block; flex: 1 1 100%; }
+  .sort-wrap label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .store-toolbar .cselect { display: block; width: 100%; }
+  .store-toolbar .cselect-btn { min-width: 0; }
+  .store-toolbar .cselect-value::before { content: "Sort by: "; font-weight: 500; opacity: 0.75; }
+  .result-count { flex: 1 1 100%; margin: 0 6px; }
+}

@@ -1291,3 +1291,10 @@ html.theme-fade *::after {
 @media (prefers-reduced-motion: reduce) {
   .order-card.pulse { animation: none; outline: 3px solid var(--primary); outline-offset: 2px; }
 }
+
+/* ---------- Store search: purple pulse on the product Enter jumped to ---------- */
+.product-card.pulse { border-color: var(--primary); animation: pulsePurple 0.95s ease-out 2; }
+[data-theme="dark"] .product-card.pulse { border-color: #a06eff; }
+@media (prefers-reduced-motion: reduce) {
+  .product-card.pulse { animation: none; outline: 3px solid var(--primary); outline-offset: 2px; }
+}

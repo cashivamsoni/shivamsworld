@@ -1110,3 +1110,7 @@ html.theme-fade *::after {
   .btn-inline:hover, .mini-btn:hover, .loc-btn:hover, .filter-btn:hover, .icon-btn:hover,
   .qty button:hover, .account-btn:hover, .store-theme-btn:hover, .cart-fab:hover { transform: none !important; }
 }
+
+.mini-btn:disabled { opacity: 0.6; cursor: wait; transform: none; }
+.acct-order-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.acct-order-actions .loc-btn { margin-top: 0; }

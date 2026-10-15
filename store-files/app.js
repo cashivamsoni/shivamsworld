@@ -779,6 +779,7 @@ async function downloadInvoice(order) {
   /* ---------- Rendering ---------- */
   var searchTerm = "";
   var sortMode = "featured";
+  var searchCursor = -1; // which search result Enter last jumped to
 
   function visibleProducts() {
     var term = searchTerm.trim().toLowerCase();
@@ -794,10 +795,14 @@ async function downloadInvoice(order) {
   function renderProducts() {
     var grid = $("productGrid");
     var list = visibleProducts();
+    searchCursor = -1; // the list changed, so Enter starts again from the first result
     grid.innerHTML = "";
     $("resultCount").textContent = list.length === PRODUCTS.length
       ? PRODUCTS.length + " products"
       : list.length + " of " + PRODUCTS.length + " products";
+    if (searchTerm.trim() && list.length) {
+      $("resultCount").textContent += ". Press Enter to jump to " + (list.length === 1 ? "it" : "each one") + ".";
+    }
 
     if (!list.length) {
       var none = document.createElement("p");
@@ -1948,6 +1953,40 @@ async function downloadInvoice(order) {
 
     // Search, sort and product details
     $("searchInput").addEventListener("input", function () { searchTerm = this.value; renderProducts(); });
+    // Enter jumps to the next matching product (Shift+Enter: previous) and pulses it purple
+    var lastJumpAt = 0;
+    function jumpToResult(step) {
+      if (!searchTerm.trim()) return;
+      var cards = $("productGrid").querySelectorAll(".product-card");
+      if (!cards.length) return;
+      if (searchCursor >= cards.length) searchCursor = -1;
+      if (searchCursor < 0 && step < 0) searchCursor = 0;
+      searchCursor = (searchCursor + step + cards.length) % cards.length;
+      var card = cards[searchCursor];
+      card.scrollIntoView({ block: "center", behavior: "smooth" });
+      Array.prototype.forEach.call(cards, function (c) { c.classList.remove("pulse"); });
+      void card.offsetWidth; // restart the animation if it is the same card
+      card.classList.add("pulse");
+      setTimeout(function () { card.classList.remove("pulse"); }, 1900);
+      $("resultCount").textContent = "Result " + (searchCursor + 1) + " of " + cards.length + ". Press Enter for the next one.";
+    }
+    function handleEnter(shift) {
+      var now = Date.now();
+      if (now - lastJumpAt < 150) return; // keydown and submit can both fire for one press
+      lastJumpAt = now;
+      jumpToResult(shift ? -1 : 1);
+    }
+    $("searchInput").addEventListener("keydown", function (e) {
+      if (e.isComposing) return;
+      if (e.key !== "Enter" && e.keyCode !== 13) return;
+      e.preventDefault();
+      handleEnter(e.shiftKey);
+    });
+    // Fallback for mobile keyboards that submit the form instead of sending a normal Enter key
+    $("searchForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      handleEnter(false);
+    });
     $("sortSelect").addEventListener("change", function () { sortMode = this.value; renderProducts(); });
     $("pmClose").addEventListener("click", closeProduct);
     $("productModal").addEventListener("click", function (e) {

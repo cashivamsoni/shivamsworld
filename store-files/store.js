@@ -1197,8 +1197,8 @@
     applyTheme(storeGet(THEME_KEY) || "light");
     $("storeThemeToggle").addEventListener("click", function () {
       var next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      applyTheme(next);
-      storeSet(THEME_KEY, next);
+      var change = function () { applyTheme(next); storeSet(THEME_KEY, next); };
+      if (window.SWUI && window.SWUI.fadeTheme) window.SWUI.fadeTheme(change); else change();
     });
 
     var toggle = $("menuToggle");

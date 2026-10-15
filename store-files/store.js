@@ -19,7 +19,18 @@
     // ===== COUPON: edit the code text and the discount percentage here =====
     // The discount applies to the items only, never to the delivery charge.
     couponCode: "SHIVAM10",
-    couponPercent: 10
+    couponPercent: 10,
+
+    // ===== SCROLLING BANNER under the search bar: edit the messages here =====
+    // {delivery}, {code} and {percent} are filled in from the settings above.
+    announcements: [
+      "\uD83D\uDE9A Flat {delivery} delivery on every order",
+      "\uD83C\uDF9F\uFE0F Use code {code} for {percent}% off your items (delivery not included)",
+      "\uD83D\uDC9C Handmade with love by Shivam's World",
+      "\uD83D\uDCCD Pin your exact location so we can find you easily",
+      "\uD83D\uDCE6 Track every order live from My orders",
+      "\u26A1 Pay easily with any UPI app"
+    ]
   };
 
   /* ---------- Products: edit names, prices, descriptions ----------
@@ -1143,6 +1154,32 @@
     if (trackReturnFocus && trackReturnFocus.focus) trackReturnFocus.focus();
   }
 
+  /* ---------- Scrolling banner ---------- */
+  function renderMarquee() {
+    var track = $("marqueeTrack");
+    var messages = (CONFIG.announcements || []).map(function (text) {
+      return String(text)
+        .replace(/\{delivery\}/g, money(CONFIG.deliveryCharge))
+        .replace(/\{code\}/g, CONFIG.couponCode)
+        .replace(/\{percent\}/g, CONFIG.couponPercent);
+    });
+    track.innerHTML = "";
+    if (!messages.length) { track.parentNode.parentNode.hidden = true; return; }
+    // Two identical groups: the second one lets the loop restart without a gap
+    for (var copy = 0; copy < 2; copy++) {
+      var group = document.createElement("div");
+      group.className = "marquee-group";
+      if (copy === 1) group.setAttribute("aria-hidden", "true");
+      messages.forEach(function (text) {
+        var item = document.createElement("span");
+        item.className = "marquee-item";
+        item.textContent = text;
+        group.appendChild(item);
+      });
+      track.appendChild(group);
+    }
+  }
+
   /* ---------- Theme & menu (same behaviour as homepage) ---------- */
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
@@ -1174,6 +1211,15 @@
     toggle.addEventListener("click", function () { setMenu(!nav.classList.contains("show")); });
     nav.addEventListener("click", function (e) {
       if (e.target.closest("a")) setMenu(false);
+    });
+    // Tapping anywhere outside the open menu closes it
+    document.addEventListener("click", function (e) {
+      if (!nav.classList.contains("show")) return;
+      if (nav.contains(e.target) || toggle.contains(e.target)) return;
+      setMenu(false);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && nav.classList.contains("show")) { setMenu(false); toggle.focus(); }
     });
   }
 
@@ -1217,7 +1263,7 @@
     });
 
     // Delivery charge note and location buttons
-    $("introDelivery").textContent = " A flat " + money(CONFIG.deliveryCharge) + " delivery charge is added to every order.";
+    renderMarquee();
     $("couponApply").addEventListener("click", applyCoupon);
     $("couponInput").addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); applyCoupon(); }

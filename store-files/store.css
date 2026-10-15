@@ -1062,3 +1062,51 @@ html.theme-fade *::after {
   .store-toolbar .cselect-value::before { content: "Sort by: "; font-weight: 500; opacity: 0.75; }
   .result-count { flex: 1 1 100%; margin: 0 6px; }
 }
+
+/* =========================================================
+   Pop-up windows: fade + pop on open, fade out on close
+   (the closing class is added by ui.js just before hiding)
+   ========================================================= */
+@keyframes swFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes swFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes swPopIn   { from { opacity: 0; transform: translateY(20px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes swPopOut  { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(14px) scale(0.97); } }
+@keyframes swDrop    { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .checkout-modal, .store-overlay { animation: swFadeIn 0.22s ease both; }
+  .checkout-modal > .checkout-box { animation: swPopIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .checkout-modal.closing, .store-overlay.closing { animation: swFadeOut 0.2s ease forwards; pointer-events: none; }
+  .checkout-modal.closing > .checkout-box { animation: swPopOut 0.2s ease forwards; }
+  .cselect-list { animation: swDrop 0.16s ease; }
+
+  /* the cart slides out too (it used to vanish at once because visibility can't fade) */
+  .cart-drawer { transition: transform 0.3s ease, visibility 0s linear 0.3s; }
+  .cart-drawer.open { transition: transform 0.3s ease, visibility 0s; }
+}
+
+/* =========================================================
+   One hover for every button: lift a little and grow a little
+   (mouse devices only, so touch screens don't get stuck hovers)
+   ========================================================= */
+.btn-inline, .mini-btn, .loc-btn, .filter-btn, .icon-btn, .qty button, .account-btn, .store-theme-btn, .cart-fab {
+  transition: transform 0.15s ease-out, background 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out, box-shadow 0.2s ease;
+}
+@media (hover: hover) {
+  .btn-inline:hover:not(:disabled),
+  .product-card .add-btn:hover,
+  .mini-btn:hover,
+  .loc-btn:hover:not(:disabled),
+  .filter-btn:hover,
+  .icon-btn:hover,
+  .qty button:hover,
+  .account-btn:hover,
+  .store-theme-btn:hover,
+  .cart-fab:hover {
+    transform: translateY(-2px) scale(1.04);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-inline:hover, .mini-btn:hover, .loc-btn:hover, .filter-btn:hover, .icon-btn:hover,
+  .qty button:hover, .account-btn:hover, .store-theme-btn:hover, .cart-fab:hover { transform: none !important; }
+}

@@ -94,6 +94,7 @@ function applyTheme(theme) {
 let orders = [];
 let activeFilter = "all";
 let unsubscribe = null;
+let searchCursor = -1;       // which search result Enter last jumped to
 const openIds = new Set(); // which cards are expanded
 const drafts = {};         // unsaved edits per order, kept across live updates
 
@@ -185,7 +186,12 @@ function renderFilters() {
     const b = el("button", "filter-btn", `${s.label} (${counts[s.key]})`);
     b.type = "button";
     b.setAttribute("aria-pressed", String(activeFilter === s.key));
-    b.addEventListener("click", () => { activeFilter = s.key; render(); });
+    b.addEventListener("click", () => {
+      // tapping the chip that is already active goes back to "All"
+      activeFilter = (activeFilter === s.key && s.key !== "all") ? "all" : s.key;
+      searchCursor = -1;
+      render();
+    });
     box.appendChild(b);
   });
 }
@@ -252,7 +258,24 @@ function orderCard(o) {
   const copyUtr = el("button", "mini-btn", "Copy UTR");
   copyUtr.type = "button";
   copyUtr.addEventListener("click", () => copyText(o.utr || ""));
-  actions.append(call, chat, copyUtr);
+  const invoice = el("button", "mini-btn", "Download invoice");
+  invoice.type = "button";
+  invoice.addEventListener("click", async () => {
+    const label = invoice.textContent;
+    invoice.disabled = true;
+    invoice.textContent = "Preparing\u2026";
+    try {
+      const m = await import("./invoice.js");
+      await m.downloadInvoice(o);
+    } catch (err) {
+      console.error(err);
+      toast("Couldn't create the invoice. Check your connection and try again.");
+    } finally {
+      invoice.disabled = false;
+      invoice.textContent = label;
+    }
+  });
+  actions.append(call, chat, copyUtr, invoice);
   if (o.location && typeof o.location.lat === "number" && typeof o.location.lng === "number") {
     const where = el("a", "mini-btn", "Open pinned location in Maps");
     where.href = `https://www.google.com/maps?q=${o.location.lat},${o.location.lng}`;
@@ -327,6 +350,15 @@ function render() {
 
   const list = $("ordersList");
   list.replaceChildren(...shown.map(orderCard));
+
+  const hint = $("searchHint");
+  if (term) {
+    hint.textContent = shown.length
+      ? `${shown.length} result${shown.length === 1 ? "" : "s"}. Press Enter to jump to ${shown.length === 1 ? "it" : "each one"}.`
+      : "No orders match your search.";
+  } else {
+    hint.textContent = "";
+  }
 
   const empty = $("emptyMsg");
   if (!shown.length) {
@@ -407,4 +439,24 @@ $("signInBtn").addEventListener("click", async () => {
 });
 
 $("signOutBtn").addEventListener("click", () => signOut(auth));
-$("searchInput").addEventListener("input", render);
+$("searchInput").addEventListener("input", () => { searchCursor = -1; render(); });
+
+// Enter jumps to the next result (Shift+Enter: previous) and pulses it purple
+function jumpToResult(step) {
+  const cards = $("ordersList").children;
+  if (!cards.length) return;
+  if (searchCursor < 0 && step < 0) searchCursor = 0;
+  searchCursor = (searchCursor + step + cards.length) % cards.length;
+  const card = cards[searchCursor];
+  card.scrollIntoView({ block: "center", behavior: "smooth" });
+  Array.from(cards).forEach((c) => c.classList.remove("pulse")); // only the current result pulses
+  void card.offsetWidth; // restart the animation if it is the same card
+  card.classList.add("pulse");
+  setTimeout(() => card.classList.remove("pulse"), 1900);
+  $("searchHint").textContent = `Result ${searchCursor + 1} of ${cards.length}. Press Enter for the next one.`;
+}
+$("searchInput").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  jumpToResult(e.shiftKey ? -1 : 1);
+});

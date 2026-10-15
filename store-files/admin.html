@@ -43,7 +43,9 @@
       <!-- ===== ORDERS ===== -->
       <section id="appView" hidden>
         <div class="card toolbar">
-          <input id="searchInput" type="search" placeholder="Search by order ID, name, phone or UTR" aria-label="Search orders">
+          <form id="searchForm" role="search" action="#" novalidate>
+            <input id="searchInput" type="search" enterkeyhint="next" autocomplete="off" placeholder="Search by order ID, name, phone or UTR" aria-label="Search orders">
+          </form>
           <p id="searchHint" class="search-hint" aria-live="polite"></p>
           <div id="filters" class="filters" role="group" aria-label="Filter by status"></div>
         </div>

@@ -61,10 +61,10 @@
       <noscript><p class="no-js">The store needs JavaScript. Please turn it on, or message us on WhatsApp to order.</p></noscript>
 
       <div class="store-toolbar">
-        <div class="search-wrap">
+        <form class="search-wrap" id="searchForm" role="search" action="#" novalidate>
           <i class="fa fa-search" aria-hidden="true"></i>
-          <input id="searchInput" type="search" placeholder="Search creations" aria-label="Search products" autocomplete="off">
-        </div>
+          <input id="searchInput" type="search" enterkeyhint="next" placeholder="Search creations" aria-label="Search products" autocomplete="off">
+        </form>
         <div class="sort-wrap">
           <label for="sortSelect">Sort by</label>
           <select id="sortSelect">

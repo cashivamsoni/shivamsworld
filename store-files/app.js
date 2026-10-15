@@ -2376,6 +2376,45 @@ function render() {
   }
 }
 
+/* ---------- Search: Enter jumps through the results ---------- */
+// Wired up right after render() so it never depends on sign-in or the Firebase load.
+// Enter = next result, Shift+Enter = previous. The pulse marks the current result.
+function jumpToResult(step) {
+  const cards = $("ordersList").children;
+  if (!cards.length) return;
+  if (searchCursor >= cards.length) searchCursor = -1; // list shrank since last jump
+  if (searchCursor < 0 && step < 0) searchCursor = 0;
+  searchCursor = (searchCursor + step + cards.length) % cards.length;
+  const card = cards[searchCursor];
+  card.scrollIntoView({ block: "center", behavior: "smooth" });
+  Array.from(cards).forEach((c) => c.classList.remove("pulse")); // only the current result pulses
+  void card.offsetWidth; // restart the animation if it is the same card
+  card.classList.add("pulse");
+  setTimeout(() => card.classList.remove("pulse"), 1900);
+  $("searchHint").textContent = `Result ${searchCursor + 1} of ${cards.length}. Press Enter for the next one.`;
+}
+
+let lastJumpAt = 0;
+function handleEnter(shift) {
+  const now = Date.now();
+  if (now - lastJumpAt < 150) return; // keydown and submit can both fire for one press
+  lastJumpAt = now;
+  jumpToResult(shift ? -1 : 1);
+}
+
+$("searchInput").addEventListener("input", () => { searchCursor = -1; render(); });
+$("searchInput").addEventListener("keydown", (e) => {
+  if (e.isComposing) return;
+  if (e.key !== "Enter" && e.keyCode !== 13) return;
+  e.preventDefault();
+  handleEnter(e.shiftKey);
+});
+// Fallback for mobile keyboards that don't send a normal Enter keydown: they submit the form instead
+$("searchForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  handleEnter(false);
+});
+
 /* ---------- Live orders ---------- */
 function startListening() {
   if (unsubscribe) return;
@@ -2454,26 +2493,4 @@ $("signInBtn").addEventListener("click", async () => {
 });
 
 $("signOutBtn").addEventListener("click", () => signOut(auth));
-$("searchInput").addEventListener("input", () => { searchCursor = -1; render(); });
-
-// Enter jumps to the next result (Shift+Enter: previous) and pulses it purple
-function jumpToResult(step) {
-  const cards = $("ordersList").children;
-  if (!cards.length) return;
-  if (searchCursor < 0 && step < 0) searchCursor = 0;
-  searchCursor = (searchCursor + step + cards.length) % cards.length;
-  const card = cards[searchCursor];
-  card.scrollIntoView({ block: "center", behavior: "smooth" });
-  Array.from(cards).forEach((c) => c.classList.remove("pulse")); // only the current result pulses
-  void card.offsetWidth; // restart the animation if it is the same card
-  card.classList.add("pulse");
-  setTimeout(() => card.classList.remove("pulse"), 1900);
-  $("searchHint").textContent = `Result ${searchCursor + 1} of ${cards.length}. Press Enter for the next one.`;
-}
-$("searchInput").addEventListener("keydown", (e) => {
-  if (e.key !== "Enter") return;
-  e.preventDefault();
-  jumpToResult(e.shiftKey ? -1 : 1);
-});
-
 })();

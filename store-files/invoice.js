@@ -4,9 +4,10 @@
    paid orders). The PDF libraries load from cdnjs only when an
    invoice is requested.
 
-   The invoice is drawn as a page first and then saved as a PDF
-   picture, so the ₹ sign and Hindi names or addresses print
-   correctly. (The text in the PDF is not selectable.)
+   The invoice is drawn as a page first and then saved in the PDF
+   as a high-resolution picture, so the ₹ sign and Hindi names or
+   addresses print correctly. (The text is part of the picture, so
+   it can't be selected or copied.)
    ========================================================= */
 
 // Edit these to change the seller details printed on every invoice
@@ -174,7 +175,10 @@ export async function downloadInvoice(order) {
   const node = buildInvoice(order);
   document.body.appendChild(node);
   try {
-    const canvas = await window.html2canvas(node, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });
+    // Draw at up to 4x for sharp text (about 380 dpi on paper). Phones limit how big a canvas can be
+    // (about 16 million pixels), so long invoices are drawn a little smaller to stay under that.
+    const scale = Math.max(2, Math.min(4, Math.sqrt(14e6 / (794 * node.offsetHeight))));
+    const canvas = await window.html2canvas(node, { scale, backgroundColor: "#ffffff", useCORS: true, logging: false });
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
     const pageW = pdf.internal.pageSize.getWidth();
@@ -191,7 +195,7 @@ export async function downloadInvoice(order) {
       ctx.fillRect(0, 0, slice.width, slice.height);
       ctx.drawImage(canvas, 0, y, canvas.width, h2, 0, 0, canvas.width, h2);
       if (page > 0) pdf.addPage();
-      pdf.addImage(slice.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, pageW, h2 * pageW / canvas.width);
+      pdf.addImage(slice.toDataURL("image/jpeg", 0.98), "JPEG", 0, 0, pageW, h2 * pageW / canvas.width);
     }
     pdf.save("Invoice-" + (order.orderId || order.id) + ".pdf");
   } finally {

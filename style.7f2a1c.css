@@ -883,7 +883,11 @@ p.ftsmall {
 
 /* ---------- Scroll-to-Top Button ---------- */
 #topBtn {
-  display: none;
+  display: flex;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(18px) scale(0.6);
+  pointer-events: none;
   align-items: center;
   justify-content: center;
   position: fixed;
@@ -900,10 +904,20 @@ p.ftsmall {
   box-shadow: 0 0 14px rgba(255,255,255,0.5);
   font-size: 18px;
   cursor: pointer;
-  transition: transform 0.15s ease-out, box-shadow 0.3s ease, background 0.15s ease-out;
+  /* slides up and grows in when you scroll down, slides down and shrinks away at the top */
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.15),
+    visibility 0s linear 0.3s, box-shadow 0.3s ease, background 0.15s ease-out;
 }
 
-#topBtn:hover {
+#topBtn.show {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+#topBtn.show:hover {
   background: linear-gradient(135deg, var(--secondary-pink), var(--primary));
   transform: translateY(-3px) scale(1.1);
   box-shadow: 0 0 22px rgba(255,255,255,0.8);
@@ -1036,6 +1050,18 @@ p.ftsmall {
 #aiWidget.open #aiIconOpen { display: none; }
 #aiWidget.open #aiIconClose { display: block; }
 
+/* the launcher icon turns over when the chat opens or closes */
+#aiIconOpen, #aiIconClose { animation: aiIconTurn 0.28s ease-out; }
+@keyframes aiIconTurn {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #topBtn, #aiChatWindow { transition: opacity 0.01s linear, visibility 0s; transform: none; }
+  #aiIconOpen, #aiIconClose { animation: none; }
+}
+
 /* Bubble preview / teaser */
 #aiPreviewBubble {
   position: relative;
@@ -1100,14 +1126,26 @@ p.ftsmall {
   border-radius: 20px;
   border: 1px solid rgba(0,0,0,0.06);
   box-shadow: 0 10px 34px rgba(20,10,40,0.22);
-  display: none;
+  display: flex;
   flex-direction: column;
   overflow: hidden;
   overscroll-behavior: contain;
+  /* grows out of the launcher on open and shrinks back into it on close.
+     Hidden with "visibility" (not display) so the closing animation can play. */
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(16px) scale(0.92);
+  transform-origin: bottom right;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.1), visibility 0s linear 0.26s;
 }
 
 #aiWidget.open #aiChatWindow {
-  display: flex;
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: 0s;
 }
 
 #aiChatHeader {

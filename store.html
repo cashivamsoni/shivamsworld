@@ -119,6 +119,7 @@
         <div class="sub-row"><span>Subtotal</span><span id="cartSubtotal">₹0</span></div>
         <div class="sub-row"><span>Delivery charge</span><span id="cartDelivery">₹0</span></div>
         <div class="total-row"><span>Total</span><strong id="cartTotal">₹0</strong></div>
+        <p id="cartEta" class="eta eta-hint"></p>
         <p id="cartSignInNote" class="hint cart-note">You'll sign in with Google to place your order.</p>
         <button id="checkoutBtn" class="btn-inline checkout-btn" disabled>Checkout</button>
       </div>
@@ -155,6 +156,7 @@
               <p class="hint">Tap the map or drag the pin to your exact spot.</p>
             </div>
             <p id="locStatus" class="loc-status" hidden></p>
+            <p id="locEta" class="eta eta-hint"></p>
           </div>
           <label for="custNote">Note (optional)</label>
           <input id="custNote" name="note" type="text" maxlength="300" placeholder="Colour, name to write, occasion…">
@@ -213,6 +215,7 @@
           <h2 id="pmName"></h2>
           <p id="pmPrice" class="product-price"></p>
           <p id="pmDesc" class="pm-desc"></p>
+          <p id="pmEta" class="eta eta-hint"></p>
           <div class="pm-qty-row">
             <span id="pmQtyLabel">Quantity</span>
             <div class="qty" role="group" aria-labelledby="pmQtyLabel">
@@ -256,6 +259,7 @@
               <p class="hint">Tap the map or drag the pin to your exact spot.</p>
             </div>
             <p id="acctLocStatus" class="loc-status" hidden></p>
+            <p id="acctEta" class="eta eta-hint"></p>
           </div>
           <p id="acctError" class="form-error" role="alert" hidden></p>
           <button type="submit" class="btn-inline wide">Save details</button>

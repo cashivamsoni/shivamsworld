@@ -543,6 +543,9 @@ async function downloadInvoice(order) {
       }
     });
 
+    // Also follow changes made from code (e.g. a form being reset): dispatch a "change" event on the select
+    select.addEventListener("change", sync);
+
     // Keep the original <select> in the page but out of sight and out of the tab order
     select.setAttribute("tabindex", "-1");
     select.setAttribute("aria-hidden", "true");
@@ -1062,7 +1065,8 @@ async function downloadInvoice(order) {
     rtOrder = o;
     $("rtOrderId").textContent = o.id;
     $("rtItems").textContent = (o.items || []).map(function (it) { return it.name + " \u00D7 " + it.qty; }).join(", ");
-    $("rtReason").value = "";
+    $("rtReason").selectedIndex = 0;
+    $("rtReason").dispatchEvent(new Event("change")); // refreshes the styled dropdown
     $("rtDetails").value = "";
     ["rtUpi", "rtAccount", "rtAccount2", "rtIfsc"].forEach(function (id) { $(id).value = ""; });
     setReturnType("refund");
@@ -2647,6 +2651,7 @@ async function downloadInvoice(order) {
     acctLoc = createLocationPicker({ gps: "acctGpsBtn", choose: "acctMapBtn", error: "acctLocError", mapBox: "acctMapBox", map: "acctMap", status: "acctLocStatus", onChange: refreshEta });
     if (window.SWUI) {
       window.SWUI.customSelect($("sortSelect"), { label: "Sort by" });
+      window.SWUI.customSelect($("rtReason"), { label: "Reason for return" });
       // every pop-up window (and the cart's backdrop) fades/pops on open and close
       ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal", "returnModal", "cartOverlay"].forEach(function (id) {
         window.SWUI.animateModal($(id));

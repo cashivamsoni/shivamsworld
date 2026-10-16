@@ -734,6 +734,7 @@ async function downloadInvoice(order) {
       "\uD83D\uDE9A Flat {delivery} delivery on every order",
       "\uD83C\uDF9F\uFE0F Use code {code} for {percent}% off your items (delivery not included)",
       "\uD83D\uDC9C Handmade with love by Shivam's World",
+      "\uD83C\uDFA8 Order here first, then customise it your way on WhatsApp",
       "\uD83D\uDCCD Pin your exact location so we can find you easily",
       "\uD83D\uDE9A Add your location to see your estimated delivery time",
       "\uD83D\uDCE6 Track every order live from My orders",

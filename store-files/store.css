@@ -1364,11 +1364,8 @@ html.theme-fade *::after {
 }
 .rt-opt[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #7a00ff, #5a00c8); border-color: transparent; }
 .rt-opt:focus-visible { outline: 3px solid rgba(111,0,255,0.4); outline-offset: 2px; }
-.checkout-box select {
-  display: block; width: 100%; padding: 11px 12px; font: inherit; font-size: 16px; color: inherit;
-  background: #fff; border: 2px solid rgba(111,0,255,0.3); border-radius: 12px; box-sizing: border-box;
-}
-.checkout-box select:focus { outline: 3px solid rgba(111,0,255,0.3); border-color: var(--primary); }
+.checkout-box .cselect { display: block; width: 100%; }
+.checkout-box .cselect-btn { min-height: 46px; font-size: 16px; font-weight: 500; }
 #rtRefundBox { margin-top: 14px; }
 .view-tabs { margin: 0 0 12px; }
 .pill-requested { background: #fff3cd; color: #7a5600; }
@@ -1377,4 +1374,3 @@ html.theme-fade *::after {
 .pill-rejected { background: #ffe0e0; color: #8a1c1c; }
 [data-theme="dark"] .rt-opt { background: #2d0057; color: #e6d9ff; border-color: rgba(160,110,255,0.5); }
 [data-theme="dark"] .rt-opt[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #7a00ff, #5a00c8); }
-[data-theme="dark"] .checkout-box select { background: #2d0057; border-color: rgba(160,110,255,0.5); color: #f0eaff; }

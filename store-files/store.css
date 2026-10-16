@@ -1392,3 +1392,7 @@ html.theme-fade *::after {
 .pm-total { margin: 8px 0 0; font-size: 16px; font-weight: 700; color: var(--primary-dark); }
 .pm-total[hidden] { display: none; }
 [data-theme="dark"] .pm-total { color: #c9a3ff; }
+
+/* The whole product card opens the product window */
+.product-card { cursor: pointer; }
+.product-card .add-btn { cursor: pointer; }

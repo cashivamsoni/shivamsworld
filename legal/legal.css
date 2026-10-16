@@ -1,0 +1,78 @@
+/* =========================================================
+   Legal pages (Privacy Policy, Terms & Conditions)
+   Works together with ../style.7f2a1c.css
+   ========================================================= */
+.legal-card {
+  margin-bottom: 22px;
+  scroll-margin-top: 120px;
+}
+
+.legal-card h1 { margin-bottom: 6px; }
+
+.legal-card h2 {
+  margin: 0 0 12px 0;
+  font-family: 'DM Serif Display', serif;
+  font-weight: 400;
+  font-size: 25px;
+  line-height: 1.25;
+  color: var(--primary);
+}
+
+.legal-card p,
+.legal-card li {
+  font-size: 17px;
+  line-height: 1.65;
+  color: #111;
+}
+
+.legal-card p { margin: 0; }
+.legal-card p + p,
+.legal-card p + ul,
+.legal-card ul + p { margin-top: 12px; }
+
+.legal-card ul,
+.legal-card ol { margin: 8px 0 0; padding-left: 22px; }
+.legal-card li { margin-bottom: 9px; }
+.legal-card li:last-child { margin-bottom: 0; }
+
+.legal-card a { color: var(--primary); text-decoration: underline; overflow-wrap: anywhere; }
+.legal-card a:hover { color: var(--primary-dark); }
+
+.legal-updated {
+  margin-bottom: 12px !important;
+  font-size: 14px !important;
+  color: #555 !important;
+}
+
+.legal-summary {
+  margin: 14px 0 0 !important;
+  padding: 12px 14px;
+  background: rgba(111, 0, 255, 0.08);
+  border-left: 4px solid var(--primary);
+  border-radius: 10px;
+}
+
+/* "On this page" list */
+.legal-toc { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(111, 0, 255, 0.2); }
+.legal-toc h2 { font-size: 21px; margin-bottom: 8px; }
+.legal-toc ol { margin: 0; padding-left: 24px; columns: 2; column-gap: 32px; }
+.legal-toc li { margin-bottom: 5px; font-size: 16px; break-inside: avoid; }
+
+.legal-foot-links { margin-top: 10px; }
+
+@media (max-width: 700px) {
+  .legal-card h2 { font-size: 22px; }
+  .legal-card p, .legal-card li { font-size: 16px; }
+  .legal-toc ol { columns: 1; }
+}
+
+/* ---------- Dark mode ---------- */
+[data-theme="dark"] .legal-card p,
+[data-theme="dark"] .legal-card li { color: #e6d9ff; }
+[data-theme="dark"] .legal-card h1,
+[data-theme="dark"] .legal-card h2 { color: #c9a3ff; }
+[data-theme="dark"] .legal-card a { color: #d9b8ff; }
+[data-theme="dark"] .legal-card a:hover { color: #fff; }
+[data-theme="dark"] .legal-updated { color: #b9a6dd !important; }
+[data-theme="dark"] .legal-summary { background: rgba(160, 110, 255, 0.16); border-left-color: #a06eff; }
+[data-theme="dark"] .legal-toc { border-top-color: rgba(160, 110, 255, 0.35); }

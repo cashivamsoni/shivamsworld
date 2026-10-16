@@ -1431,3 +1431,57 @@ html.theme-fade *::after {
 @media (max-width: 420px) {
   #aiChatWindow { right: 12px; }
 }
+
+/* =========================================================
+   Animations for the scroll-to-top button and the AI assistant panel
+   ========================================================= */
+/* Scroll-to-top: slides up and grows in when you scroll down, slides down and shrinks away at the top */
+#topBtn {
+  display: flex;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(18px) scale(0.6);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.15),
+    visibility 0s linear 0.3s, box-shadow 0.3s ease, background 0.15s ease-out;
+}
+#topBtn.show {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+#topBtn.show:hover { transform: translateY(-3px) scale(1.1); }
+
+/* AI panel: grows out of the launcher on open and shrinks back into it on close.
+   It stays in the page (hidden) so the closing animation can play; "visibility" keeps it unreachable. */
+#aiChatWindow {
+  display: flex;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(16px) scale(0.92);
+  transform-origin: bottom right;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.1), visibility 0s linear 0.26s;
+}
+#aiWidget.open #aiChatWindow {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: 0s;
+}
+
+/* The launcher icon turns over when the chat opens or closes */
+#aiIconOpen, #aiIconClose { animation: aiIconTurn 0.28s ease-out; }
+@keyframes aiIconTurn {
+  from { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #topBtn, #aiChatWindow { transition: opacity 0.01s linear, visibility 0s; transform: none; }
+  #topBtn:not(.show) { transform: none; }
+  #aiIconOpen, #aiIconClose { animation: none; }
+}

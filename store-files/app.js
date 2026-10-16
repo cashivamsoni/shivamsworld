@@ -900,10 +900,56 @@ async function downloadInvoice(order) {
     $("productModal").hidden = false;
     document.body.classList.add("store-locked");
     document.querySelector("#productModal .checkout-box").scrollTop = 0;
+    setProductInUrl(p.id);
     $("pmAdd").focus({ preventScroll: true });
     ensureReviews().catch(function () { /* the product still opens without reviews */ });
   }
 
+
+  /* ---------- Sharing a product (link opens that product) ---------- */
+  function productUrl(id) {
+    return location.origin + location.pathname + "?product=" + encodeURIComponent(id);
+  }
+
+  // Keeps the address bar in step with the open product, so copying it from the browser also works
+  function setProductInUrl(id) {
+    try {
+      var u = new URL(location.href);
+      if (id) u.searchParams.set("product", id); else u.searchParams.delete("product");
+      history.replaceState(null, "", u.pathname + u.search + u.hash);
+    } catch (e) { /* not important */ }
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      ta.remove();
+      if (ok) resolve(); else reject(new Error("copy failed"));
+    });
+  }
+
+  function shareProduct() {
+    if (!pmProduct) return;
+    var url = productUrl(pmProduct.id);
+    var data = { title: pmProduct.name, text: pmProduct.name + " at Shivam's World, " + money(pmProduct.price), url: url };
+    if (navigator.share) {
+      navigator.share(data).catch(function (err) {
+        if (err && err.name === "AbortError") return; // the person closed the share sheet
+        copyText(url).then(function () { toast("Link copied"); }, function () { toast("Couldn't share. Copy the link from the address bar."); });
+      });
+    } else {
+      copyText(url).then(function () { toast("Link copied"); }, function () { toast("Couldn't copy. Copy the link from the address bar."); });
+    }
+  }
 
   /* ---------- Reviews and ratings ---------- */
   var reviews = [];          // every review, loaded once from Firestore
@@ -1192,6 +1238,7 @@ async function downloadInvoice(order) {
 
   function closeProduct() {
     $("productModal").hidden = true;
+    setProductInUrl(null);
     document.body.classList.remove("store-locked");
     if (pmReturnFocus && pmReturnFocus.focus) pmReturnFocus.focus();
   }
@@ -2303,6 +2350,14 @@ async function downloadInvoice(order) {
   }
 
   /* ---------- Init ---------- */
+  // A shared link like store.html?product=cards opens that product straight away
+  function openProductFromLink() {
+    var id = "";
+    try { id = new URLSearchParams(location.search).get("product") || ""; } catch (e) { return; }
+    if (!id) return;
+    if (findProduct(id)) openProduct(id); else setProductInUrl(null); // unknown product: just show the store
+  }
+
   function init() {
     loadCart();
     checkoutLoc = createLocationPicker({ gps: "gpsBtn", choose: "mapBtn", error: "locError", mapBox: "mapBox", map: "map", status: "locStatus", onChange: refreshEta });
@@ -2317,6 +2372,7 @@ async function downloadInvoice(order) {
     renderProducts();
     renderCart();
     setupThemeAndMenu();
+    openProductFromLink();
 
     $("cartFab").addEventListener("click", openCart);
     $("cartClose").addEventListener("click", closeCart);
@@ -2392,6 +2448,7 @@ async function downloadInvoice(order) {
     });
     $("sortSelect").addEventListener("change", function () { sortMode = this.value; renderProducts(); });
     $("pmClose").addEventListener("click", closeProduct);
+    $("pmShare").addEventListener("click", shareProduct);
     $("pmMoreReviews").addEventListener("click", function () { pmReviewsShown += 5; renderProductExtras(); });
     // review window
     $("rvClose").addEventListener("click", closeReview);

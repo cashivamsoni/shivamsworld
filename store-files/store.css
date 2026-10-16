@@ -1396,3 +1396,38 @@ html.theme-fade *::after {
 /* The whole product card opens the product window */
 .product-card { cursor: pointer; }
 .product-card .add-btn { cursor: pointer; }
+
+/* =========================================================
+   Homepage widgets on the store: where each fixed button sits
+   Left, bottom   scroll-to-top (shows after scrolling)
+   Right, middle  floral quick menu (dark mode, subscribe, call, share)
+   Right, bottom  AI assistant, stacked just above the cart button
+   Right, corner  cart button
+   ========================================================= */
+/* The theme button moved out of the header, so the account button now sits at the right edge */
+.account-btn { margin-left: auto; }
+.account-btn + #menuToggle { margin-left: 0; }
+
+/* scroll-to-top lines up with the cart button's baseline */
+#topBtn { bottom: 30px; left: 20px; }
+
+/* AI assistant: centred above the 60px cart button (the launcher is 56px wide) */
+#aiWidget { bottom: 98px; right: 22px; }
+#aiChatWindow {
+  bottom: 98px;
+  right: 20px;
+  max-height: min(420px, calc(100vh - 98px - var(--header-h, 64px) - 16px));
+}
+
+@media (max-width: 700px) {
+  #topBtn { bottom: 24px; left: 14px; }
+  #aiWidget { bottom: 90px; right: 16px; }
+  #aiChatWindow {
+    bottom: 90px;
+    right: 16px;
+    max-height: min(420px, calc(100vh - 90px - var(--header-h, 64px) - 16px));
+  }
+}
+@media (max-width: 420px) {
+  #aiChatWindow { right: 12px; }
+}

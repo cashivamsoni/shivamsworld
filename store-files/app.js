@@ -5,6 +5,7 @@
    1. Data layer    Firebase sign-in/orders (loaded only when needed) + PDF invoice
    2. UI kit        styled dropdowns, confirm dialog, pop-up animations, theme fade
    3. Store page    products, cart, checkout, accounts, tracking (runs on store.html)
+   3b. Store widgets floral quick menu, scroll-to-top, share, AI assistant (store.html)
    4. Admin page    order list, filters, status updates (runs on admin.html)
 
    Settings you may want to edit: CONFIG at the top of section 3
@@ -3010,6 +3011,805 @@ async function downloadInvoice(order) {
   if (document.getElementById("productGrid")) init(); // only on the store page
 })();
 
+
+/* ---------- 3b. Store widgets shared with the homepage ----------
+   Floral quick menu (dark mode, subscribe, call, share), scroll-to-top button, share button and the
+   AI assistant. Each block does nothing when its buttons are not on the page, so admin.html is not affected.
+   (Dark mode itself is wired up in section 3, from the floral menu's first petal.) */
+
+/* ---------- Floral Quick Menu ---------- */
+(function () {
+  const menu = document.getElementById("floralMenu");
+  const mainBtn = document.getElementById("floralMain");
+  if (!menu || !mainBtn) return;
+  const mainIcon = mainBtn.querySelector("i");
+
+  function closeMenu() {
+    menu.classList.remove("open");
+    mainBtn.setAttribute("aria-expanded", "false");
+    if (mainIcon) mainIcon.className = "fa fa-plus";
+  }
+
+  mainBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    const isOpen = menu.classList.toggle("open");
+    mainBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    if (mainIcon) mainIcon.className = "fa fa-plus";
+  });
+
+  // Close after tapping any petal (its own click handler still fires first)
+  menu.querySelectorAll(".petal").forEach(function (petal) {
+    petal.addEventListener("click", closeMenu);
+  });
+
+  // Close when tapping anywhere outside the menu
+  document.addEventListener("click", function (e) {
+    if (!menu.contains(e.target)) closeMenu();
+  });
+})();
+
+/* ---------- Scroll-to-Top Button ---------- */
+(function () {
+  const topBtn = document.getElementById("topBtn");
+  if (!topBtn) return;
+
+  window.addEventListener("scroll", function () {
+    topBtn.style.display =
+      document.body.scrollTop > 120 || document.documentElement.scrollTop > 120
+        ? "flex"
+        : "none";
+  });
+
+  topBtn.addEventListener("click", function () {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+})();
+
+/* ---------- Share Button (store version: shares the page you are on, e.g. an open product link) ---------- */
+(function () {
+  const shareBtn = document.getElementById("shareBtn");
+  if (!shareBtn) return;
+
+  // Small message at the bottom of the store (falls back to an alert on pages without the toast)
+  function note(msg) {
+    const t = document.getElementById("toast");
+    if (!t) { alert(msg); return; }
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(note._timer);
+    note._timer = setTimeout(function () { t.classList.remove("show"); }, 2200);
+  }
+
+  shareBtn.addEventListener("click", async function () {
+    const data = {
+      title: "Store - Shivam's World",
+      text: "Check out the Shivam's World store - handmade gifts, cards, calligraphy & much more!",
+      url: window.location.href,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(data);
+      } catch (error) {
+        if (error && error.name !== "AbortError") console.error("Error sharing:", error);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        note("Link copied to clipboard");
+      } catch {
+        note("Sharing isn't supported here. Copy the link from the address bar.");
+      }
+    }
+  });
+})();
+
+(function () {
+  const widget = document.getElementById("aiWidget");
+  const toggleBtn = document.getElementById("aiToggleBtn");
+  const chatWindow = document.getElementById("aiChatWindow");
+  const closeBtn = document.getElementById("aiCloseBtn");
+  const messagesEl = document.getElementById("aiChatMessages");
+  const form = document.getElementById("aiChatForm");
+  const input = document.getElementById("aiChatInput");
+  const sendBtn = document.getElementById("aiSendBtn");
+  const previewBubble = document.getElementById("aiPreviewBubble");
+  const previewText = document.getElementById("aiPreviewText");
+  const micBtn = document.getElementById("aiMicBtn");
+  if (!widget || !toggleBtn || !chatWindow) return;
+
+  let stopListening = function () {};
+
+  const WELCOME_MSG =
+    "Hi! Ask me about the DIYs, calligraphy, sketches, custom orders — or anything else.";
+
+  const previewMessages = [
+    "Ask about custom orders.",
+    "Ask how to reach Shivam.",
+    "Ask what's on the channel.",
+  ];
+
+  // Conversation lives in memory only for the current page load — nothing
+  // is written to localStorage, so it starts fresh on every visit/refresh.
+  let history = [];
+  let isTyping = false;
+  const ttsSupported = "speechSynthesis" in window;
+
+  /* ---------------------------------------------------------
+     Header height sync — keeps --header-h current so the chat
+     panel's max-height (set in CSS) can never grow tall enough
+     to sit behind the sticky header.
+  --------------------------------------------------------- */
+  (function syncHeaderHeight() {
+    const header = document.querySelector("header");
+    if (!header) return;
+    function measure() {
+      const h = header.getBoundingClientRect().height;
+      if (h > 0) {
+        document.documentElement.style.setProperty("--header-h", h + "px");
+      }
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    // Header height can change when the mobile nav wraps/opens. The same
+    // observer also closes the assistant the moment the nav opens, so the
+    // panel never sits half-visible behind the full-screen nav overlay.
+    const nav = document.getElementById("mainNav");
+    if (nav) {
+      const obs = new MutationObserver(function () {
+        measure();
+        if (nav.classList.contains("show") && widget.classList.contains("open")) {
+          closeChat();
+        }
+      });
+      obs.observe(nav, { attributes: true, attributeFilter: ["class"] });
+    }
+    setTimeout(measure, 400); // catch late font/layout shifts
+  })();
+
+  /* ---------------------------------------------------------
+     Markdown-lite rendering: escape HTML first for safety, then
+     convert **bold** to <strong>, then any remaining single
+     *emphasis* to a semi-bold span. Order matters — bold must be
+     processed first so double-asterisk pairs aren't mistaken for
+     two single-asterisk emphasis markers.
+  --------------------------------------------------------- */
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  // Matches domain-like text even without a protocol (e.g.
+  // "youtube.com/c/ShivamsWorld"), restricted to a known-TLD allowlist to
+  // keep false positives (version numbers, "e.g.", etc.) rare. The
+  // negative lookbehind keeps it from grabbing the domain half of an
+  // email address.
+  const BARE_DOMAIN_RE =
+    /(?<!@)\b((?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|org|net|app|in|co|io|link|me)(?:\/[^\s<>"')\]]*)?)/gi;
+
+  const EMAIL_RE = /[\w.+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+/gi;
+
+  // Matches "+91 9005325544", "+919005325544" (no separator), or a bare
+  // 10-digit "9005325544". The two-alternative form (rather than an optional
+  // country-code group) is needed because \b doesn't exist between two
+  // adjacent digits, so a single pattern can't cleanly handle "no separator".
+  const PHONE_RE = /\+\d{1,3}[\s-]?\d{10}\b|\b\d{10}\b/g;
+
+  function renderRichText(rawText) {
+    let safe = escapeHtml(rawText);
+
+    // Links are converted first and swapped out for placeholder tokens, so
+    // the bold/emphasis passes below can never match text inside a URL or
+    // inside an already-built <a> tag. Generic web links render uniformly
+    // as "Click here" for a clean, consistent read-aloud experience; phone
+    // numbers and email addresses instead keep their own text as the label,
+    // since the actual number/address is the useful part there.
+    const links = [];
+    function stashLink(url, label) {
+      const token = "\u0000LINK" + links.length + "\u0000";
+      links.push({ url: url, label: label || "Click here" });
+      return token;
+    }
+
+    // Markdown-style links: [label](https://example.com)
+    safe = safe.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function (m, label, url) {
+      return stashLink(url);
+    });
+
+    // Bare URLs with an explicit protocol
+    safe = safe.replace(/https?:\/\/[^\s<]+/g, function (url) {
+      const trimmed = url.replace(/[.,;:!?)\]]+$/, ""); // drop trailing punctuation
+      const trailing = url.slice(trimmed.length);
+      return stashLink(trimmed) + trailing;
+    });
+
+    // Email addresses — converted (and stashed) before the bare-domain pass
+    // below, so "gmail.com" isn't left behind as a separate, broken link.
+    safe = safe.replace(EMAIL_RE, function (email) {
+      return stashLink("mailto:" + email, email);
+    });
+
+    // Bare domains with no protocol at all
+    safe = safe.replace(BARE_DOMAIN_RE, function (m, domain) {
+      const trimmed = domain.replace(/[.,;:!?)\]]+$/, "");
+      const trailing = domain.slice(trimmed.length);
+      const url = /^https?:\/\//i.test(trimmed) ? trimmed : "https://" + trimmed;
+      return stashLink(url) + trailing;
+    });
+
+    // Phone numbers
+    safe = safe.replace(PHONE_RE, function (phone) {
+      const digits = phone.replace(/[^\d+]/g, "");
+      return stashLink("tel:" + digits, phone);
+    });
+
+    safe = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    safe = safe.replace(/\*(.+?)\*/g, '<span class="ai-em">$1</span>');
+
+    safe = safe.replace(/\u0000LINK(\d+)\u0000/g, function (m, i) {
+      const link = links[Number(i)];
+      const isWebLink = /^https?:\/\//i.test(link.url);
+      const attrs = isWebLink ? ' target="_blank" rel="noopener noreferrer"' : "";
+      return '<a href="' + link.url + '"' + attrs + ">" + link.label + "</a>";
+    });
+
+    return safe;
+  }
+
+  // Markdown markers and links are stripped/normalized before text reaches
+  // speechSynthesis — links are read as "Click here" rather than a raw URL.
+  function stripMarkdown(rawText) {
+    return rawText
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "Click here")
+      .replace(/https?:\/\/[^\s<]+/g, "Click here")
+      .replace(BARE_DOMAIN_RE, "Click here")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1");
+  }
+
+  /* ---------------------------------------------------------
+     Local rule-based fallback — free, fully offline, pattern-
+     matches against the site's own known details. Used whenever
+     the Gemini-backed API errors, times out, or is rate-limited,
+     so the assistant is never fully dependent on the external
+     service.
+  --------------------------------------------------------- */
+  const LOCAL_INTENTS = [
+    {
+      test: /\b(hi|hello|hey|namaste|yo)\b/i,
+      reply:
+        "Hey there! 👋 I'm Shivam's AI assistant. Ask me about the DIYs, calligraphy, sketches, custom orders, or how to reach Shivam.",
+    },
+    {
+      test: /\b(custom order|commission|order|buy|purchase|price|cost|rate)\b/i,
+      reply:
+        "For custom orders, the quickest way is to message Shivam directly on WhatsApp: https://wa.link/zvaoa9 — share what you'd like (calligraphy, sketch, DIY piece, etc.) and he'll get back to you with details.",
+    },
+    {
+      test: /\b(contact|reach|email|phone|number|whatsapp|call)\b/i,
+      reply:
+        "You can reach Shivam by phone/WhatsApp at +91 9005325544, or email babitavrm60@gmail.com. There's also a Call button on this page for a quick tap-to-call.",
+    },
+    {
+      test: /\b(channel|content|video|diy|calligraphy|sketch|craft|creation)\b/i,
+      reply:
+        "Shivam's World features DIY crafts, calligraphy, sketches/drawings, and handcrafted cards. You can browse it all on the YouTube channel (youtube.com/c/ShivamsWorld) or right here on the site.",
+    },
+    {
+      test: /\b(dark mode|light mode|theme|night mode)\b/i,
+      reply:
+        "You can switch between light and dark mode using the theme toggle in the menu at the top — just tap it to flip the look of the whole site.",
+    },
+    {
+      test: /\bsearch\b/i,
+      reply:
+        "There's a search bar you can use to quickly find content on the page — type a keyword and it filters the list live as you type.",
+    },
+    {
+      test: /\bshare\b/i,
+      reply:
+        "Tap the Share button (fixed near the bottom-right) to share this page — it'll open your device's share menu, or copy the link if sharing isn't supported.",
+    },
+    {
+      test: /\b(thank|thanks|thank you)\b/i,
+      reply: "You're welcome! Let me know if there's anything else you'd like to know. 🙂",
+    },
+  ];
+
+  function localFallbackAnswer(userText) {
+    for (const intent of LOCAL_INTENTS) {
+      if (intent.test.test(userText)) return intent.reply;
+    }
+    return "I'm not fully sure about that one — the best way to get an accurate answer is to reach out to Shivam directly on WhatsApp: https://wa.link/zvaoa9";
+  }
+
+  /* ----- Rendering ----- */
+  function renderMessage(msg) {
+    const div = document.createElement("div");
+    div.className =
+      "ai-msg " +
+      (msg.role === "user"
+        ? "ai-msg-user"
+        : msg.role === "error"
+        ? "ai-msg-error"
+        : "ai-msg-bot");
+
+    if (msg.role === "bot") {
+      div.innerHTML = renderRichText(msg.text);
+    } else {
+      div.textContent = msg.text;
+    }
+
+    messagesEl.appendChild(div);
+    return div;
+  }
+
+  function renderAll() {
+    messagesEl.innerHTML = "";
+    if (history.length === 0) {
+      history.push({ role: "bot", text: WELCOME_MSG, ts: Date.now() });
+    }
+    history.forEach(renderMessage);
+    scrollToBottom();
+  }
+
+  function scrollToBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function showTyping() {
+    if (document.getElementById("aiTypingIndicator")) return;
+    const el = document.createElement("div");
+    el.id = "aiTypingIndicator";
+    el.textContent = "Thinking…";
+    messagesEl.appendChild(el);
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    const el = document.getElementById("aiTypingIndicator");
+    if (el) el.remove();
+  }
+
+  /* ----- Scroll containment -----
+     Scroll is contained to the chat window itself via CSS
+     `overscroll-behavior: contain` (see #aiChatWindow /
+     #aiChatMessages) — the page behind stays freely scrollable
+     the whole time the chat is open. */
+
+  /* ----- Open / Close ----- */
+  function openChat() {
+    widget.classList.add("open", "seen");
+    hidePreview();
+    stopPreviewCycle();
+    renderAll();
+    if (input) input.focus();
+  }
+
+  function closeChat() {
+    widget.classList.remove("open");
+    stopListening();
+    stopSpeaking();
+    resumePreviewCycle();
+  }
+
+  toggleBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    widget.classList.contains("open") ? closeChat() : openChat();
+  });
+  if (closeBtn) closeBtn.addEventListener("click", closeChat);
+
+  // Click outside the chat window (and outside the toggle button) closes it.
+  // Uses composedPath() rather than chatWindow.contains(e.target): some
+  // in-header buttons (e.g. the speech toggle) replace their own innerHTML
+  // in response to this same click, which can detach e.target from the DOM
+  // before the event finishes bubbling here. composedPath() reflects the
+  // event's original path and isn't affected by that later mutation.
+  document.addEventListener("click", function (e) {
+    if (!widget.classList.contains("open")) return;
+    const path = typeof e.composedPath === "function" ? e.composedPath() : null;
+    const insideChat = path
+      ? path.includes(chatWindow) || path.includes(toggleBtn)
+      : chatWindow.contains(e.target) || toggleBtn.contains(e.target);
+    if (insideChat) return;
+    closeChat();
+  });
+
+  /* ----- Preview bubble teaser (recurring, rotating messages) -----
+     Mirrors MediHome's hint cycle exactly: paused whenever the panel
+     is open, resumed the moment it closes — indefinitely, no permanent
+     dismissal. The show transition is retriggered by forcing a DOM
+     reflow between removing and re-adding the "show" class, then
+     waiting a frame before re-adding it, so the fade-in fires reliably
+     even if the previous cycle's transition hadn't fully settled. ----- */
+  let previewCycleTimer = null;
+  let previewCycleActive = false;
+
+  function hidePreview() {
+    if (previewBubble) previewBubble.classList.remove("show");
+  }
+
+  function stopPreviewCycle() {
+    previewCycleActive = false;
+    clearTimeout(previewCycleTimer);
+    previewCycleTimer = null;
+  }
+
+  function resumePreviewCycle() {
+    if (previewCycleActive) return;
+    previewCycleActive = true;
+    clearTimeout(previewCycleTimer);
+    previewCycleTimer = setTimeout(showNextPreview, 2000);
+  }
+
+  function showNextPreview() {
+    if (!previewBubble || widget.classList.contains("open")) return;
+    const msg = previewMessages[Math.floor(Math.random() * previewMessages.length)];
+    if (previewText) previewText.textContent = msg;
+
+    previewBubble.classList.remove("show");
+    void previewBubble.offsetWidth; // force reflow so the browser paints the "before" state first
+    requestAnimationFrame(() => previewBubble.classList.add("show"));
+
+    previewCycleTimer = setTimeout(function () {
+      previewBubble.classList.remove("show");
+      previewCycleTimer = setTimeout(showNextPreview, 3000);
+    }, 4000);
+  }
+
+  function initPreview() {
+    if (!previewBubble) return;
+    resumePreviewCycle();
+  }
+
+  /* ----- Sending messages (Gemini primary, local fallback silent) ----- */
+  async function sendMessage(text) {
+    text = (text || "").trim();
+    if (!text || isTyping) return;
+
+    history.push({ role: "user", text: text, ts: Date.now() });
+    renderMessage(history[history.length - 1]);
+    scrollToBottom();
+
+    input.value = "";
+    isTyping = true;
+    sendBtn.disabled = true;
+    showTyping();
+
+    let replyText = null;
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          history: history
+            .filter((m) => m.role === "user" || m.role === "bot")
+            .slice(-10)
+            .map((m) => ({
+              role: m.role === "user" ? "user" : "assistant",
+              text: m.text,
+            })),
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data && data.reply) {
+        replyText = data.reply;
+      }
+    } catch (err) {
+      // network error — fall through to local fallback
+    }
+
+    hideTyping();
+
+    // Silent fallback: if Gemini errored, timed out, or was rate-limited,
+    // answer from the local rule-based matcher instead of showing an error.
+    if (!replyText) {
+      replyText = localFallbackAnswer(text);
+    }
+
+    const botMsg = { role: "bot", text: replyText, ts: Date.now() };
+    history.push(botMsg);
+    renderMessage(botMsg);
+    startReading(botMsg);
+
+    isTyping = false;
+    sendBtn.disabled = false;
+    scrollToBottom();
+  }
+
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      sendMessage(input.value);
+    });
+  }
+
+  /* ----- Voice input (Web Speech API) -----
+     Feature-detected — the mic button simply never appears on
+     unsupported browsers. Auto-transcribes and auto-sends once
+     speech recognition reports a final result. ----- */
+  (function initVoiceInput() {
+    if (!micBtn || !input) return;
+    const SpeechRecognitionAPI =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognitionAPI) {
+      micBtn.hidden = true;
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    let listening = false;
+    let finalSent = false;
+
+    function setListening(state) {
+      listening = state;
+      micBtn.classList.toggle("listening", state);
+      micBtn.setAttribute(
+        "aria-label",
+        state ? "Stop voice input" : "Speak your message"
+      );
+    }
+
+    function stopListeningInternal() {
+      try {
+        recognition.stop();
+      } catch {}
+    }
+
+    recognition.addEventListener("start", function () {
+      finalSent = false;
+      setListening(true);
+    });
+
+    recognition.addEventListener("result", function (e) {
+      let transcript = "";
+      let isFinal = false;
+      for (let i = 0; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+        if (e.results[i].isFinal) isFinal = true;
+      }
+      input.value = transcript;
+
+      if (isFinal && transcript.trim() && !finalSent) {
+        finalSent = true;
+        sendMessage(transcript);
+      }
+    });
+
+    recognition.addEventListener("error", function (e) {
+      setListening(false);
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        history.push({
+          role: "error",
+          text: "Microphone access was blocked. Please allow mic permissions to use voice input.",
+          ts: Date.now(),
+        });
+        renderMessage(history[history.length - 1]);
+        scrollToBottom();
+      }
+    });
+
+    recognition.addEventListener("end", function () {
+      setListening(false);
+    });
+
+    micBtn.addEventListener("click", function () {
+      if (listening) {
+        stopListeningInternal();
+      } else {
+        try {
+          recognition.start();
+        } catch {}
+      }
+    });
+
+    // Lets closeChat() cut the mic off if the window is dismissed mid-recording.
+    stopListening = stopListeningInternal;
+  })();
+
+  /* ---------------------------------------------------------
+     Read aloud (Web Speech Synthesis) — two separate header
+     controls, mirroring MediHome exactly:
+       - a Pause/Play TOGGLE (icon swaps in place) that's only
+         ever visible while a reply is actively being read or
+         sits paused mid-way through
+       - a separate REPLAY button that only appears once a reply
+         has finished naturally on its own (never while paused)
+     These are mutually exclusive by construction: starting/
+     resuming a reading hides Replay and shows the toggle as
+     Pause; pausing keeps Replay hidden and flips the toggle to
+     Play; finishing naturally hides the toggle and shows Replay.
+
+     Deliberately avoids native pause()/resume() — unreliable,
+     especially on mobile where resume() is known to silently
+     fail. Instead: pausing fully cancels the utterance (position
+     is preserved), and resuming starts a brand-new utterance from
+     that tracked character position.
+
+     Position is tracked two ways: word-boundary events where the
+     browser fires them, and a time-elapsed character-rate
+     estimate (~15 chars/sec) as a fallback/floor, since mobile
+     browsers often never fire boundary events at all.
+
+     A generation counter plus handler-nulling on every cancel
+     guards against stale, late-firing callbacks from an already-
+     abandoned utterance corrupting the UI state. The last reply's
+     text persists independent of playback state, so Replay still
+     works after closing and reopening the panel.
+  --------------------------------------------------------- */
+  const speechToggleBtn = document.getElementById("aiSpeechToggle");
+  const replayBtn = document.getElementById("aiReplayBtn");
+  const CHARS_PER_SEC = 15;
+
+  let speechFullText = "";
+  let speechCharIndex = 0;
+  let speechPaused = false;
+  let speechStartTime = 0;
+  let speechStartIndex = 0;
+  let speechGen = 0; // bumped on every deliberate interruption/new utterance
+  let currentUtterance = null; // handlers nulled whenever we cancel deliberately
+  let lastReplyPlainText = ""; // persists across stop/close, unlike the vars above
+
+  function detachCurrentUtterance() {
+    if (currentUtterance) {
+      currentUtterance.onstart = null;
+      currentUtterance.onend = null;
+      currentUtterance.onerror = null;
+      currentUtterance.onboundary = null;
+      currentUtterance = null;
+    }
+  }
+
+  function setSpeechToggle(visible, paused) {
+    if (!speechToggleBtn) return;
+    speechToggleBtn.hidden = !visible;
+    speechToggleBtn.classList.toggle("active", visible && !paused);
+    speechToggleBtn.innerHTML = paused
+      ? '<i class="fa fa-play"></i>'
+      : '<i class="fa fa-pause"></i>';
+    speechToggleBtn.title = paused ? "Resume reading" : "Pause reading";
+    speechToggleBtn.setAttribute("aria-label", paused ? "Resume reading" : "Pause reading");
+  }
+
+  function setReplayVisible(visible) {
+    if (replayBtn) replayBtn.hidden = !visible;
+  }
+
+  function speakFrom(charIndex) {
+    if (!ttsSupported) return;
+    const remaining = speechFullText.slice(charIndex);
+    if (!remaining) {
+      setSpeechToggle(false);
+      return;
+    }
+    const myGen = ++speechGen; // this utterance's own identity
+    const utter = new SpeechSynthesisUtterance(remaining);
+    currentUtterance = utter;
+    utter.rate = 1;
+    utter.pitch = 1;
+
+    let boundaryFired = false;
+
+    utter.onboundary = function (e) {
+      if (myGen !== speechGen) return; // a later utterance has since taken over
+      boundaryFired = true;
+      if (typeof e.charIndex === "number") {
+        speechCharIndex = charIndex + e.charIndex;
+      }
+    };
+
+    utter.onstart = function () {
+      if (myGen !== speechGen) return;
+      speechStartTime = Date.now();
+      speechStartIndex = charIndex;
+      setSpeechToggle(true, false);
+      setReplayVisible(false); // pause/play takes over while actively reading
+    };
+
+    utter.onend = function () {
+      if (myGen !== speechGen) return; // stale — cancel() likely triggered this late
+      if (!speechPaused) {
+        setSpeechToggle(false);
+        setReplayVisible(true); // finished naturally
+      }
+    };
+
+    utter.onerror = function () {
+      if (myGen !== speechGen) return;
+      if (!speechPaused) setSpeechToggle(false);
+    };
+
+    // Fallback position tracking for browsers that never fire onboundary
+    // (common on mobile) — a rough time-elapsed estimate acts as a floor.
+    const startedAt = performance.now();
+    const fallbackTimer = setInterval(function () {
+      if (myGen !== speechGen) {
+        clearInterval(fallbackTimer);
+        return;
+      }
+      if (boundaryFired) return; // trust real boundary events once they start firing
+      const elapsed = (performance.now() - startedAt) / 1000;
+      speechCharIndex = Math.max(
+        speechCharIndex,
+        charIndex + Math.floor(elapsed * CHARS_PER_SEC)
+      );
+    }, 200);
+    utter.addEventListener("end", () => clearInterval(fallbackTimer));
+    utter.addEventListener("error", () => clearInterval(fallbackTimer));
+
+    window.speechSynthesis.speak(utter);
+  }
+
+  function speakAssistantReply(text) {
+    if (!ttsSupported) return; // not supported — silently skip
+    speechGen++; // invalidate whatever utterance was previously in flight
+    detachCurrentUtterance();
+    window.speechSynthesis.cancel(); // don't overlap with a previous reply still speaking
+    speechFullText = text;
+    speechCharIndex = 0;
+    speechPaused = false;
+    speakFrom(0);
+  }
+
+  function startReading(msg) {
+    lastReplyPlainText = stripMarkdown(msg.text);
+    speakAssistantReply(lastReplyPlainText);
+  }
+
+  function toggleAssistantSpeech() {
+    if (!ttsSupported) return;
+    if (!speechPaused) {
+      // Estimate progress from elapsed time as a floor — onboundary alone
+      // isn't enough since mobile browsers frequently never fire it.
+      const elapsedSec = (Date.now() - speechStartTime) / 1000;
+      const estimatedIndex = speechStartIndex + Math.floor(elapsedSec * CHARS_PER_SEC);
+      speechCharIndex = Math.max(speechCharIndex, estimatedIndex);
+      speechPaused = true;
+      speechGen++; // invalidate the utterance we're about to cancel
+      detachCurrentUtterance();
+      window.speechSynthesis.cancel(); // instant and reliable, unlike pause()
+      setSpeechToggle(true, true); // must be last — nothing above can override it
+    } else {
+      speechPaused = false;
+      speakFrom(speechCharIndex); // fresh utterance from where we left off
+    }
+  }
+
+  function replayLastAssistantReply() {
+    if (!lastReplyPlainText) return;
+    speakAssistantReply(lastReplyPlainText); // resets all playback state, same as any new reply
+  }
+
+  function stopSpeaking() {
+    speechGen++; // invalidate any utterance still in flight
+    detachCurrentUtterance();
+    if (ttsSupported) window.speechSynthesis.cancel();
+    speechPaused = false;
+    speechFullText = "";
+    speechCharIndex = 0;
+    setSpeechToggle(false);
+    setReplayVisible(false);
+  }
+
+  if (speechToggleBtn) speechToggleBtn.addEventListener("click", toggleAssistantSpeech);
+  if (replayBtn) replayBtn.addEventListener("click", replayLastAssistantReply);
+
+  /* ----- Init ----- */
+  initPreview();
+})();
 
 /* ---------- 4. Admin page ---------- */
 (async function () {

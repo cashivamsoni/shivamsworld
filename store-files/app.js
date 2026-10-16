@@ -95,7 +95,12 @@
     const batch = S.writeBatch(S.db);
     const order = {
       orderId: o.id, name: o.name, phone: o.phone, address: o.address, note: o.note || "",
-      items: o.items.map(function (it) { return { name: it.name, qty: it.qty, price: it.price }; }),
+      items: o.items.map(function (it) {
+        var line = { name: it.name, qty: it.qty, price: it.price };
+        if (it.id) line.id = it.id;
+        if (it.code) line.code = it.code;
+        return line;
+      }),
       subtotal: o.subtotal, deliveryCharge: o.deliveryCharge, discount: o.discount || 0,
       total: o.total, utr: o.utr, status: "pending", createdAt: S.serverTimestamp()
     };
@@ -200,7 +205,7 @@ const money = (n) => "\u20B9" + Number(n || 0).toLocaleString("en-IN");
 
 // Older orders may lack the breakdown fields, so work them out
 function normalize(o) {
-  const items = (o.items || []).map((it) => ({ name: it.name, qty: it.qty, price: it.price }));
+  const items = (o.items || []).map((it) => ({ name: it.name, code: it.code || "", qty: it.qty, price: it.price }));
   const subtotal = o.subtotal !== undefined ? o.subtotal : items.reduce((s, it) => s + it.price * it.qty, 0);
   const discount = o.discount || 0;
   const delivery = o.deliveryCharge !== undefined ? o.deliveryCharge : Math.max(0, (o.total || 0) - subtotal + discount);
@@ -281,7 +286,9 @@ function buildInvoice(o) {
   n.items.forEach((it, i) => {
     const tr = h("tr", "border-bottom:1px solid #eadfff;");
     tr.appendChild(h("td", "padding:11px 10px;vertical-align:top;color:#6b5f80;", String(i + 1)));
-    tr.appendChild(h("td", "padding:11px 10px;vertical-align:top;overflow-wrap:anywhere;", it.name));
+    const nameCell = h("td", "padding:11px 10px;vertical-align:top;overflow-wrap:anywhere;", it.name);
+    if (it.code) nameCell.appendChild(h("div", "font-size:11px;color:#6b5f80;margin-top:2px;", "Product ID: " + it.code));
+    tr.appendChild(nameCell);
     tr.appendChild(h("td", "padding:11px 10px;vertical-align:top;text-align:center;", String(it.qty)));
     tr.appendChild(h("td", "padding:11px 10px;vertical-align:top;text-align:right;", money(it.price)));
     tr.appendChild(h("td", "padding:11px 10px;vertical-align:top;text-align:right;font-weight:600;", money(it.price * it.qty)));
@@ -742,33 +749,148 @@ async function downloadInvoice(order) {
     ]
   };
 
-  /* ---------- Products: edit names, prices, descriptions ----------
-     NOTE: prices below are placeholders. Change them before launch. */
+  /* ---------- Products ----------
+     id      = short name used in links and reviews. Never change it once the product has orders.
+     code    = the product ID shown to customers (SWP-001, ...).
+     price   = selling price. mrp (optional) = the crossed-out price; the "% off" badge is worked out from it.
+     minQty  = minimum order quantity (optional).
+     desc    = one line shown on the product card and under the price in the product window.
+     details = bullet points shown in the product window.
+     When you add a product, also add its id to reviewableProduct() in firestore.rules. */
   var PRODUCTS = [
-    { id: "calligraphy",  name: "Unique Calligraphy Artworks", price: 299,
-      image: "https://i.ytimg.com/vi/oMuXlOXMBoA/oardefault.jpg",
-      desc: "Handmade calligraphy pieces with quotes and designs for your home, office or as a gift." },
-    { id: "sketches",     name: "Pencil Sketches", price: 499,
+    { id: "pencil-portrait-sketches", code: "SWP-001", name: "Pencil Portrait Sketches", price: 499, mrp: 699,
       image: "https://i.ytimg.com/vi/8YbqfxWyotU/oardefault.jpg",
-      desc: "Hand-drawn graphite portraits and character art, made as a keepsake or gift." },
-    { id: "cards",        name: "Cards Handcrafted with Love", price: 149,
-      image: "https://i.ytimg.com/vi/NpWb5ulgXjU/oardefault.jpg",
-      desc: "Greeting cards and explosion box cards for birthdays, anniversaries and special days." },
-    { id: "paracord",     name: "Paracord Bracelets", price: 99,
+      desc: "Hand-drawn graphite or charcoal portraits and character art, made as a keepsake or gift.",
+      details: [
+        "Comes with a minimalist black frame (no glass, but with a transparent sheet).",
+        "Drawn in charcoal or graphite, as per your choice.",
+        "Send your loved one's photo on WhatsApp once the order is placed.",
+        "The sketched face is guaranteed to look like the face in your photo."
+      ] },
+    { id: "paracord-bracelets", code: "SWP-002", name: "Paracord Thread Bracelets", price: 79,
       image: "https://i.ytimg.com/vi/pszu8o-T5G0/oardefault.jpg",
-      desc: "Durable, weather-resistant bracelets knotted by hand in different colours and patterns." },
-    { id: "macrame",      name: "Macrame Keychains", price: 129,
+      desc: "Durable, weather-resistant bracelets knotted by hand in different colours and patterns.",
+      details: [
+        "Available in different patterns and colours.",
+        "Made for both men and women.",
+        "Special heart-themed and couple bracelets are also available.",
+        "Send your wrist size (in cm) on WhatsApp after placing your order."
+      ] },
+    { id: "heart-rose-bouquet", code: "SWP-003", name: "Heart-Shaped Rose Bouquet", price: 289, mrp: 340,
+      image: "https://i.ytimg.com/vi/zOri4qDm2gc/hq720.jpg",
+      desc: "A perfect gift for your Valentine or someone special.",
+      details: [
+        "Handmade, realistic roses on a heart-shaped base.",
+        "Colour can be changed as per your choice.",
+        "Comes covered in a thin plastic sheet, with a hook for safety and accessibility.",
+        "A photo can be added as per your choice."
+      ] },
+    { id: "boomf-bomb-card", code: "SWP-004", name: "Boomf Bomb Card (Pop-up Cubes Card)", price: 499,
+      image: "https://i.ytimg.com/vi/A5AeIf_Qi20/hq720.jpg",
+      desc: "Seven magical cubes that jump out when the card is opened.",
+      details: [
+        "Seven cubes with 4 photos each, so 28 photos are needed in total. Send them on WhatsApp after placing your order.",
+        "A perfect surprise gift for your loved ones.",
+        "One of our most loved surprise gifts."
+      ] },
+    { id: "file-covers", code: "SWP-005", name: "School & College File Covers", price: 249,
+      image: "https://i.ytimg.com/vi/oi7UKiZaArM/hq720.jpg",
+      desc: "Get subject-oriented project file and lab manual covers, designed to help you score full marks in internals.",
+      details: [
+        "Describe your subjects on WhatsApp after placing your order.",
+        "Designs made to help you score full marks in internals.",
+        "Every cover is crafted around the subject's topics and is unique.",
+        "All streams covered: Science, Commerce and Arts."
+      ] },
+    { id: "calligraphy-name-art", code: "SWP-006", name: "Unique Calligraphy Artworks & Name Art", price: 249,
+      image: "https://i.ytimg.com/vi/oMuXlOXMBoA/oardefault.jpg",
+      desc: "Handmade calligraphy pieces with quotes, names and designs for your home, office or as a gift.",
+      details: [
+        "Available in 26 shades.",
+        "Made on 120 gsm A4 paper, unframed.",
+        "Customise it as per your choice on WhatsApp after placing the order here.",
+        "Your name or quote, written in calligraphy.",
+        "Modern bouncy capitals with flourishes; every calligraphy style is available."
+      ] },
+    { id: "explosive-box-card", code: "SWP-007", name: "Explosive Box Card", price: 499, mrp: 555,
+      image: "https://i.ytimg.com/vi/eep1OnLZO1c/hq720.jpg",
+      desc: "Big explosive box cards, perfect for gifting.",
+      details: [
+        "Every size is available.",
+        "Available in vibrant colours and numerous patterns.",
+        "Fully customisable on WhatsApp after placing your order here."
+      ] },
+    { id: "drawings-paintings", code: "SWP-008", name: "Drawings & Paintings", price: 499,
+      image: "https://i.ytimg.com/vi/o2M7g_tuuBQ/hq720.jpg",
+      desc: "Turn any image into a drawing or painting.",
+      details: [
+        "Made on 120 gsm A4 paper, unframed.",
+        "Customise it as per your choice on WhatsApp after placing the order here.",
+        "Your image is turned into a painting."
+      ] },
+    { id: "popup-cards", code: "SWP-009", name: "Simple Pop-up Cards", price: 129, minQty: 2,
+      image: "https://i.ytimg.com/vi/IJcbflm3NgA/hq720.jpg",
+      desc: "Pop-up cards, ideal for giving to kids or as add-ons to your main craft.",
+      details: [
+        "Every size is available.",
+        "Available in vibrant colours and numerous patterns.",
+        "Fully customisable on WhatsApp after placing your order here."
+      ] },
+    { id: "scrapbook-cards", code: "SWP-010", name: "Scrapbook Cards", price: 499,
+      image: "https://i.ytimg.com/vi/Wi9ovOMgglo/hqdefault.jpg",
+      desc: "Multi-page scrapbook cards, perfect for gifting.",
+      details: [
+        "Every size is available.",
+        "Available in vibrant colours and numerous patterns.",
+        "Fully customisable on WhatsApp after placing your order here."
+      ] },
+    { id: "realistic-rose-bouquet", code: "SWP-011", name: "Realistic Rose Bouquet", price: 349,
+      image: "https://i.ytimg.com/vi/CyXEztyJl34/oardefault.jpg",
+      desc: "Realistic ribbon-made rose bouquets for your loved ones.",
+      details: [
+        "Available in red and white.",
+        "Any number of roses can be added.",
+        "Your loved one's name is written on a tag attached to it.",
+        "One of our most loved trending handmade gifts."
+      ] },
+    { id: "light-photo-frame", code: "SWP-012", name: "Light Photo Frame", price: 589,
+      image: "https://i.ytimg.com/vi/SZXeyX7amMU/oardefault.jpg",
+      desc: "A photo frame with golden lighting (electric, not battery-operated).",
+      details: [
+        "Frequently bought by our customers.",
+        "Customise it on WhatsApp after placing the order here.",
+        "Available for individuals, or for couples' weddings and engagements."
+      ] },
+    { id: "dreamcatcher-keyring", code: "SWP-013", name: "Dreamcatcher Keyring", price: 75, minQty: 2,
       image: "https://i.ytimg.com/vi/sAjdy8Xtw70/oardefault.jpg",
-      desc: "Handwoven boho keychains with soft, sturdy cord and neat knotting." },
-    { id: "projectfiles", name: "School and College Project Files", price: 349,
-      image: "https://i.ytimg.com/vi/oi7UKiZaArM/hqdefault.jpg",
-      desc: "Neat, organised project files and practical records with a personal touch." },
-    { id: "diy",          name: "DIY Delights", price: 199,
-      image: "https://i.ytimg.com/vi/fD5gIQP-L1A/oardefault.jpg",
-      desc: "Creative paper craft and DIY pieces from the channel." },
-    { id: "custom",       name: "Customised Orders and Personalised Gifts", price: 499,
-      image: "https://i.ytimg.com/vi/Le0p8AjfK4A/oardefault.jpg",
-      desc: "One-of-a-kind gifts and artworks made around your idea. Share details in the note." }
+      desc: "A beautiful cloudy-sky-themed dreamcatcher, perfect for your special ones.",
+      details: [
+        "One of our most loved trending handmade gifts.",
+        "Handmade with love."
+      ] },
+    { id: "birthday-timeline-card", code: "SWP-014", name: "1.25 Metre Long Special Birthday Timeline Card", price: 449,
+      image: "https://i.ytimg.com/vi/NpWb5ulgXjU/oardefault.jpg",
+      desc: "A perfect gift with lots of photos and love packed into a card.",
+      details: [
+        "About 125 cm long.",
+        "Has 24 photos.",
+        "Send your photos on WhatsApp after placing the order here.",
+        "Available in vibrant colours."
+      ] },
+    { id: "heart-bookmark", code: "SWP-015", name: "Heart-Themed Bookmark", price: 29, minQty: 2,
+      image: "https://i.ytimg.com/vi/cE9YDs3b25g/oar3.jpg",
+      desc: "A perfect add-on for book lovers.",
+      details: [
+        "Available in many vibrant colours.",
+        "Origami-based product."
+      ] },
+    { id: "origami-lotus", code: "SWP-016", name: "Origami Lotus", price: 129,
+      image: "https://i.ytimg.com/vi/u_cvJFR0_aw/hq720.jpg",
+      desc: "Add elegance to your table with this origami lotus.",
+      details: [
+        "Available in pink and red.",
+        "Size can be customised through WhatsApp after placing your order here."
+      ] }
   ];
 
   var CART_KEY = "sw-cart";
@@ -795,6 +917,37 @@ async function downloadInvoice(order) {
     return null;
   }
 
+  function minQtyOf(p) { return (p && p.minQty) || 1; }
+
+  // "Rs 499  Rs 699 (crossed out)  29% off" plus "each, min order 2" where it applies
+  function fillPrice(el, p, withMin) {
+    el.textContent = "";
+    var now = document.createElement("span");
+    now.className = "price-now";
+    now.textContent = money(p.price);
+    el.appendChild(now);
+    if (p.mrp && p.mrp > p.price) {
+      var old = document.createElement("s");
+      old.className = "price-old";
+      old.textContent = money(p.mrp);
+      old.setAttribute("aria-label", "was " + money(p.mrp));
+      var off = document.createElement("span");
+      off.className = "price-off";
+      off.textContent = Math.round((p.mrp - p.price) * 100 / p.mrp) + "% off";
+      el.appendChild(old);
+      el.appendChild(off);
+    }
+    if (withMin && minQtyOf(p) > 1) {
+      var min = document.createElement("span");
+      min.className = "price-min";
+      min.textContent = "each \u00B7 minimum order " + minQtyOf(p);
+      el.appendChild(min);
+    }
+  }
+
+  // "Name (SWP-001)" for order lists, invoices and messages
+  function itemLabel(it) { return it.code ? it.name + " (" + it.code + ")" : it.name; }
+
   /* ---------- Cart state ---------- */
   var cart = {}; // { productId: quantity }
 
@@ -803,7 +956,7 @@ async function downloadInvoice(order) {
       var saved = JSON.parse(storeGet(CART_KEY) || "{}");
       Object.keys(saved).forEach(function (id) {
         var qty = parseInt(saved[id], 10);
-        if (findProduct(id) && qty > 0) cart[id] = Math.min(qty, 99);
+        if (findProduct(id) && qty > 0) cart[id] = Math.min(Math.max(qty, minQtyOf(findProduct(id))), 99);
       });
     } catch (e) { cart = {}; }
   }
@@ -821,15 +974,23 @@ async function downloadInvoice(order) {
   }
 
   function addToCart(id, qty) {
-    cart[id] = Math.min((cart[id] || 0) + (qty || 1), 99);
+    var min = minQtyOf(findProduct(id));
+    var add = qty || 1;
+    if (!cart[id]) add = Math.max(add, min); // the first add always meets the minimum order
+    cart[id] = Math.min((cart[id] || 0) + add, 99);
     saveCart();
     renderCart();
     bumpFab();
-    toast("Added to cart");
+    toast(!qty && min > 1 && cart[id] === min ? "Added " + min + " (minimum order)" : "Added to cart");
   }
 
   function changeQty(id, delta) {
+    var min = minQtyOf(findProduct(id));
     var next = (cart[id] || 0) + delta;
+    if (delta < 0 && next < min && min > 1) {
+      toast("Minimum order is " + min + ". Use Remove to delete it.");
+      return;
+    }
     if (next <= 0) delete cart[id];
     else cart[id] = Math.min(next, 99);
     saveCart();
@@ -850,7 +1011,7 @@ async function downloadInvoice(order) {
   function visibleProducts() {
     var term = searchTerm.trim().toLowerCase();
     var list = PRODUCTS.filter(function (p) {
-      return !term || (p.name + " " + p.desc).toLowerCase().indexOf(term) !== -1;
+      return !term || (p.name + " " + p.desc + " " + p.code).toLowerCase().indexOf(term) !== -1;
     });
     if (sortMode === "low") list.sort(function (x, y) { return x.price - y.price; });
     else if (sortMode === "high") list.sort(function (x, y) { return y.price - x.price; });
@@ -886,6 +1047,7 @@ async function downloadInvoice(order) {
         '<div class="product-body">' +
           '<h2><button type="button" class="product-title-btn"></button></h2>' +
           '<div class="rating-line" hidden></div>' +
+          '<p class="product-code"></p>' +
           '<p class="product-desc"></p>' +
           '<div class="product-foot">' +
             '<span class="product-price"></span>' +
@@ -901,7 +1063,8 @@ async function downloadInvoice(order) {
       card.setAttribute("data-pid", p.id);
       fillRating(card.querySelector(".rating-line"), p.id);
       card.querySelector(".product-desc").textContent = p.desc;
-      card.querySelector(".product-price").textContent = money(p.price);
+      card.querySelector(".product-code").textContent = "Product ID: " + p.code;
+      fillPrice(card.querySelector(".product-price"), p, true);
       // Clicking the picture or the name opens the product
       card.querySelector(".product-img").addEventListener("click", function () { openProduct(p.id); });
       title.addEventListener("click", function () { openProduct(p.id); });
@@ -922,14 +1085,15 @@ async function downloadInvoice(order) {
     if (!p) return;
     if (!pmProduct || pmProduct.id !== p.id) pmReviewsShown = 5;
     pmProduct = p;
-    pmQty = 1;
+    pmQty = minQtyOf(p);
     if ($("productModal").hidden) pmReturnFocus = document.activeElement; // already open when jumping to a recommended product
     $("pmImg").src = p.image;
     $("pmImg").alt = p.name;
     $("pmName").textContent = p.name;
-    $("pmPrice").textContent = money(p.price);
+    $("pmCode").textContent = "Product ID: " + p.code;
+    fillPrice($("pmPrice"), p, true);
     $("pmDesc").textContent = p.desc;
-    $("pmQty").textContent = "1";
+    $("pmQty").textContent = String(pmQty);
     refreshEta();
     renderProductExtras();
     $("productModal").hidden = false;
@@ -1065,7 +1229,7 @@ async function downloadInvoice(order) {
     if (!currentUser) return;
     rtOrder = o;
     $("rtOrderId").textContent = o.id;
-    $("rtItems").textContent = (o.items || []).map(function (it) { return it.name + " \u00D7 " + it.qty; }).join(", ");
+    $("rtItems").textContent = (o.items || []).map(function (it) { return itemLabel(it) + " \u00D7 " + it.qty; }).join(", ");
     $("rtReason").selectedIndex = 0;
     $("rtReason").dispatchEvent(new Event("change")); // refreshes the styled dropdown
     $("rtDetails").value = "";
@@ -1315,7 +1479,7 @@ async function downloadInvoice(order) {
     b.innerHTML = '<img alt="" loading="lazy"><span class="rec-body"><span class="rec-name"></span><span class="rating-line" hidden></span><span class="rec-price"></span></span>';
     b.querySelector("img").src = p.image;
     b.querySelector(".rec-name").textContent = p.name;
-    b.querySelector(".rec-price").textContent = money(p.price);
+    fillPrice(b.querySelector(".rec-price"), p, false);
     fillRating(b.querySelector(".rating-line"), p.id);
     b.addEventListener("click", function () { openProduct(p.id); });
     return b;
@@ -1328,12 +1492,11 @@ async function downloadInvoice(order) {
     fillRating($("pmRating"), p.id);
 
     // Details
-    var facts = [
-      "Handmade to order by Shivam's World.",
-      "Takes about " + CONFIG.productionDays + " days to make before it is delivered.",
-      "Flat " + money(CONFIG.deliveryCharge) + " delivery on every order.",
-      "Want it personalised? Add colour, a name or the occasion in the note at checkout."
-    ].concat(p.details || []);
+    var facts = [];
+    if (minQtyOf(p) > 1) facts.push("Minimum order: " + minQtyOf(p) + " pieces.");
+    facts = facts.concat(p.details || []);
+    facts.push("Made to order: takes about " + CONFIG.productionDays + " days to make before it is delivered.");
+    facts.push("Flat " + money(CONFIG.deliveryCharge) + " delivery on every order.");
     var ul = $("pmDetails");
     ul.innerHTML = "";
     facts.forEach(function (f) {
@@ -1487,7 +1650,7 @@ async function downloadInvoice(order) {
     var seen = {};
     var prods = [];
     (items || []).forEach(function (it) {
-      var p = productByName(it.name);
+      var p = (it.id && findProduct(it.id)) || productByName(it.name);
       if (p && !seen[p.id]) { seen[p.id] = true; prods.push(p); }
     });
     if (!prods.length) return null;
@@ -1540,6 +1703,7 @@ async function downloadInvoice(order) {
         '<img alt="">' +
         '<div>' +
           '<div class="cart-row-name"></div>' +
+          '<div class="cart-row-code"></div>' +
           '<div class="cart-row-price"></div>' +
           '<div class="qty">' +
             '<button type="button" data-act="minus" aria-label="Decrease quantity">&minus;</button>' +
@@ -1555,7 +1719,8 @@ async function downloadInvoice(order) {
       img.src = p.image;
       img.alt = p.name;
       row.querySelector(".cart-row-name").textContent = p.name;
-      row.querySelector(".cart-row-price").textContent = money(p.price) + " each";
+      row.querySelector(".cart-row-code").textContent = p.code;
+      row.querySelector(".cart-row-price").textContent = money(p.price) + " each" + (minQtyOf(p) > 1 ? " \u00B7 minimum order " + minQtyOf(p) : "");
       row.querySelector(".qty span").textContent = cart[id];
       row.querySelector(".cart-row-line").textContent = money(p.price * cart[id]);
       row.querySelector('[data-act="minus"]').addEventListener("click", function () { changeQty(id, -1); });
@@ -1752,7 +1917,7 @@ async function downloadInvoice(order) {
   function proceedToPayment(name, phone, address) {
     var items = Object.keys(cart).map(function (id) {
       var p = findProduct(id);
-      return { name: p.name, qty: cart[id], price: p.price };
+      return { id: p.id, code: p.code, name: p.name, qty: cart[id], price: p.price };
     });
 
     order = {
@@ -1788,7 +1953,7 @@ async function downloadInvoice(order) {
   function buildWhatsAppUrl(utr) {
     var lines = ["*New order " + order.id + "*", "", "Items:"];
     order.items.forEach(function (it, i) {
-      lines.push((i + 1) + ". " + it.name + " x " + it.qty + " = " + money(it.price * it.qty));
+      lines.push((i + 1) + ". " + itemLabel(it) + " x " + it.qty + " = " + money(it.price * it.qty));
     });
     lines.push("",
       "Items subtotal: " + money(order.subtotal),
@@ -2323,7 +2488,7 @@ async function downloadInvoice(order) {
       card.appendChild(meta);
 
       var items = document.createElement("p");
-      items.textContent = (o.items || []).map(function (it) { return it.name + " \u00D7 " + it.qty; }).join(", ");
+      items.textContent = (o.items || []).map(function (it) { return itemLabel(it) + " \u00D7 " + it.qty; }).join(", ");
       card.appendChild(items);
 
       if (o.adminNote) {
@@ -2767,7 +2932,9 @@ async function downloadInvoice(order) {
       if (e.target === $("productModal")) closeProduct();
     });
     $("pmMinus").addEventListener("click", function () {
-      pmQty = Math.max(1, pmQty - 1);
+      var min = minQtyOf(pmProduct);
+      if (pmQty <= min && min > 1) toast("Minimum order is " + min);
+      pmQty = Math.max(min, pmQty - 1);
       $("pmQty").textContent = pmQty;
     });
     $("pmPlus").addEventListener("click", function () {
@@ -3107,7 +3274,7 @@ function orderCard(o) {
   itemsBox.appendChild(el("h3", "", "Items"));
   const ul = el("ul");
   (o.items || []).forEach((it) => {
-    ul.appendChild(el("li", "", `${it.name} \u00D7 ${it.qty} = ${money(it.price * it.qty)}`));
+    ul.appendChild(el("li", "", `${it.name}${it.code ? " (" + it.code + ")" : ""} \u00D7 ${it.qty} = ${money(it.price * it.qty)}`));
   });
   itemsBox.appendChild(ul);
   body.appendChild(itemsBox);

@@ -3122,10 +3122,14 @@ async function downloadInvoice(order) {
   const WELCOME_MSG =
     "Hi! Ask me about the DIYs, calligraphy, sketches, custom orders — or anything else.";
 
+  // Speech-bubble teasers next to the assistant button (store page version)
   const previewMessages = [
-    "Ask about custom orders.",
-    "Ask how to reach Shivam.",
-    "Ask what's on the channel.",
+    "Need help choosing a gift?",
+    "Ask how to customise your order.",
+    "Ask about delivery time.",
+    "Ask about offers and coupons.",
+    "Ask how to track your order.",
+    "Ask about returns and refunds.",
   ];
 
   // Conversation lives in memory only for the current page load — nothing

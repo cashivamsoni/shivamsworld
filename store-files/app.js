@@ -659,6 +659,19 @@ async function downloadInvoice(order) {
     orderPrefix: "SW",
     deliveryCharge: 50, // flat charge added to every order (keep in sync with firestore.rules)
 
+    // ===== ESTIMATED DELIVERY TIME =====
+    // Measured from your production place (behind Babita Classes, Baradevi: 26°26'41.7"N 80°19'30.4"E).
+    productionLocation: { lat: 26.444917, lng: 80.325111 },
+    productionDays: 2,   // days needed to make the order, added to every estimate
+    roadFactor: 1.3,     // straight-line distance x this is roughly the road distance
+    // Extra travel days by road distance. upToKm = this tier covers up to that distance.
+    deliveryTiers: [
+      { upToKm: 8,        minDays: 0, maxDays: 1 },
+      { upToKm: 20,       minDays: 1, maxDays: 1 },
+      { upToKm: 45,       minDays: 1, maxDays: 2 },
+      { upToKm: Infinity, minDays: 2, maxDays: 3 }
+    ],
+
     // ===== COUPON: edit the code text and the discount percentage here =====
     // The discount applies to the items only, never to the delivery charge.
     couponCode: "SHIVAM10",
@@ -671,6 +684,7 @@ async function downloadInvoice(order) {
       "\uD83C\uDF9F\uFE0F Use code {code} for {percent}% off your items (delivery not included)",
       "\uD83D\uDC9C Handmade with love by Shivam's World",
       "\uD83D\uDCCD Pin your exact location so we can find you easily",
+      "\uD83D\uDE9A Add your location to see your estimated delivery time",
       "\uD83D\uDCE6 Track every order live from My orders",
       "\u26A1 Pay easily with any UPI app"
     ]
@@ -860,6 +874,7 @@ async function downloadInvoice(order) {
     $("pmPrice").textContent = money(p.price);
     $("pmDesc").textContent = p.desc;
     $("pmQty").textContent = "1";
+    refreshEta();
     $("productModal").hidden = false;
     document.body.classList.add("store-locked");
     $("pmAdd").focus();
@@ -920,6 +935,7 @@ async function downloadInvoice(order) {
     $("cartDelivery").textContent = money(count ? CONFIG.deliveryCharge : 0);
     $("cartTotal").textContent = money(count ? cartTotal() + CONFIG.deliveryCharge : 0);
     $("checkoutBtn").disabled = count === 0;
+    refreshEta();
     var badge = $("cartBadge");
     badge.textContent = count;
     badge.hidden = count === 0;
@@ -1332,11 +1348,13 @@ async function downloadInvoice(order) {
       picked = { lat: round6(lat), lng: round6(lng) };
       showError(ids.error, "");
       renderStatus(accuracy);
+      if (ids.onChange) ids.onChange();
     }
 
     function clear() {
       picked = null;
       renderStatus();
+      if (ids.onChange) ids.onChange();
     }
 
     function showMap(lat, lng) {
@@ -1409,6 +1427,64 @@ async function downloadInvoice(order) {
     };
   }
 
+  /* ---------- Estimated delivery time (from the production place) ---------- */
+  function distanceKm(a, b) {
+    var R = 6371, rad = Math.PI / 180;
+    var dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
+  function etaDay(daysFromNow) {
+    var d = new Date();
+    d.setDate(d.getDate() + daysFromNow);
+    return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+  }
+
+  // "Sat, 17 Oct to Sun, 18 Oct" for a pinned location, or "" when there is no usable location
+  function etaFor(loc) {
+    if (!loc || typeof loc.lat !== "number" || typeof loc.lng !== "number") return "";
+    var road = distanceKm(CONFIG.productionLocation, loc) * CONFIG.roadFactor;
+    var tier = CONFIG.deliveryTiers[CONFIG.deliveryTiers.length - 1];
+    for (var i = 0; i < CONFIG.deliveryTiers.length; i++) {
+      if (road <= CONFIG.deliveryTiers[i].upToKm) { tier = CONFIG.deliveryTiers[i]; break; }
+    }
+    var from = etaDay(CONFIG.productionDays + tier.minDays);
+    var to = etaDay(CONFIG.productionDays + tier.maxDays);
+    return from === to ? from : from + " to " + to;
+  }
+
+  // The most recently chosen location: checkout pin, account pin, then the saved account location
+  function knownLocation() {
+    return (checkoutLoc && checkoutLoc.get()) || (acctLoc && acctLoc.get()) ||
+      (profile && profile.location && typeof profile.location.lat === "number" ? profile.location : null);
+  }
+
+  var ETA_HINTS = {
+    pmEta: "\uD83D\uDCCD Add your location at checkout to see the estimated delivery time.",
+    cartEta: "\uD83D\uDCCD Add your location at checkout to see the estimated delivery time.",
+    locEta: "\uD83D\uDCCD Add your location above to see the estimated delivery time.",
+    acctEta: "\uD83D\uDCCD Save your location to see the estimated delivery time on every order."
+  };
+
+  // Fills every estimate line on the page: the date range if a location is known, else the hint
+  function refreshEta() {
+    var loc = knownLocation();
+    var when = etaFor(loc);
+    Object.keys(ETA_HINTS).forEach(function (id) {
+      var el = $(id);
+      if (!el) return;
+      if (when) {
+        el.textContent = "\uD83D\uDE9A Estimated delivery: " + when + " (includes " + CONFIG.productionDays + " days to make your order)";
+        el.classList.remove("eta-hint");
+      } else {
+        el.textContent = ETA_HINTS[id];
+        el.classList.add("eta-hint");
+      }
+    });
+  }
+
   /* ---------- Customer account (Google sign-in, required to order) ---------- */
   var currentUser = null; // { uid, name, email } when signed in
   var profile = null;     // saved details from the customer's account
@@ -1452,6 +1528,7 @@ async function downloadInvoice(order) {
     }
     $("cartSignInNote").hidden = !!currentUser;
     renderCheckoutAuth();
+    refreshEta();
   }
 
   function renderCheckoutAuth() {
@@ -1501,6 +1578,7 @@ async function downloadInvoice(order) {
       .then(function (m) { return m.loadProfile(user.uid); })
       .then(function (p) {
         profile = p;
+        refreshEta();
         if (!$("checkoutModal").hidden) prefillFromProfile();
       })
       .catch(function (err) { console.error(err); });
@@ -1533,6 +1611,7 @@ async function downloadInvoice(order) {
       .then(function (m) { return m.saveProfile(currentUser.uid, data); })
       .then(function () {
         profile = { name: data.name, phone: data.phone, address: data.address, location: data.location || null };
+        refreshEta();
         if (!silent) toast("Details saved");
       })
       .catch(function (err) {
@@ -1902,8 +1981,8 @@ async function downloadInvoice(order) {
   /* ---------- Init ---------- */
   function init() {
     loadCart();
-    checkoutLoc = createLocationPicker({ gps: "gpsBtn", choose: "mapBtn", error: "locError", mapBox: "mapBox", map: "map", status: "locStatus" });
-    acctLoc = createLocationPicker({ gps: "acctGpsBtn", choose: "acctMapBtn", error: "acctLocError", mapBox: "acctMapBox", map: "acctMap", status: "acctLocStatus" });
+    checkoutLoc = createLocationPicker({ gps: "gpsBtn", choose: "mapBtn", error: "locError", mapBox: "mapBox", map: "map", status: "locStatus", onChange: refreshEta });
+    acctLoc = createLocationPicker({ gps: "acctGpsBtn", choose: "acctMapBtn", error: "acctLocError", mapBox: "acctMapBox", map: "acctMap", status: "acctLocStatus", onChange: refreshEta });
     if (window.SWUI) {
       window.SWUI.customSelect($("sortSelect"), { label: "Sort by" });
       // every pop-up window (and the cart's backdrop) fades/pops on open and close

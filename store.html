@@ -283,6 +283,53 @@
       </div>
     </div>
 
+    <!-- ===== RETURN OR REPLACE MODAL ===== -->
+    <div id="returnModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="rtTitle" hidden>
+      <div class="checkout-box with-head">
+        <div class="modal-head">
+          <h2 id="rtTitle">Return or replace</h2>
+          <button id="rtClose" class="icon-btn" aria-label="Close return request">&times;</button>
+        </div>
+        <p class="small rt-order">Order <strong id="rtOrderId"></strong></p>
+        <p id="rtItems" class="small rt-items"></p>
+
+        <p class="loc-title">What would you like?</p>
+        <div class="rt-options" role="group" aria-label="Refund or replacement">
+          <button type="button" class="rt-opt" data-type="refund" aria-pressed="true"><i class="fa fa-inr" aria-hidden="true"></i> Refund</button>
+          <button type="button" class="rt-opt" data-type="replacement" aria-pressed="false"><i class="fa fa-refresh" aria-hidden="true"></i> Replacement</button>
+        </div>
+        <p id="rtAmountNote" class="hint"></p>
+
+        <label for="rtReason">Reason for return</label>
+        <select id="rtReason">
+            <option value="">Choose a reason</option>
+            <option value="Product arrived damaged">Product arrived damaged</option>
+            <option value="Received the wrong item">Received the wrong item</option>
+            <option value="Quality is not as expected">Quality is not as expected</option>
+            <option value="Not as described or shown">Not as described or shown</option>
+            <option value="Other">Other</option>
+        </select>
+        <label for="rtDetails">Tell us more (optional)</label>
+        <textarea id="rtDetails" rows="3" maxlength="500" placeholder="What went wrong?"></textarea>
+
+        <div id="rtRefundBox" class="loc-box">
+          <p class="loc-title">Where should we send your refund?</p>
+          <p class="hint">Your bank details are used only to send this refund. Only you and Shivam's World can see them.</p>
+          <label for="rtUpi">UPI ID</label>
+          <input id="rtUpi" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="100" placeholder="name@bank">
+          <label for="rtAccount">Bank account number</label>
+          <input id="rtAccount" type="text" inputmode="numeric" autocomplete="off" maxlength="18">
+          <label for="rtAccount2">Re-enter account number</label>
+          <input id="rtAccount2" type="text" inputmode="numeric" autocomplete="off" maxlength="18">
+          <label for="rtIfsc">IFSC code</label>
+          <input id="rtIfsc" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="11" placeholder="e.g. SBIN0001234">
+        </div>
+
+        <p id="rtError" class="form-error" role="alert" hidden></p>
+        <button id="rtSubmit" class="btn-inline wide" type="button">Send request</button>
+      </div>
+    </div>
+
     <!-- ===== MY ACCOUNT MODAL ===== -->
     <div id="accountModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="acctTitle" hidden>
       <div class="checkout-box with-head">

@@ -206,26 +206,77 @@
       </div>
     </div>
 
-    <!-- ===== PRODUCT DETAILS MODAL ===== -->
+    <!-- ===== PRODUCT DETAILS MODAL (fixed header, scrolling body) ===== -->
     <div id="productModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="pmName" hidden>
-      <div class="checkout-box product-box">
-        <button id="pmClose" class="icon-btn" aria-label="Close product details">&times;</button>
-        <div class="pm-img"><img id="pmImg" alt=""></div>
-        <div class="pm-info">
+      <div class="checkout-box with-head product-box">
+        <div class="modal-head">
           <h2 id="pmName"></h2>
-          <p id="pmPrice" class="product-price"></p>
-          <p id="pmDesc" class="pm-desc"></p>
-          <p id="pmEta" class="eta eta-hint"></p>
-          <div class="pm-qty-row">
-            <span id="pmQtyLabel">Quantity</span>
-            <div class="qty" role="group" aria-labelledby="pmQtyLabel">
-              <button id="pmMinus" type="button" aria-label="Decrease quantity">&minus;</button>
-              <span id="pmQty" aria-live="polite">1</span>
-              <button id="pmPlus" type="button" aria-label="Increase quantity">+</button>
-            </div>
-          </div>
-          <button id="pmAdd" class="btn-inline wide" type="button">Add to cart</button>
+          <button id="pmClose" class="icon-btn" aria-label="Close product details">&times;</button>
         </div>
+
+        <div class="pm-top">
+          <div class="pm-img"><img id="pmImg" alt=""></div>
+          <div class="pm-info">
+            <div id="pmRating" class="rating-line" hidden></div>
+            <p id="pmPrice" class="product-price"></p>
+            <p id="pmDesc" class="pm-desc"></p>
+            <p id="pmEta" class="eta eta-hint"></p>
+            <div class="pm-qty-row">
+              <span id="pmQtyLabel">Quantity</span>
+              <div class="qty" role="group" aria-labelledby="pmQtyLabel">
+                <button id="pmMinus" type="button" aria-label="Decrease quantity">&minus;</button>
+                <span id="pmQty" aria-live="polite">1</span>
+                <button id="pmPlus" type="button" aria-label="Increase quantity">+</button>
+              </div>
+            </div>
+            <button id="pmAdd" class="btn-inline wide" type="button">Add to cart</button>
+          </div>
+        </div>
+
+        <section class="pm-section" aria-labelledby="pmDetailsH">
+          <h3 id="pmDetailsH">Product details</h3>
+          <ul id="pmDetails" class="pm-details"></ul>
+        </section>
+
+        <section class="pm-section" aria-labelledby="pmReviewsH">
+          <h3 id="pmReviewsH">Customer reviews</h3>
+          <div id="pmReviewSummary" class="rv-summary"></div>
+          <div id="pmReviews"></div>
+          <button id="pmMoreReviews" class="link-btn" type="button" hidden>Show more reviews</button>
+        </section>
+
+        <section id="pmRecsSec" class="pm-section" aria-labelledby="pmRecsH">
+          <h3 id="pmRecsH">You may also like</h3>
+          <div id="pmRecs" class="pm-recs"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ===== WRITE A REVIEW MODAL ===== -->
+    <div id="reviewModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="rvTitle" hidden>
+      <div class="checkout-box with-head">
+        <div class="modal-head">
+          <h2 id="rvTitle">Rate your order</h2>
+          <button id="rvClose" class="icon-btn" aria-label="Close review">&times;</button>
+        </div>
+        <div class="rv-product">
+          <img id="rvImg" alt="">
+          <strong id="rvName"></strong>
+        </div>
+        <p id="rvStarsLabel" class="loc-title">Your rating</p>
+        <div id="rvStars" class="rv-star-row" role="group" aria-labelledby="rvStarsLabel">
+          <button type="button" class="rv-star" data-v="1" aria-label="1 star"><i class="fa fa-star-o" aria-hidden="true"></i></button>
+          <button type="button" class="rv-star" data-v="2" aria-label="2 stars"><i class="fa fa-star-o" aria-hidden="true"></i></button>
+          <button type="button" class="rv-star" data-v="3" aria-label="3 stars"><i class="fa fa-star-o" aria-hidden="true"></i></button>
+          <button type="button" class="rv-star" data-v="4" aria-label="4 stars"><i class="fa fa-star-o" aria-hidden="true"></i></button>
+          <button type="button" class="rv-star" data-v="5" aria-label="5 stars"><i class="fa fa-star-o" aria-hidden="true"></i></button>
+        </div>
+        <p id="rvRatingText" class="hint" aria-live="polite">Tap a star to rate</p>
+        <label for="rvText">Your review (optional)</label>
+        <textarea id="rvText" rows="4" maxlength="500" placeholder="What did you like? How was the quality?"></textarea>
+        <p id="rvError" class="form-error" role="alert" hidden></p>
+        <button id="rvSubmit" class="btn-inline wide" type="button">Submit review</button>
+        <p class="hint">Your first name and the initial of your last name are shown with the review.</p>
       </div>
     </div>
 

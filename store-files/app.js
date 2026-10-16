@@ -1080,6 +1080,16 @@ async function downloadInvoice(order) {
   var pmQty = 1;
   var pmReturnFocus = null;
 
+  // "2 x Rs 499 = Rs 998" under the quantity, and the total on the Add to cart button
+  function updatePmTotal() {
+    if (!pmProduct) return;
+    var total = pmProduct.price * pmQty;
+    var line = $("pmTotal");
+    line.hidden = pmQty <= 1;
+    line.textContent = pmQty + " \u00D7 " + money(pmProduct.price) + " = " + money(total);
+    $("pmAdd").textContent = pmQty > 1 ? "Add to cart \u00B7 " + money(total) : "Add to cart";
+  }
+
   function openProduct(id) {
     var p = findProduct(id);
     if (!p) return;
@@ -1094,6 +1104,7 @@ async function downloadInvoice(order) {
     fillPrice($("pmPrice"), p, true);
     $("pmDesc").textContent = p.desc;
     $("pmQty").textContent = String(pmQty);
+    updatePmTotal();
     refreshEta();
     renderProductExtras();
     $("productModal").hidden = false;
@@ -2936,10 +2947,12 @@ async function downloadInvoice(order) {
       if (pmQty <= min && min > 1) toast("Minimum order is " + min);
       pmQty = Math.max(min, pmQty - 1);
       $("pmQty").textContent = pmQty;
+      updatePmTotal();
     });
     $("pmPlus").addEventListener("click", function () {
       pmQty = Math.min(99, pmQty + 1);
       $("pmQty").textContent = pmQty;
+      updatePmTotal();
     });
     $("pmAdd").addEventListener("click", function () {
       if (!pmProduct) return;

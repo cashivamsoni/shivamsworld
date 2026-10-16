@@ -127,6 +127,31 @@
     });
   }
 
+  // ----- returns and replacements (readable only by the customer who asked and by you) -----
+  // One request per order (the document ID is the order ID). Bank details are only sent for refunds.
+  function saveReturn(r) {
+    const data = {
+      orderId: r.orderId, uid: r.uid, name: r.name, phone: r.phone, type: r.type,
+      reason: r.reason, details: r.details || "", refundAmount: r.refundAmount,
+      status: "requested", createdAt: S.serverTimestamp()
+    };
+    if (r.type === "refund") { data.upi = r.upi; data.account = r.account; data.ifsc = r.ifsc; }
+    return S.setDoc(S.doc(S.db, "returns", r.orderId), data);
+  }
+
+  function watchMyReturns(uid, onData, onError) {
+    const q = S.query(S.collection(S.db, "returns"), S.where("uid", "==", uid));
+    return S.onSnapshot(q, function (snap) {
+      onData(snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }));
+    }, onError);
+  }
+
+  function watchReturn(orderId, onData, onError) {
+    return S.onSnapshot(S.doc(S.db, "returns", orderId), function (snap) {
+      onData(snap.exists() ? Object.assign({ id: snap.id }, snap.data()) : null);
+    }, onError);
+  }
+
   // True if this coupon was already used by the customer with this fingerprint.
   async function isCouponUsed(key) {
     const snap = await S.getDoc(S.doc(S.db, "couponUses", key));
@@ -337,7 +362,8 @@ async function downloadInvoice(order) {
     watchAuth: watchAuth, signInGoogle: signInGoogle, signOutUser: signOutUser,
     loadProfile: loadProfile, saveProfile: saveProfile, watchMyOrders: watchMyOrders, watchOrder: watchOrder,
     saveOrder: saveOrder, isCouponUsed: isCouponUsed, downloadInvoice: downloadInvoice,
-    loadReviews: loadReviews, saveReview: saveReview
+    loadReviews: loadReviews, saveReview: saveReview,
+    saveReturn: saveReturn, watchMyReturns: watchMyReturns, watchReturn: watchReturn
   };
   window.SWData = SWData;
 })();
@@ -680,6 +706,11 @@ async function downloadInvoice(order) {
     // Measured from your production place (behind Babita Classes, Baradevi: 26°26'41.7"N 80°19'30.4"E).
     productionLocation: { lat: 26.444917, lng: 80.325111 },
     productionDays: 2,   // days needed to make the order, added to every estimate
+
+    // ===== RETURNS =====
+    // A delivered order can be returned (refund or replacement) for this many days after delivery.
+    // Refund = items total after any coupon discount. The delivery charge is never refunded.
+    returnWindowDays: 7,
     roadFactor: 1.3,     // straight-line distance x this is roughly the road distance
     // Extra travel days by road distance. upToKm = this tier covers up to that distance.
     deliveryTiers: [
@@ -951,6 +982,247 @@ async function downloadInvoice(order) {
     }
   }
 
+
+  /* ---------- Returns and replacements ---------- */
+  var myReturns = {}; // orderId -> the customer's return request
+  var RETURN_REASONS = [
+    "Product arrived damaged", "Received the wrong item", "Quality is not as expected",
+    "Not as described or shown", "Other"
+  ];
+  var RETURN_LABELS = {
+    requested: "Return requested", approved: "Return approved", received: "Item received back",
+    refunded: "Refund sent", replaced: "Replacement sent", rejected: "Return not approved"
+  };
+  var rtOrder = null, rtType = "refund", rtBusy = false, rtReturnFocus = null;
+  var trackKind = "order"; // what the tracking window is showing: "order" or "return"
+
+  function returnSteps(type) {
+    return [
+      { key: "requested", label: "Return requested" },
+      { key: "approved", label: "Return approved" },
+      { key: "received", label: "Item received back" },
+      type === "replacement" ? { key: "replaced", label: "Replacement sent" } : { key: "refunded", label: "Refund sent" }
+    ];
+  }
+
+  // Items total after any coupon. The delivery charge is not included.
+  function netRefund(o) { return Math.max(0, Number(o.subtotal || 0) - Number(o.discount || 0)); }
+
+  function inReturnWindow(o) {
+    var t = o.updatedAt && o.updatedAt.toMillis ? o.updatedAt.toMillis() : (o.createdAt && o.createdAt.toMillis ? o.createdAt.toMillis() : Date.now());
+    return Date.now() - t <= CONFIG.returnWindowDays * 86400000;
+  }
+
+  // Under a delivered order in My orders: ask for a return, or follow the one already made
+  function returnPrompt(o) {
+    var r = myReturns[o.id];
+    var wrap = document.createElement("div");
+    wrap.className = "review-prompt";
+    var q = document.createElement("p");
+    q.className = "review-q";
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "loc-btn";
+    if (r) {
+      q.textContent = (r.type === "replacement" ? "Replacement" : "Refund") + " request: " + (RETURN_LABELS[r.status] || RETURN_LABELS.requested);
+      b.innerHTML = '<i class="fa fa-undo" aria-hidden="true"></i> Track return';
+      b.addEventListener("click", function () { closeAccount(); openReturnTrack(o.id); });
+    } else if (inReturnWindow(o)) {
+      q.textContent = "Not happy with your order?";
+      b.innerHTML = '<i class="fa fa-undo" aria-hidden="true"></i> Return or replace';
+      b.addEventListener("click", function () { openReturn(o); });
+    } else {
+      q.textContent = "The " + CONFIG.returnWindowDays + "-day return period for this order has ended.";
+      wrap.appendChild(q);
+      return wrap;
+    }
+    wrap.appendChild(q);
+    var row = document.createElement("div");
+    row.className = "acct-order-actions";
+    row.appendChild(b);
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  function setReturnType(t) {
+    rtType = t;
+    var btns = document.querySelectorAll("#returnModal .rt-opt");
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].setAttribute("aria-pressed", String(btns[i].getAttribute("data-type") === t));
+    }
+    $("rtRefundBox").hidden = t !== "refund";
+    $("rtAmountNote").textContent = t === "refund"
+      ? "You will get " + money(netRefund(rtOrder)) + " back: your items total after any coupon. The delivery charge is not refunded."
+      : "We will make and send you a replacement at no extra cost.";
+    showError("rtError", "");
+  }
+
+  function openReturn(o) {
+    if (!currentUser) return;
+    rtOrder = o;
+    $("rtOrderId").textContent = o.id;
+    $("rtItems").textContent = (o.items || []).map(function (it) { return it.name + " \u00D7 " + it.qty; }).join(", ");
+    $("rtReason").value = "";
+    $("rtDetails").value = "";
+    ["rtUpi", "rtAccount", "rtAccount2", "rtIfsc"].forEach(function (id) { $(id).value = ""; });
+    setReturnType("refund");
+    rtReturnFocus = document.activeElement;
+    $("returnModal").hidden = false;
+    document.body.classList.add("store-locked");
+    $("rtReason").focus();
+  }
+
+  function closeReturn() {
+    if ($("returnModal").hidden) return;
+    $("returnModal").hidden = true;
+    var stillOpen = ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal"].some(function (id) { return !$(id).hidden; }) ||
+      $("cartDrawer").classList.contains("open");
+    if (!stillOpen) document.body.classList.remove("store-locked");
+    if (rtReturnFocus && rtReturnFocus.focus) rtReturnFocus.focus();
+  }
+
+  function submitReturn() {
+    if (rtBusy || !rtOrder || !currentUser) return;
+    var reason = $("rtReason").value;
+    var details = $("rtDetails").value.trim().slice(0, 500);
+    if (!reason) { showError("rtError", "Please choose a reason for the return."); return; }
+    if (reason === "Other" && details.length < 5) { showError("rtError", "Please tell us a little more about the problem."); return; }
+    var r = {
+      orderId: rtOrder.id, uid: currentUser.uid, name: rtOrder.name, phone: rtOrder.phone, type: rtType,
+      reason: reason, details: details, refundAmount: rtType === "refund" ? netRefund(rtOrder) : 0
+    };
+    if (rtType === "refund") {
+      var upi = $("rtUpi").value.trim();
+      var acc = $("rtAccount").value.replace(/\s+/g, "");
+      var acc2 = $("rtAccount2").value.replace(/\s+/g, "");
+      var ifsc = $("rtIfsc").value.trim().toUpperCase();
+      if (!/^[A-Za-z0-9._-]{2,64}@[A-Za-z0-9]{2,64}$/.test(upi)) { showError("rtError", "Enter a valid UPI ID, like name@bank."); return; }
+      if (!/^[0-9]{9,18}$/.test(acc)) { showError("rtError", "Enter your bank account number (9 to 18 digits)."); return; }
+      if (acc !== acc2) { showError("rtError", "The two account numbers don't match."); return; }
+      if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc)) { showError("rtError", "Enter a valid IFSC code, like SBIN0001234."); return; }
+      r.upi = upi; r.account = acc; r.ifsc = ifsc;
+    }
+    var btn = $("rtSubmit");
+    var label = btn.textContent;
+    rtBusy = true;
+    btn.disabled = true;
+    btn.textContent = "Sending\u2026";
+    showError("rtError", "");
+    window.SWData.module().then(function (m) { return m.saveReturn(r); }).then(function () {
+      myReturns[r.orderId] = { id: r.orderId, orderId: r.orderId, type: r.type, reason: r.reason, refundAmount: r.refundAmount, status: "requested" };
+      closeReturn();
+      toast("Return request sent");
+      if (myOrdersList && !$("accountModal").hidden) renderMyOrders(myOrdersList);
+    }).catch(function (err) {
+      console.error(err);
+      showError("rtError", "Couldn't send your request. Please try again. (A return can be made once, only for a delivered order.)");
+    }).then(function () {
+      rtBusy = false;
+      btn.disabled = false;
+      btn.textContent = label;
+    });
+  }
+
+  // Return tracking uses the same window as order tracking
+  function renderReturnTrack(orderId, r) {
+    var box = $("trackResult");
+    box.innerHTML = "";
+    var head = document.createElement("h3");
+    head.textContent = "Return for order " + orderId;
+    box.appendChild(head);
+    var updatedText = (r.updatedAt && r.updatedAt.toDate)
+      ? "Updated " + r.updatedAt.toDate().toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })
+      : "";
+
+    var sum = document.createElement("p");
+    sum.className = "track-note";
+    sum.textContent = (r.type === "replacement" ? "Replacement" : "Refund of " + money(r.refundAmount)) + " \u00B7 Reason: " + (r.reason || "");
+    box.appendChild(sum);
+
+    if (r.status === "rejected") {
+      var msg = document.createElement("p");
+      msg.className = "track-msg error";
+      msg.textContent = "This return was not approved. Message us on WhatsApp if you have any questions.";
+      box.appendChild(msg);
+    } else {
+      var steps = returnSteps(r.type);
+      var idx = 0;
+      steps.forEach(function (s, i) { if (s.key === r.status) idx = i; });
+      var ol = document.createElement("ol");
+      ol.className = "track-steps";
+      steps.forEach(function (s, i) {
+        var li = document.createElement("li");
+        li.className = "track-step" + (i < idx ? " done" : (i === idx ? " current" : ""));
+        if (i === idx) li.setAttribute("aria-current", "step");
+        var mark = document.createElement("span");
+        mark.className = "mark";
+        mark.setAttribute("aria-hidden", "true");
+        if (i <= idx) {
+          var tick = document.createElement("i");
+          tick.className = "fa fa-check";
+          tick.setAttribute("aria-hidden", "true");
+          mark.appendChild(tick);
+        }
+        var label = document.createElement("span");
+        label.className = "label";
+        var title = document.createElement("span");
+        title.textContent = s.label;
+        label.appendChild(title);
+        if (i === idx && updatedText) {
+          var when = document.createElement("span");
+          when.className = "step-time";
+          when.textContent = updatedText;
+          label.appendChild(when);
+        }
+        li.appendChild(mark);
+        li.appendChild(label);
+        ol.appendChild(li);
+      });
+      box.appendChild(ol);
+    }
+    if (r.adminNote) {
+      var note = document.createElement("p");
+      note.className = "track-note";
+      var strong = document.createElement("strong");
+      strong.textContent = "Note from us: ";
+      note.appendChild(strong);
+      note.appendChild(document.createTextNode(r.adminNote));
+      box.appendChild(note);
+    }
+    if (r.status === "rejected" && updatedText) {
+      var upd = document.createElement("p");
+      upd.className = "track-updated";
+      upd.textContent = updatedText;
+      box.appendChild(upd);
+    }
+  }
+
+  function openReturnTrack(orderId) {
+    if (!currentUser) return;
+    trackKind = "return";
+    lastTrack = null;
+    trackReturnFocus = document.activeElement;
+    $("trackTitle").textContent = "Return tracking";
+    $("trackModal").hidden = false;
+    document.body.classList.add("store-locked");
+    showTrackMessage("Checking\u2026", false);
+    var token = ++trackToken;
+    var failed = function (err) {
+      if (token !== trackToken) return;
+      console.error(err);
+      showTrackMessage("We couldn't open this return request.", true);
+    };
+    accountModule().then(function (m) {
+      var stop = m.watchReturn(orderId, function (r) {
+        if (token !== trackToken) return;
+        if (!r) { failed(new Error("return not found")); return; }
+        myReturns[orderId] = r;
+        renderReturnTrack(orderId, r);
+      }, failed);
+      if (token === trackToken && !$("trackModal").hidden) trackStop = stop; else stop();
+    }).catch(failed);
+  }
+
   /* ---------- Reviews and ratings ---------- */
   var reviews = [];          // every review, loaded once from Firestore
   var reviewStats = {};      // productId -> { count, sum, avg, stars: [0, n1..n5], list: [...] }
@@ -1013,7 +1285,7 @@ async function downloadInvoice(order) {
     for (var i = 0; i < cards.length; i++) fillRating(cards[i].querySelector(".rating-line"), cards[i].getAttribute("data-pid"));
     if (!$("productModal").hidden) renderProductExtras();
     if (!$("accountModal").hidden && myOrdersList) renderMyOrders(myOrdersList);
-    if (!$("trackModal").hidden && lastTrack) renderTrackResult(lastTrack.id, lastTrack.data);
+    if (!$("trackModal").hidden && trackKind === "order" && lastTrack) renderTrackResult(lastTrack.id, lastTrack.data);
   }
 
   // Loads all reviews once (and again later if the first try failed)
@@ -1167,7 +1439,7 @@ async function downloadInvoice(order) {
   function closeReview() {
     if ($("reviewModal").hidden) return;
     $("reviewModal").hidden = true;
-    var stillOpen = ["checkoutModal", "accountModal", "trackModal", "productModal"].some(function (id) { return !$(id).hidden; }) ||
+    var stillOpen = ["checkoutModal", "accountModal", "trackModal", "productModal", "returnModal"].some(function (id) { return !$(id).hidden; }) ||
       $("cartDrawer").classList.contains("open");
     if (!stillOpen) document.body.classList.remove("store-locked");
     if (rvReturnFocus && rvReturnFocus.focus) rvReturnFocus.focus();
@@ -1922,9 +2194,11 @@ async function downloadInvoice(order) {
     if (!user) {
       currentUser = null;
       profile = null;
+      myReturns = {};
       renderAccountButton();
       if (!$("checkoutModal").hidden) { closeCheckout(); toast("Please sign in to place your order"); }
       if (!$("reviewModal").hidden) closeReview();
+      if (!$("returnModal").hidden) closeReturn();
       if (!$("accountModal").hidden) closeAccount();
       if (!$("trackModal").hidden) closeTrack();
       if (pendingTrack) toast("Sign in with Google to see your order status");
@@ -2073,6 +2347,7 @@ async function downloadInvoice(order) {
       if (o.status === "delivered") {
         var rp = reviewPrompt(o.id, o.items);
         if (rp) card.appendChild(rp);
+        card.appendChild(returnPrompt(o));
       }
       box.appendChild(card);
     });
@@ -2083,10 +2358,16 @@ async function downloadInvoice(order) {
     var token = ++ordersToken;
     $("acctOrders").textContent = "Loading your orders\u2026";
     accountModule().then(function (m) {
-      var stop = m.watchMyOrders(currentUser.uid, renderMyOrders, function (err) {
+      var stopOrdersNow = m.watchMyOrders(currentUser.uid, renderMyOrders, function (err) {
         console.error(err);
         $("acctOrders").textContent = "Couldn't load your orders right now. Please try again later.";
       });
+      var stopReturnsNow = m.watchMyReturns(currentUser.uid, function (list) {
+        myReturns = {};
+        list.forEach(function (r) { myReturns[r.orderId || r.id] = r; });
+        if (!$("accountModal").hidden && myOrdersList) renderMyOrders(myOrdersList);
+      }, function (err) { console.error("Returns could not load:", err); });
+      var stop = function () { stopOrdersNow(); stopReturnsNow(); };
       if (token === ordersToken && !$("accountModal").hidden) stopOrders = stop; else stop();
     }).catch(function (err) {
       console.error(err);
@@ -2252,6 +2533,8 @@ async function downloadInvoice(order) {
       signIn(); // onAuthChange reopens this order once signed in
       return;
     }
+    trackKind = "order";
+    $("trackTitle").textContent = "Order tracking";
     trackReturnFocus = document.activeElement;
     $("trackModal").hidden = false;
     document.body.classList.add("store-locked");
@@ -2365,7 +2648,7 @@ async function downloadInvoice(order) {
     if (window.SWUI) {
       window.SWUI.customSelect($("sortSelect"), { label: "Sort by" });
       // every pop-up window (and the cart's backdrop) fades/pops on open and close
-      ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal", "cartOverlay"].forEach(function (id) {
+      ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal", "returnModal", "cartOverlay"].forEach(function (id) {
         window.SWUI.animateModal($(id));
       });
     }
@@ -2461,6 +2744,17 @@ async function downloadInvoice(order) {
       showError("rvError", "");
     });
     $("rvSubmit").addEventListener("click", submitReview);
+    // return window
+    $("rtClose").addEventListener("click", closeReturn);
+    $("returnModal").addEventListener("click", function (e) { if (e.target === $("returnModal")) closeReturn(); });
+    $("rtSubmit").addEventListener("click", submitReturn);
+    $("returnModal").querySelector(".rt-options").addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest("button[data-type]") : null;
+      if (b) setReturnType(b.getAttribute("data-type"));
+    });
+    $("rtAccount").addEventListener("input", function () { this.value = this.value.replace(/\D/g, "").slice(0, 18); });
+    $("rtAccount2").addEventListener("input", function () { this.value = this.value.replace(/\D/g, "").slice(0, 18); });
+    $("rtIfsc").addEventListener("input", function () { this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11); });
     // ratings load quietly after the page is ready; the store works without them
     setTimeout(function () { ensureReviews().catch(function () {}); }, 1200);
     $("productModal").addEventListener("click", function (e) {
@@ -2507,7 +2801,8 @@ async function downloadInvoice(order) {
 
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
-      if (!$("reviewModal").hidden) closeReview();
+      if (!$("returnModal").hidden) closeReturn();
+      else if (!$("reviewModal").hidden) closeReview();
       else if (!$("checkoutModal").hidden) closeCheckout();
       else if (!$("trackModal").hidden) closeTrack();
       else if (!$("accountModal").hidden) closeAccount();
@@ -2536,6 +2831,25 @@ let auth, db, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, 
 
 const ADMIN_EMAIL = "babitavrm60@gmail.com";
 const THEME_KEY = "sw-theme";
+
+// Return requests (refund or replacement). The last "done" step depends on the type of request.
+const RETURN_STATUSES = [
+  { key: "requested", label: "Return requested" },
+  { key: "approved",  label: "Return approved" },
+  { key: "received",  label: "Item received back" },
+  { key: "refunded",  label: "Refund sent" },
+  { key: "replaced",  label: "Replacement sent" },
+  { key: "rejected",  label: "Return not approved" }
+];
+function returnStatusesFor(type) {
+  return RETURN_STATUSES.filter((s) => s.key !== (type === "replacement" ? "refunded" : "replaced"));
+}
+function retKey(r) {
+  return RETURN_STATUSES.some((s) => s.key === r.status) ? r.status : "requested";
+}
+function retLabel(key) {
+  return RETURN_STATUSES.find((s) => s.key === key).label;
+}
 
 const STATUSES = [
   { key: "pending",   label: "Pending verification" },
@@ -2614,6 +2928,13 @@ function applyTheme(theme) {
 let orders = [];
 let activeFilter = "all";
 let unsubscribe = null;
+let view = "orders";          // "orders" or "returns"
+let returns = [];
+let retFilter = "all";
+let returnsUnsub = null;
+let ordersErr = "";
+let returnsErr = "";
+const retDrafts = {};         // unsaved edits per return request
 let searchCursor = -1;       // which search result Enter last jumped to
 const openIds = new Set(); // which cards are expanded
 const drafts = {};         // unsaved edits per order, kept across live updates
@@ -2642,7 +2963,41 @@ function waLink(o, text) {
   return `https://wa.me/91${o.phone}?text=${encodeURIComponent(text)}`;
 }
 
+function returnMessage(r, key, note) {
+  const first = (r.name || "there").split(" ")[0];
+  const id = r.orderId || r.id;
+  const refund = r.type !== "replacement";
+  const lines = {
+    requested: `Hi ${first}, we received your ${refund ? "refund" : "replacement"} request for order ${id}. We'll check it and update you soon.`,
+    approved:  `Hi ${first}, your ${refund ? "refund" : "replacement"} request for order ${id} is approved.`,
+    received:  `Hi ${first}, we have received the item back for order ${id}.`,
+    refunded:  `Hi ${first}, your refund of ${money(r.refundAmount)} for order ${id} has been sent to your account.`,
+    replaced:  `Hi ${first}, your replacement for order ${id} has been sent.`,
+    rejected:  `Hi ${first}, we're sorry, your return request for order ${id} could not be approved. Please message us if you have questions.`
+  };
+  let text = lines[key];
+  if (note) text += `\n${note}`;
+  return text;
+}
+
 /* ---------- Actions ---------- */
+async function saveReturn(r, btn) {
+  const d = retDrafts[r.id] || {};
+  btn.disabled = true;
+  try {
+    const status = d.status !== undefined ? d.status : retKey(r);
+    const adminNote = d.note !== undefined ? d.note : (r.adminNote || "");
+    await updateDoc(doc(db, "returns", r.id), { status, adminNote, updatedAt: serverTimestamp() });
+    delete retDrafts[r.id];
+    toast("Saved");
+  } catch (err) {
+    console.error(err);
+    toast("Could not save. Check your connection and try again.");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function saveOrder(o, btn) {
   const d = drafts[o.id] || {};
   btn.disabled = true;
@@ -2857,7 +3212,200 @@ function orderCard(o) {
   return card;
 }
 
+function renderTabs() {
+  const open = returns.filter((r) => retKey(r) === "requested").length;
+  const box = $("viewTabs");
+  box.replaceChildren();
+  [{ key: "orders", label: `Orders (${orders.length})` },
+   { key: "returns", label: open ? `Returns (${returns.length}, ${open} new)` : `Returns (${returns.length})` }].forEach((t) => {
+    const b = el("button", "filter-btn", t.label);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(view === t.key));
+    b.addEventListener("click", () => {
+      if (view === t.key) return;
+      view = t.key;
+      searchCursor = -1;
+      render();
+    });
+    box.appendChild(b);
+  });
+}
+
+function renderReturnFilters() {
+  const counts = { all: returns.length };
+  RETURN_STATUSES.forEach((s) => { counts[s.key] = 0; });
+  returns.forEach((r) => { counts[retKey(r)] += 1; });
+  const box = $("filters");
+  box.replaceChildren();
+  [{ key: "all", label: "All" }, ...RETURN_STATUSES].forEach((s) => {
+    const b = el("button", "filter-btn", `${s.label} (${counts[s.key]})`);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(retFilter === s.key));
+    b.addEventListener("click", () => {
+      retFilter = (retFilter === s.key && s.key !== "all") ? "all" : s.key;
+      searchCursor = -1;
+      render();
+    });
+    box.appendChild(b);
+  });
+}
+
+function returnCard(r) {
+  const key = retKey(r);
+  const draft = retDrafts[r.id] || {};
+  const openKey = "ret-" + r.id;
+  const refund = r.type !== "replacement";
+
+  const card = el("details", "order-card");
+  card.open = openIds.has(openKey);
+  card.addEventListener("toggle", () => {
+    if (card.open) openIds.add(openKey); else openIds.delete(openKey);
+  });
+
+  const sum = el("summary");
+  const left = el("div");
+  const idLine = el("div", "o-id", r.orderId || r.id);
+  idLine.appendChild(el("span", `pill pill-${key}`, retLabel(key)));
+  left.appendChild(idLine);
+  left.appendChild(el("div", "o-meta", `${refund ? "Refund" : "Replacement"} \u00B7 ${r.name || "Unknown"}`));
+  const right = el("div");
+  right.appendChild(el("div", "o-total", refund ? money(r.refundAmount) : "Replace"));
+  right.appendChild(el("div", "o-date", formatDate(r.createdAt)));
+  sum.append(left, right);
+  card.appendChild(sum);
+
+  const body = el("div", "order-body");
+
+  const why = el("div");
+  why.appendChild(el("h3", "", "Reason"));
+  why.appendChild(el("p", "o-text", r.reason || ""));
+  if (r.details) {
+    why.appendChild(el("h3", "", "Customer's details"));
+    why.appendChild(el("p", "o-text", r.details));
+  }
+  body.appendChild(why);
+
+  const cust = el("div");
+  cust.appendChild(el("h3", "", "Customer"));
+  cust.appendChild(el("p", "o-text", `${r.name || ""}\n${r.phone || ""}`));
+  body.appendChild(cust);
+
+  const actions = el("div", "o-actions");
+  if (refund) {
+    const pay = el("div");
+    pay.appendChild(el("h3", "", "Refund to send"));
+    pay.appendChild(el("p", "o-text",
+      `Amount: ${money(r.refundAmount)} (items after coupon, delivery charge not refunded)\nUPI ID: ${r.upi || ""}\nBank account: ${r.account || ""}\nIFSC: ${r.ifsc || ""}`));
+    body.appendChild(pay);
+    const copyUpi = el("button", "mini-btn", "Copy UPI ID");
+    copyUpi.type = "button";
+    copyUpi.addEventListener("click", () => copyText(r.upi || ""));
+    const copyAcc = el("button", "mini-btn", "Copy account no.");
+    copyAcc.type = "button";
+    copyAcc.addEventListener("click", () => copyText(r.account || ""));
+    const copyIfsc = el("button", "mini-btn", "Copy IFSC");
+    copyIfsc.type = "button";
+    copyIfsc.addEventListener("click", () => copyText(r.ifsc || ""));
+    const upiPay = el("a", "mini-btn", "Pay in UPI app");
+    upiPay.href = `upi://pay?pa=${encodeURIComponent(r.upi || "")}&pn=${encodeURIComponent(r.name || "Customer")}&am=${Number(r.refundAmount || 0)}&cu=INR&tn=${encodeURIComponent("Refund for " + (r.orderId || r.id))}`;
+    actions.append(upiPay, copyUpi, copyAcc, copyIfsc);
+  }
+  const call = el("a", "mini-btn", "Call");
+  call.href = `tel:+91${r.phone}`;
+  const chat = el("a", "mini-btn", "WhatsApp customer");
+  chat.href = `https://wa.me/91${r.phone}`;
+  chat.target = "_blank";
+  chat.rel = "noopener";
+  actions.append(call, chat);
+  body.appendChild(actions);
+
+  const controls = el("div", "o-controls");
+  const selId = `rstatus-${r.id}`;
+  const noteId = `rnote-${r.id}`;
+  const selLabel = el("label", "", "Return status");
+  selLabel.htmlFor = selId;
+  const select = el("select");
+  select.id = selId;
+  returnStatusesFor(r.type).forEach((s) => {
+    const opt = el("option", "", s.label);
+    opt.value = s.key;
+    select.appendChild(opt);
+  });
+  select.value = draft.status !== undefined ? draft.status : key;
+  select.addEventListener("change", () => {
+    retDrafts[r.id] = Object.assign(retDrafts[r.id] || {}, { status: select.value });
+  });
+  const noteLabel = el("label", "", "Note shown to the customer under their return");
+  noteLabel.htmlFor = noteId;
+  const note = el("input");
+  note.id = noteId;
+  note.type = "text";
+  note.maxLength = 300;
+  note.value = draft.note !== undefined ? draft.note : (r.adminNote || "");
+  note.addEventListener("input", () => {
+    retDrafts[r.id] = Object.assign(retDrafts[r.id] || {}, { note: note.value });
+  });
+  const statusField = window.SWUI ? window.SWUI.customSelect(select, { label: "Return status" }) : select;
+  controls.append(selLabel, statusField, noteLabel, note);
+
+  const saveRow = el("div", "o-save-row");
+  const save = el("button", "btn-inline", "Save changes");
+  save.type = "button";
+  save.addEventListener("click", () => saveReturn(r, save));
+  const notify = el("button", "mini-btn", "Message status on WhatsApp");
+  notify.type = "button";
+  notify.addEventListener("click", () => {
+    window.open(waLink(r, returnMessage(r, select.value, note.value.trim())), "_blank", "noopener");
+  });
+  saveRow.append(save, notify);
+  controls.appendChild(saveRow);
+  body.appendChild(controls);
+  card.appendChild(body);
+  return card;
+}
+
+function renderReturns() {
+  renderReturnFilters();
+  const term = $("searchInput").value.trim().toLowerCase();
+  const shown = returns.filter((r) => {
+    if (retFilter !== "all" && retKey(r) !== retFilter) return false;
+    if (!term) return true;
+    return [r.orderId, r.id, r.name, r.phone, r.reason].join(" ").toLowerCase().includes(term);
+  });
+  $("ordersList").replaceChildren(...shown.map(returnCard));
+
+  const hint = $("searchHint");
+  if (term) {
+    hint.textContent = shown.length
+      ? `${shown.length} result${shown.length === 1 ? "" : "s"}. Press Enter to jump to ${shown.length === 1 ? "it" : "each one"}.`
+      : "No return requests match your search.";
+  } else {
+    hint.textContent = "";
+  }
+  const empty = $("emptyMsg");
+  if (!shown.length) {
+    empty.textContent = returns.length
+      ? "No return requests match this filter."
+      : "No return requests yet. They appear here when a customer asks for a return or replacement.";
+    empty.hidden = false;
+  } else {
+    empty.hidden = true;
+  }
+}
+
+// One place decides which load error is shown, so switching tabs never hides a real problem
+function syncLoadError() {
+  const msg = view === "returns" ? returnsErr : ordersErr;
+  showError("loadError", msg);
+}
+
 function render() {
+  renderTabs();
+  if (view === "returns") renderReturns(); else renderOrders();
+  syncLoadError();
+}
+
+function renderOrders() {
   renderFilters();
 
   const term = $("searchInput").value.trim().toLowerCase();
@@ -2936,21 +3484,41 @@ function startListening() {
   unsubscribe = onSnapshot(
     q,
     (snap) => {
-      showError("loadError", "");
+      ordersErr = "";
       orders = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
       render();
     },
     (err) => {
       console.error(err);
-      showError("loadError", "Could not load orders (" + err.code + "). Check that the Firestore rules are published.");
+      ordersErr = "Could not load orders (" + err.code + "). Check that the Firestore rules are published.";
+      syncLoadError();
     }
   );
+  if (!returnsUnsub) {
+    const rq = query(collection(db, "returns"), orderBy("createdAt", "desc"));
+    returnsUnsub = onSnapshot(
+      rq,
+      (snap) => {
+        returnsErr = "";
+        returns = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+        render();
+      },
+      (err) => {
+        console.error(err);
+        returnsErr = "Could not load returns (" + err.code + "). Publish the latest Firestore rules.";
+        syncLoadError();
+      }
+    );
+  }
 }
 
 function stopListening() {
   if (unsubscribe) unsubscribe();
   unsubscribe = null;
+  if (returnsUnsub) returnsUnsub();
+  returnsUnsub = null;
   orders = [];
+  returns = [];
 }
 
 /* ---------- Auth ---------- */

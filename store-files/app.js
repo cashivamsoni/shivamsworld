@@ -1065,9 +1065,14 @@ async function downloadInvoice(order) {
       card.querySelector(".product-desc").textContent = p.desc;
       card.querySelector(".product-code").textContent = "Product ID: " + p.code;
       fillPrice(card.querySelector(".product-price"), p, true);
-      // Clicking the picture or the name opens the product
-      card.querySelector(".product-img").addEventListener("click", function () { openProduct(p.id); });
-      title.addEventListener("click", function () { openProduct(p.id); });
+      // Clicking anywhere on the card opens the product, except the Add to cart button.
+      // (The name stays a real button so keyboard users can open it too; its click reaches the card.)
+      card.addEventListener("click", function (e) {
+        if (e.target.closest && e.target.closest(".add-btn")) return;
+        var picked = window.getSelection ? String(window.getSelection()) : "";
+        if (picked) return; // the person was selecting text, not tapping the card
+        openProduct(p.id);
+      });
       var btn = card.querySelector(".add-btn");
       btn.setAttribute("aria-label", "Add " + p.name + " to cart");
       btn.addEventListener("click", function () { addToCart(p.id); });

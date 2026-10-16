@@ -1298,3 +1298,9 @@ html.theme-fade *::after {
 @media (prefers-reduced-motion: reduce) {
   .product-card.pulse { animation: none; outline: 3px solid var(--primary); outline-offset: 2px; }
 }
+
+/* ---------- Estimated delivery time line ---------- */
+.eta { margin: 10px 0 0; font-size: 14px; font-weight: 600; color: var(--primary); text-align: left; line-height: 1.4; }
+.eta.eta-hint { font-size: 13px; font-weight: 500; color: #555; }
+[data-theme="dark"] .eta { color: #c9a3ff; }
+[data-theme="dark"] .eta.eta-hint { color: #b9b9c6; }

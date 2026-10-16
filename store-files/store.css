@@ -1347,3 +1347,6 @@ html.theme-fade *::after {
 [data-theme="dark"] .rv-bar .track { background: rgba(160,110,255,0.25); }
 [data-theme="dark"] .rv-star { color: #6b4d9e; }
 [data-theme="dark"] .rv-star.on { color: #f5a623; }
+
+/* The review window opens on top of My account, order tracking and the product window */
+#reviewModal { z-index: 350; }

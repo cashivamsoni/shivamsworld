@@ -1374,3 +1374,16 @@ html.theme-fade *::after {
 .pill-rejected { background: #ffe0e0; color: #8a1c1c; }
 [data-theme="dark"] .rt-opt { background: #2d0057; color: #e6d9ff; border-color: rgba(160,110,255,0.5); }
 [data-theme="dark"] .rt-opt[aria-pressed="true"] { color: #fff; background: linear-gradient(135deg, #7a00ff, #5a00c8); }
+
+/* ---------- Offers, minimum order, product ID ---------- */
+.product-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.price-old { font-size: 14px; font-weight: 500; color: #777; text-decoration: line-through; }
+.price-off { font-size: 12px; font-weight: 700; color: #14602b; background: #d9f6e1; padding: 2px 8px; border-radius: 99px; }
+.price-min { flex-basis: 100%; font-size: 12px; font-weight: 500; color: #666; }
+.product-code { margin: 0; font-size: 12px; font-weight: 500; color: #777; letter-spacing: 0.3px; }
+.rec-price .price-old { font-size: 12px; }
+.rec-price .price-off { font-size: 11px; padding: 1px 6px; }
+.cart-row-code { font-size: 12px; color: #777; }
+.pm-info .product-code { margin-top: 2px; }
+[data-theme="dark"] .price-old, [data-theme="dark"] .price-min, [data-theme="dark"] .product-code, [data-theme="dark"] .cart-row-code { color: #b9a6dd; }
+[data-theme="dark"] .price-off { color: #b6f0c6; background: rgba(60,180,100,0.2); }

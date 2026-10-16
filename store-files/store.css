@@ -1350,3 +1350,6 @@ html.theme-fade *::after {
 
 /* The review window opens on top of My account, order tracking and the product window */
 #reviewModal { z-index: 350; }
+
+/* Share + close buttons side by side in the product window header */
+.head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }

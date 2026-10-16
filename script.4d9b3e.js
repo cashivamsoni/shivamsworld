@@ -236,12 +236,12 @@
   const topBtn = document.getElementById("topBtn");
   if (!topBtn) return;
 
-  window.addEventListener("scroll", function () {
-    topBtn.style.display =
-      document.body.scrollTop > 120 || document.documentElement.scrollTop > 120
-        ? "flex"
-        : "none";
-  });
+  // The "show" class (not display:none) lets the button fade and slide in and out
+  function updateTopBtn() {
+    topBtn.classList.toggle("show", document.body.scrollTop > 120 || document.documentElement.scrollTop > 120);
+  }
+  window.addEventListener("scroll", updateTopBtn);
+  updateTopBtn(); // the page may already be scrolled when it loads
 
   topBtn.addEventListener("click", function () {
     window.scrollTo({ top: 0, behavior: "smooth" });

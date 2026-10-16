@@ -46,7 +46,7 @@
           app: app, db: fs.getFirestore(app), auth: au.getAuth(app),
           doc: fs.doc, setDoc: fs.setDoc, getDoc: fs.getDoc, updateDoc: fs.updateDoc, deleteDoc: fs.deleteDoc,
           writeBatch: fs.writeBatch, collection: fs.collection, query: fs.query, where: fs.where,
-          orderBy: fs.orderBy, onSnapshot: fs.onSnapshot, serverTimestamp: fs.serverTimestamp,
+          orderBy: fs.orderBy, onSnapshot: fs.onSnapshot, serverTimestamp: fs.serverTimestamp, getDocs: fs.getDocs,
           GoogleAuthProvider: au.GoogleAuthProvider, signInWithPopup: au.signInWithPopup,
           signOut: au.signOut, onAuthStateChanged: au.onAuthStateChanged
         };
@@ -109,6 +109,22 @@
       batch.set(S.doc(S.db, "couponUses", o.couponKey), { code: o.couponCode, orderId: o.id, usedAt: S.serverTimestamp() });
     }
     return batch.commit();
+  }
+
+  // ----- product reviews (public to read; only a customer with a delivered order can write) -----
+  async function loadReviews() {
+    const snap = await S.getDocs(S.collection(S.db, "reviews"));
+    return snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+  }
+
+  // One review per order and product. `exists` means the customer is editing their own review.
+  function saveReview(r) {
+    const ref = S.doc(S.db, "reviews", r.orderId + "_" + r.productId);
+    if (r.exists) return S.updateDoc(ref, { rating: r.rating, text: r.text, updatedAt: S.serverTimestamp() });
+    return S.setDoc(ref, {
+      productId: r.productId, orderId: r.orderId, uid: r.uid, name: r.name,
+      rating: r.rating, text: r.text, createdAt: S.serverTimestamp()
+    });
   }
 
   // True if this coupon was already used by the customer with this fingerprint.
@@ -320,7 +336,8 @@ async function downloadInvoice(order) {
     module: function () { return sdk().then(function () { return SWData; }); },
     watchAuth: watchAuth, signInGoogle: signInGoogle, signOutUser: signOutUser,
     loadProfile: loadProfile, saveProfile: saveProfile, watchMyOrders: watchMyOrders, watchOrder: watchOrder,
-    saveOrder: saveOrder, isCouponUsed: isCouponUsed, downloadInvoice: downloadInvoice
+    saveOrder: saveOrder, isCouponUsed: isCouponUsed, downloadInvoice: downloadInvoice,
+    loadReviews: loadReviews, saveReview: saveReview
   };
   window.SWData = SWData;
 })();
@@ -833,6 +850,7 @@ async function downloadInvoice(order) {
         '<div class="product-img"><img loading="lazy" alt=""></div>' +
         '<div class="product-body">' +
           '<h2><button type="button" class="product-title-btn"></button></h2>' +
+          '<div class="rating-line" hidden></div>' +
           '<p class="product-desc"></p>' +
           '<div class="product-foot">' +
             '<span class="product-price"></span>' +
@@ -845,6 +863,8 @@ async function downloadInvoice(order) {
       var title = card.querySelector(".product-title-btn");
       title.textContent = p.name;
       title.setAttribute("aria-label", "View details: " + p.name);
+      card.setAttribute("data-pid", p.id);
+      fillRating(card.querySelector(".rating-line"), p.id);
       card.querySelector(".product-desc").textContent = p.desc;
       card.querySelector(".product-price").textContent = money(p.price);
       // Clicking the picture or the name opens the product
@@ -865,9 +885,10 @@ async function downloadInvoice(order) {
   function openProduct(id) {
     var p = findProduct(id);
     if (!p) return;
+    if (!pmProduct || pmProduct.id !== p.id) pmReviewsShown = 5;
     pmProduct = p;
     pmQty = 1;
-    pmReturnFocus = document.activeElement;
+    if ($("productModal").hidden) pmReturnFocus = document.activeElement; // already open when jumping to a recommended product
     $("pmImg").src = p.image;
     $("pmImg").alt = p.name;
     $("pmName").textContent = p.name;
@@ -875,9 +896,298 @@ async function downloadInvoice(order) {
     $("pmDesc").textContent = p.desc;
     $("pmQty").textContent = "1";
     refreshEta();
+    renderProductExtras();
     $("productModal").hidden = false;
     document.body.classList.add("store-locked");
-    $("pmAdd").focus();
+    document.querySelector("#productModal .checkout-box").scrollTop = 0;
+    $("pmAdd").focus({ preventScroll: true });
+    ensureReviews().catch(function () { /* the product still opens without reviews */ });
+  }
+
+
+  /* ---------- Reviews and ratings ---------- */
+  var reviews = [];          // every review, loaded once from Firestore
+  var reviewStats = {};      // productId -> { count, sum, avg, stars: [0, n1..n5], list: [...] }
+  var reviewsPromise = null;
+  var pmReviewsShown = 5;
+
+  function productByName(name) {
+    for (var i = 0; i < PRODUCTS.length; i++) if (PRODUCTS[i].name === name) return PRODUCTS[i];
+    return null;
+  }
+
+  function tsMs(t) { return t && t.toMillis ? t.toMillis() : Date.now(); }
+
+  function starsHtml(avg) {
+    var h = '<span class="stars" aria-hidden="true">';
+    for (var i = 1; i <= 5; i++) {
+      h += '<i class="fa ' + (avg >= i ? "fa-star" : (avg >= i - 0.5 ? "fa-star-half-o" : "fa-star-o")) + '"></i>';
+    }
+    return h + "</span>";
+  }
+
+  // "★★★★☆ 4.5 (12)" for a product, hidden until it has at least one review
+  function fillRating(el, pid) {
+    var st = reviewStats[pid];
+    if (!st) { el.hidden = true; el.innerHTML = ""; el.removeAttribute("aria-label"); return; }
+    el.hidden = false;
+    el.setAttribute("aria-label", "Rated " + st.avg.toFixed(1) + " out of 5 from " + st.count + (st.count === 1 ? " review" : " reviews"));
+    el.innerHTML = starsHtml(st.avg) + '<span class="rating-num">' + st.avg.toFixed(1) + '</span><span class="rating-count">(' + st.count + ')</span>';
+  }
+
+  function buildReviewStats() {
+    reviewStats = {};
+    reviews.forEach(function (r) {
+      var rating = Number(r.rating);
+      if (!r.productId || !(rating >= 1 && rating <= 5)) return;
+      var st = reviewStats[r.productId] || (reviewStats[r.productId] = { count: 0, sum: 0, avg: 0, stars: [0, 0, 0, 0, 0, 0], list: [] });
+      st.count++;
+      st.sum += rating;
+      st.stars[Math.round(rating)]++;
+      st.list.push(r);
+    });
+    Object.keys(reviewStats).forEach(function (pid) {
+      var st = reviewStats[pid];
+      st.avg = st.sum / st.count;
+      st.list.sort(function (a, b) { return tsMs(b.createdAt) - tsMs(a.createdAt); });
+    });
+  }
+
+  function myReview(orderId, pid) {
+    for (var i = 0; i < reviews.length; i++) {
+      if (reviews[i].orderId === orderId && reviews[i].productId === pid && currentUser && reviews[i].uid === currentUser.uid) return reviews[i];
+    }
+    return null;
+  }
+
+  // Redraws every place that shows ratings after the reviews change
+  function onReviewsChanged() {
+    buildReviewStats();
+    var cards = document.querySelectorAll(".product-card[data-pid]");
+    for (var i = 0; i < cards.length; i++) fillRating(cards[i].querySelector(".rating-line"), cards[i].getAttribute("data-pid"));
+    if (!$("productModal").hidden) renderProductExtras();
+    if (!$("accountModal").hidden && myOrdersList) renderMyOrders(myOrdersList);
+    if (!$("trackModal").hidden && lastTrack) renderTrackResult(lastTrack.id, lastTrack.data);
+  }
+
+  // Loads all reviews once (and again later if the first try failed)
+  function ensureReviews() {
+    if (!reviewsPromise) {
+      reviewsPromise = window.SWData.module()
+        .then(function (m) { return m.loadReviews(); })
+        .then(function (list) { reviews = list; onReviewsChanged(); return list; })
+        .catch(function (err) { reviewsPromise = null; console.error("Reviews could not load:", err); throw err; });
+    }
+    return reviewsPromise;
+  }
+
+  function reviewDate(t) {
+    return new Date(tsMs(t)).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function makeProductRec(p) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "rec-card";
+    b.innerHTML = '<img alt="" loading="lazy"><span class="rec-body"><span class="rec-name"></span><span class="rating-line" hidden></span><span class="rec-price"></span></span>';
+    b.querySelector("img").src = p.image;
+    b.querySelector(".rec-name").textContent = p.name;
+    b.querySelector(".rec-price").textContent = money(p.price);
+    fillRating(b.querySelector(".rating-line"), p.id);
+    b.addEventListener("click", function () { openProduct(p.id); });
+    return b;
+  }
+
+  // Details, reviews and recommended products at the bottom of the product window
+  function renderProductExtras() {
+    var p = pmProduct;
+    if (!p) return;
+    fillRating($("pmRating"), p.id);
+
+    // Details
+    var facts = [
+      "Handmade to order by Shivam's World.",
+      "Takes about " + CONFIG.productionDays + " days to make before it is delivered.",
+      "Flat " + money(CONFIG.deliveryCharge) + " delivery on every order.",
+      "Want it personalised? Add colour, a name or the occasion in the note at checkout."
+    ].concat(p.details || []);
+    var ul = $("pmDetails");
+    ul.innerHTML = "";
+    facts.forEach(function (f) {
+      var li = document.createElement("li");
+      li.textContent = f;
+      ul.appendChild(li);
+    });
+
+    // Reviews
+    var st = reviewStats[p.id];
+    var sum = $("pmReviewSummary");
+    var list = $("pmReviews");
+    var more = $("pmMoreReviews");
+    sum.innerHTML = "";
+    list.innerHTML = "";
+    more.hidden = true;
+    if (!st) {
+      var none = document.createElement("p");
+      none.className = "rv-empty";
+      none.textContent = "No reviews yet. After an order is delivered, customers can rate it from My orders.";
+      list.appendChild(none);
+    } else {
+      var big = document.createElement("div");
+      big.className = "rv-big";
+      big.innerHTML = "<strong>" + st.avg.toFixed(1) + "</strong>" + starsHtml(st.avg) + '<span class="rating-count">' + st.count + (st.count === 1 ? " review" : " reviews") + "</span>";
+      var bars = document.createElement("div");
+      bars.className = "rv-bars";
+      for (var n = 5; n >= 1; n--) {
+        var row = document.createElement("div");
+        row.className = "rv-bar";
+        row.innerHTML = "<span>" + n + '</span><span class="track"><span class="fill"></span></span><span></span>';
+        row.querySelector(".fill").style.width = Math.round(st.stars[n] * 100 / st.count) + "%";
+        row.lastChild.textContent = st.stars[n];
+        bars.appendChild(row);
+      }
+      sum.appendChild(big);
+      sum.appendChild(bars);
+      st.list.slice(0, pmReviewsShown).forEach(function (r) {
+        var item = document.createElement("div");
+        item.className = "rv-item";
+        item.innerHTML = '<div class="rv-head">' + starsHtml(Number(r.rating)) + '<span class="rv-name"></span><span class="rv-date"></span></div>';
+        item.querySelector(".rv-name").textContent = r.name || "Customer";
+        item.querySelector(".rv-date").textContent = reviewDate(r.createdAt);
+        if (r.text) {
+          var t = document.createElement("p");
+          t.className = "rv-text";
+          t.textContent = r.text;
+          item.appendChild(t);
+        }
+        list.appendChild(item);
+      });
+      if (st.list.length > pmReviewsShown) {
+        more.hidden = false;
+        more.textContent = "Show more reviews (" + (st.list.length - pmReviewsShown) + " more)";
+      }
+    }
+
+    // Recommended products: best rated first, then the rest in store order
+    var recs = PRODUCTS.filter(function (x) { return x.id !== p.id; });
+    recs.sort(function (a, b) {
+      var ra = reviewStats[a.id] ? reviewStats[a.id].avg : 0;
+      var rb = reviewStats[b.id] ? reviewStats[b.id].avg : 0;
+      return rb - ra;
+    });
+    var box = $("pmRecs");
+    box.innerHTML = "";
+    recs.slice(0, 4).forEach(function (x) { box.appendChild(makeProductRec(x)); });
+    $("pmRecsSec").hidden = !recs.length;
+  }
+
+  /* ----- Writing a review (only for items in a delivered order) ----- */
+  var rvOrder = null, rvProduct = null, rvRating = 0, rvReturnFocus = null, rvBusy = false;
+
+  function paintReviewStars() {
+    var btns = $("rvStars").querySelectorAll("button");
+    for (var i = 0; i < btns.length; i++) {
+      var on = i + 1 <= rvRating;
+      btns[i].classList.toggle("on", on);
+      btns[i].setAttribute("aria-pressed", String(i + 1 === rvRating));
+      btns[i].firstChild.className = "fa " + (on ? "fa-star" : "fa-star-o");
+    }
+    $("rvRatingText").textContent = rvRating ? ["", "Poor", "Fair", "Good", "Very good", "Excellent"][rvRating] : "Tap a star to rate";
+  }
+
+  function openReview(orderId, pid) {
+    var p = findProduct(pid);
+    if (!p || !currentUser) return;
+    ensureReviews().then(function () {
+      var mine = myReview(orderId, pid);
+      rvOrder = orderId;
+      rvProduct = p;
+      rvRating = mine ? Number(mine.rating) : 0;
+      $("rvImg").src = p.image;
+      $("rvName").textContent = p.name;
+      $("rvText").value = mine ? (mine.text || "") : "";
+      $("rvSubmit").textContent = mine ? "Update review" : "Submit review";
+      showError("rvError", "");
+      paintReviewStars();
+      rvReturnFocus = document.activeElement;
+      $("reviewModal").hidden = false;
+      document.body.classList.add("store-locked");
+      $("rvStars").querySelector("button").focus();
+    }).catch(function () {
+      toast("Reviews aren't available right now. Please try again later.");
+    });
+  }
+
+  function closeReview() {
+    if ($("reviewModal").hidden) return;
+    $("reviewModal").hidden = true;
+    var stillOpen = ["checkoutModal", "accountModal", "trackModal", "productModal"].some(function (id) { return !$(id).hidden; }) ||
+      $("cartDrawer").classList.contains("open");
+    if (!stillOpen) document.body.classList.remove("store-locked");
+    if (rvReturnFocus && rvReturnFocus.focus) rvReturnFocus.focus();
+  }
+
+  function submitReview() {
+    if (rvBusy || !rvProduct || !currentUser) return;
+    if (!rvRating) { showError("rvError", "Please tap a star to rate this product."); return; }
+    var text = $("rvText").value.trim().slice(0, 500);
+    var full = ((profile && profile.name) || currentUser.name || "").trim().split(/\s+/);
+    var name = full[0] ? (full.length > 1 ? full[0] + " " + full[full.length - 1].charAt(0).toUpperCase() + "." : full[0]) : "Customer";
+    var mine = myReview(rvOrder, rvProduct.id);
+    var btn = $("rvSubmit");
+    var label = btn.textContent;
+    rvBusy = true;
+    btn.disabled = true;
+    btn.textContent = "Saving\u2026";
+    showError("rvError", "");
+    window.SWData.module().then(function (m) {
+      return m.saveReview({ orderId: rvOrder, productId: rvProduct.id, uid: currentUser.uid, name: name, rating: rvRating, text: text, exists: !!mine });
+    }).then(function () {
+      var now = { toMillis: function () { return Date.now(); } };
+      if (mine) { mine.rating = rvRating; mine.text = text; }
+      else reviews.push({ id: rvOrder + "_" + rvProduct.id, productId: rvProduct.id, orderId: rvOrder, uid: currentUser.uid, name: name, rating: rvRating, text: text, createdAt: now });
+      toast(mine ? "Review updated" : "Thanks for your review!");
+      closeReview();
+      onReviewsChanged();
+    }).catch(function (err) {
+      console.error(err);
+      showError("rvError", "Couldn't save your review. Please try again. (Reviews open once the order is marked delivered.)");
+    }).then(function () {
+      rvBusy = false;
+      btn.disabled = false;
+      btn.textContent = label;
+    });
+  }
+
+  // "Rate & review" buttons for the items of a delivered order (null if nothing can be reviewed)
+  function reviewPrompt(orderId, items) {
+    var seen = {};
+    var prods = [];
+    (items || []).forEach(function (it) {
+      var p = productByName(it.name);
+      if (p && !seen[p.id]) { seen[p.id] = true; prods.push(p); }
+    });
+    if (!prods.length) return null;
+    var wrap = document.createElement("div");
+    wrap.className = "review-prompt";
+    var q = document.createElement("p");
+    q.className = "review-q";
+    q.textContent = "Delivered. How was it? Share your review:";
+    wrap.appendChild(q);
+    var row = document.createElement("div");
+    row.className = "acct-order-actions";
+    prods.forEach(function (p) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "loc-btn";
+      var mine = myReview(orderId, p.id);
+      b.innerHTML = '<i class="fa ' + (mine ? "fa-pencil" : "fa-star") + '" aria-hidden="true"></i> ';
+      b.appendChild(document.createTextNode((mine ? "Edit your review: " : "Rate & review: ") + p.name));
+      b.addEventListener("click", function () { openReview(orderId, p.id); });
+      row.appendChild(b);
+    });
+    wrap.appendChild(row);
+    return wrap;
   }
 
   function closeProduct() {
@@ -1567,6 +1877,7 @@ async function downloadInvoice(order) {
       profile = null;
       renderAccountButton();
       if (!$("checkoutModal").hidden) { closeCheckout(); toast("Please sign in to place your order"); }
+      if (!$("reviewModal").hidden) closeReview();
       if (!$("accountModal").hidden) closeAccount();
       if (!$("trackModal").hidden) closeTrack();
       if (pendingTrack) toast("Sign in with Google to see your order status");
@@ -1642,7 +1953,11 @@ async function downloadInvoice(order) {
     if (head && head.scrollIntoView) head.scrollIntoView({ block: "start" });
   }
 
+  var myOrdersList = null; // last list shown, so it can be redrawn when reviews change
+  var lastTrack = null;    // last tracked order, same reason
+
   function renderMyOrders(list) {
+    myOrdersList = list;
     var doScroll = scrollOrdersOnLoad; // set when opened from "Track order" / My orders links
     scrollOrdersOnLoad = false;
     var box = $("acctOrders");
@@ -1708,6 +2023,10 @@ async function downloadInvoice(order) {
         actions.appendChild(inv);
       }
       card.appendChild(actions);
+      if (o.status === "delivered") {
+        var rp = reviewPrompt(o.id, o.items);
+        if (rp) card.appendChild(rp);
+      }
       box.appendChild(card);
     });
     if (doScroll) scrollToOrdersHead(); // the list has its full height now
@@ -1806,6 +2125,7 @@ async function downloadInvoice(order) {
   }
 
   function renderTrackResult(id, data) {
+    lastTrack = { id: id, data: data };
     var box = $("trackResult");
     box.innerHTML = "";
     var head = document.createElement("h3");
@@ -1866,6 +2186,10 @@ async function downloadInvoice(order) {
       note.appendChild(document.createTextNode(data.note));
       box.appendChild(note);
     }
+    if (data.status === "delivered") {
+      var rp = reviewPrompt(id, data.items);
+      if (rp) box.appendChild(rp);
+    }
     if (data.status === "cancelled" && updatedText) {
       var upd = document.createElement("p");
       upd.className = "track-updated";
@@ -1895,7 +2219,7 @@ async function downloadInvoice(order) {
       var stop = m.watchOrder(id, function (o) {
         if (token !== trackToken) return;
         if (!o) { failed(new Error("order not found")); return; }
-        renderTrackResult(id, { status: o.status, note: o.adminNote, updatedAt: o.updatedAt || o.createdAt });
+        renderTrackResult(id, { status: o.status, note: o.adminNote, items: o.items, updatedAt: o.updatedAt || o.createdAt });
       }, failed);
       if (token === trackToken && !$("trackModal").hidden) trackStop = stop; else stop();
     }).catch(failed);
@@ -1986,7 +2310,7 @@ async function downloadInvoice(order) {
     if (window.SWUI) {
       window.SWUI.customSelect($("sortSelect"), { label: "Sort by" });
       // every pop-up window (and the cart's backdrop) fades/pops on open and close
-      ["checkoutModal", "accountModal", "trackModal", "productModal", "cartOverlay"].forEach(function (id) {
+      ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal", "cartOverlay"].forEach(function (id) {
         window.SWUI.animateModal($(id));
       });
     }
@@ -2068,6 +2392,20 @@ async function downloadInvoice(order) {
     });
     $("sortSelect").addEventListener("change", function () { sortMode = this.value; renderProducts(); });
     $("pmClose").addEventListener("click", closeProduct);
+    $("pmMoreReviews").addEventListener("click", function () { pmReviewsShown += 5; renderProductExtras(); });
+    // review window
+    $("rvClose").addEventListener("click", closeReview);
+    $("reviewModal").addEventListener("click", function (e) { if (e.target === $("reviewModal")) closeReview(); });
+    $("rvStars").addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest("button[data-v]") : null;
+      if (!b) return;
+      rvRating = Number(b.getAttribute("data-v"));
+      paintReviewStars();
+      showError("rvError", "");
+    });
+    $("rvSubmit").addEventListener("click", submitReview);
+    // ratings load quietly after the page is ready; the store works without them
+    setTimeout(function () { ensureReviews().catch(function () {}); }, 1200);
     $("productModal").addEventListener("click", function (e) {
       if (e.target === $("productModal")) closeProduct();
     });
@@ -2112,7 +2450,8 @@ async function downloadInvoice(order) {
 
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
-      if (!$("checkoutModal").hidden) closeCheckout();
+      if (!$("reviewModal").hidden) closeReview();
+      else if (!$("checkoutModal").hidden) closeCheckout();
       else if (!$("trackModal").hidden) closeTrack();
       else if (!$("accountModal").hidden) closeAccount();
       else if (!$("productModal").hidden) closeProduct();

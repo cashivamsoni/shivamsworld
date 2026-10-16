@@ -39,7 +39,6 @@
         <span id="acctAvatar" class="acct-avatar"><i class="fa fa-user-o" aria-hidden="true"></i></span>
         <span id="acctText" class="acct-text">Sign in</span>
       </button>
-      <button id="storeThemeToggle" class="store-theme-btn" aria-label="Switch to dark mode" title="Switch to dark mode"><i class="fa fa-moon-o" aria-hidden="true"></i></button>
       <button id="menuToggle" aria-label="Menu" aria-expanded="false">
         <span></span>
         <span></span>
@@ -102,6 +101,57 @@
     </footer>
 
     <!-- ===== FLOATING CART BUTTON ===== -->
+    <!-- ===== FIXED BUTTONS (same as homepage) ===== -->
+    <button id="topBtn" aria-label="Scroll to top" title="Scroll to top"><i class="fa fa-arrow-up" aria-hidden="true"></i></button>
+
+    <!-- Floral Quick Menu (dark mode lives here, like the homepage) -->
+    <div id="floralMenu">
+      <button id="floralMain" aria-label="Quick actions" aria-expanded="false">
+        <i class="fa fa-plus" aria-hidden="true"></i>
+      </button>
+      <button class="petal" id="storeThemeToggle" aria-label="Switch to dark mode" title="Switch to dark mode"><i class="fa fa-moon-o" aria-hidden="true"></i></button>
+      <a class="petal" id="subscribeBtn" href="https://www.youtube.com/c/ShivamsWorld?sub_confirmation=1" target="_blank" rel="noopener" aria-label="Subscribe on YouTube" title="Subscribe on YouTube"><i class="fa fa-youtube-play" aria-hidden="true"></i></a>
+      <a class="petal" id="floralCallBtn" href="tel:+919005325544" aria-label="Call Now" title="Call Now"><i class="fa fa-phone" aria-hidden="true"></i></a>
+      <button class="petal" id="shareBtn" aria-label="Share" title="Share"><i class="fa fa-share-alt" aria-hidden="true"></i></button>
+    </div>
+
+    <!-- ===== AI ASSISTANT WIDGET ===== -->
+    <div id="aiWidget">
+      <!-- Bubble preview / teaser -->
+      <div id="aiPreviewBubble" aria-hidden="true">
+        <p id="aiPreviewText">Ask about custom orders.</p>
+      </div>
+
+      <!-- Launcher button -->
+      <button id="aiToggleBtn" aria-label="Open AI Assistant">
+        <i class="fa fa-magic" id="aiIconOpen"></i>
+        <i class="fa fa-times" id="aiIconClose"></i>
+      </button>
+
+      <!-- Chat window -->
+      <div id="aiChatWindow" role="dialog" aria-label="AI Assistant chat">
+        <div id="aiChatHeader">
+          <div id="aiChatHeaderInfo">
+            <span id="aiChatAvatar"><i class="fa fa-magic"></i></span>
+            <strong>Shivam's World Assistant</strong>
+          </div>
+          <div id="aiChatHeaderActions">
+            <button id="aiReplayBtn" aria-label="Replay last reply" title="Replay last reply" hidden><i class="fa fa-repeat"></i></button>
+            <button id="aiSpeechToggle" aria-label="Pause reading" title="Pause reading" hidden><i class="fa fa-pause"></i></button>
+            <button id="aiCloseBtn" title="Close" aria-label="Close chat"></button>
+          </div>
+        </div>
+
+        <div id="aiChatMessages"></div>
+
+        <form id="aiChatForm">
+          <input type="text" id="aiChatInput" placeholder="Ask something…" autocomplete="off" maxlength="500">
+          <button type="button" id="aiMicBtn" aria-label="Speak your message" title="Voice input"><i class="fa fa-microphone"></i></button>
+          <button type="submit" id="aiSendBtn" aria-label="Send message"><i class="fa fa-paper-plane"></i></button>
+        </form>
+      </div>
+    </div>
+
     <button id="cartFab" class="cart-fab" aria-label="Open cart, 0 items" title="Cart">
       <i class="fa fa-shopping-cart" aria-hidden="true"></i>
       <span id="cartBadge" class="cart-badge" hidden>0</span>

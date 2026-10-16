@@ -1387,3 +1387,8 @@ html.theme-fade *::after {
 .pm-info .product-code { margin-top: 2px; }
 [data-theme="dark"] .price-old, [data-theme="dark"] .price-min, [data-theme="dark"] .product-code, [data-theme="dark"] .cart-row-code { color: #b9a6dd; }
 [data-theme="dark"] .price-off { color: #b6f0c6; background: rgba(60,180,100,0.2); }
+
+/* Total for the chosen quantity in the product window */
+.pm-total { margin: 8px 0 0; font-size: 16px; font-weight: 700; color: var(--primary-dark); }
+.pm-total[hidden] { display: none; }
+[data-theme="dark"] .pm-total { color: #c9a3ff; }

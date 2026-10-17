@@ -3058,6 +3058,20 @@ async function downloadInvoice(order) {
 
     // Search, sort and product details
     $("searchInput").addEventListener("input", function () { searchTerm = this.value; renderProducts(); });
+    // Clear (x) button on the search bar: shows while there is text, empties the search
+    var searchClearBtn = $("searchClear");
+    function syncSearchClear() { if (searchClearBtn) searchClearBtn.hidden = !$("searchInput").value; }
+    $("searchInput").addEventListener("input", syncSearchClear);
+    if (searchClearBtn) {
+      searchClearBtn.addEventListener("click", function () {
+        var box = $("searchInput");
+        box.value = "";
+        searchTerm = "";
+        syncSearchClear();
+        renderProducts();
+        box.focus();
+      });
+    }
     // Enter jumps to the next matching product (Shift+Enter: previous) and pulses it purple
     var lastJumpAt = 0;
     function jumpToResult(step) {

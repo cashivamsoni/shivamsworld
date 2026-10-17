@@ -186,8 +186,11 @@
 
   // Inject clear button into the wrapper
   const clearBtn = document.createElement("button");
-  clearBtn.textContent = "×";
+  clearBtn.type = "button";
   clearBtn.className = "sw-search-clear";
+  clearBtn.setAttribute("aria-label", "Clear search");
+  clearBtn.setAttribute("title", "Clear search");
+  clearBtn.innerHTML = '<i class="fa fa-times" aria-hidden="true"></i>';
   input.parentNode.appendChild(clearBtn);
 
   const listItems = document.getElementById("searchList")
@@ -202,7 +205,7 @@
         keywords.length === 0 || keywords.every((k) => txt.includes(k));
       listItems[i].style.display = matches ? "" : "none";
     }
-    clearBtn.style.display = value.length > 0 ? "block" : "none";
+    clearBtn.style.display = value.length > 0 ? "flex" : "none";
   }
 
   input.addEventListener("keyup", function (e) {

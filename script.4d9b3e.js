@@ -26,13 +26,29 @@
 
   applyTheme(localStorage.getItem("sw-theme") || "light");
 
+  // Soft cross-fade of the whole page when the theme flips (same as the Store page)
+  function fadeTheme(change) {
+    const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) { change(); return; }
+    if (document.startViewTransition) { // modern browsers fade the old page into the new one
+      document.startViewTransition(change);
+      return;
+    }
+    const root = document.documentElement; // others: fade colours and borders
+    root.classList.add("theme-fade");
+    change();
+    setTimeout(function () { root.classList.remove("theme-fade"); }, 500);
+  }
+
   themeBtn.addEventListener("click", function () {
     const next =
       document.documentElement.getAttribute("data-theme") === "dark"
         ? "light"
         : "dark";
-    applyTheme(next);
-    localStorage.setItem("sw-theme", next);
+    fadeTheme(function () {
+      applyTheme(next);
+      localStorage.setItem("sw-theme", next);
+    });
   });
 })();
 
@@ -379,11 +395,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const WELCOME_MSG =
     "Hi! Ask me about the DIYs, calligraphy, sketches, custom orders — or anything else.";
 
-  const previewMessages = [
-    "Ask about custom orders.",
-    "Ask how to reach Shivam.",
-    "Ask what's on the channel.",
-  ];
+  // Speech-bubble teasers. A page can set its own with data-previews="a|b|c"
+  // on #aiWidget (classroom, legal pages); otherwise the general ones are used.
+  const pagePreviews = (widget.getAttribute("data-previews") || "")
+    .split("|")
+    .map(function (t) { return t.trim(); })
+    .filter(Boolean);
+  const previewMessages = pagePreviews.length
+    ? pagePreviews
+    : [
+        "Ask about custom orders.",
+        "Ask how to reach Shivam.",
+        "Ask what's on the channel.",
+      ];
 
   // Conversation lives in memory only for the current page load — nothing
   // is written to localStorage, so it starts fresh on every visit/refresh.

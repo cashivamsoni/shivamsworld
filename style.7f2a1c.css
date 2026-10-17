@@ -79,8 +79,11 @@ header:has(#mainNav.show) {
   min-width: 0;
 }
 
+/* The brand may contract when the menu is open: the title wraps onto two
+   lines if the row is too narrow, instead of pushing the menu off-screen. */
 header:has(#mainNav.show) #headerBrand {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 /* ---------- Navigation ---------- */

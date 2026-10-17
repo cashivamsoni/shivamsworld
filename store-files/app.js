@@ -4266,6 +4266,32 @@ async function removeOrder(o) {
   }
 }
 
+// Deletes a return request. The order itself stays. The customer can send a new request for it afterwards.
+async function removeReturn(r) {
+  const id = r.orderId || r.id;
+  const sure = window.SWUI
+    ? await window.SWUI.confirm({
+        title: "Delete this return request?",
+        message: `The return request for order ${id} will be deleted permanently, including the customer's refund details. The order itself is not deleted. This cannot be undone.`,
+        confirmText: "Delete request",
+        cancelText: "Keep it",
+        danger: true
+      })
+    : confirm(`Delete the return request for order ${id} permanently? This cannot be undone.`);
+  if (!sure) return;
+  try {
+    const batch = writeBatch(db);
+    batch.delete(doc(db, "returns", r.id));
+    await batch.commit();
+    openIds.delete("ret-" + r.id);
+    delete retDrafts[r.id];
+    toast("Return request deleted");
+  } catch (err) {
+    console.error(err);
+    toast("Could not delete the return request.");
+  }
+}
+
 async function copyText(text) {
   try {
     await navigator.clipboard.writeText(text);
@@ -4587,7 +4613,10 @@ function returnCard(r) {
   notify.addEventListener("click", () => {
     window.open(waLink(r, returnMessage(r, select.value, note.value.trim())), "_blank", "noopener");
   });
-  saveRow.append(save, notify);
+  const del = el("button", "danger-btn", "Delete request");
+  del.type = "button";
+  del.addEventListener("click", () => removeReturn(r));
+  saveRow.append(save, notify, del);
   controls.appendChild(saveRow);
   body.appendChild(controls);
   card.appendChild(body);

@@ -1486,6 +1486,16 @@ footer h1 { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.4); }
 footer a { color: #fff; }
 
 
+/* ---------- Smooth light/dark switch (all pages) ---------- */
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 0.45s; animation-timing-function: ease; }
+html.theme-fade,
+html.theme-fade *,
+html.theme-fade *::before,
+html.theme-fade *::after {
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, fill 0.4s ease !important;
+}
+
 /* ---------- Snowfall ---------- */
 .snowflake {
   color: rgba(255,255,255,1.0);

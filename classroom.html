@@ -154,20 +154,19 @@
       </div>
       <button id="menuToggle" aria-label="Menu"><span></span><span></span><span></span></button>
       <nav id="mainNav" class="nav" aria-label="Main navigation">
-        <a href="index.html">← Shivam's World</a>
-        <a href="#live">Live Class</a>
-        <a href="#how">How It Works</a>
-        <a href="#resources">Study Resources</a>
-        <a href="#recordings">Recordings</a>
-        <a href="#timer">Study Timer</a>
-        <a href="#faq">FAQ</a>
-        <a href="#doubt">Ask a Doubt</a>
+        <a href="index.html">Homepage</a>
+        <a href="https://www.youtube.com/c/ShivamsWorld" target="_blank" rel="noopener">YouTube</a>
+        <a href="store.html">Store</a>
+        <a href="classroom.html" aria-current="page">Classroom</a>
+        <a href="index.html#aboutShivam">About</a>
+        <a href="#contact">Contact</a>
       </nav>
     </header>
 
-    <!-- Fixed social icons -->
+    <!-- ===== FIXED SOCIAL ICONS (LEFT) ===== -->
     <div class="social-fixed">
       <a href="https://www.youtube.com/c/ShivamsWorld" class="fa fa-youtube" target="_blank" rel="noopener" title="YouTube"></a>
+      <a href="https://www.facebook.com/shivamscreativeworld" class="fa fa-facebook" target="_blank" rel="noopener" title="Facebook"></a>
       <a href="https://www.instagram.com/shivams.world" class="fa fa-instagram" target="_blank" rel="noopener" title="Instagram"></a>
       <a href="https://www.linkedin.com/in/shivam-soni-ca-aspirant" class="fa fa-linkedin" target="_blank" rel="noopener" title="LinkedIn"></a>
       <a href="https://wa.link/zvaoa9" class="fa fa-whatsapp" target="_blank" rel="noopener" title="WhatsApp"></a>
@@ -182,6 +181,43 @@
       <a class="petal" id="subscribeBtn" href="https://www.youtube.com/c/ShivamsWorld?sub_confirmation=1" target="_blank" rel="noopener" aria-label="Subscribe on YouTube" title="Subscribe on YouTube"><i class="fa fa-youtube-play" aria-hidden="true"></i></a>
       <a class="petal" id="floralCallBtn" href="tel:+919005325544" aria-label="Call Now" title="Call Now"><i class="fa fa-phone" aria-hidden="true"></i></a>
       <button class="petal" id="shareBtn" aria-label="Share" title="Share"><i class="fa fa-share-alt" aria-hidden="true"></i></button>
+    </div>
+
+    <!-- ===== AI ASSISTANT WIDGET ===== -->
+    <div id="aiWidget">
+      <!-- Bubble preview / teaser -->
+      <div id="aiPreviewBubble" aria-hidden="true">
+        <p id="aiPreviewText">Ask about custom orders.</p>
+      </div>
+
+      <!-- Launcher button -->
+      <button id="aiToggleBtn" aria-label="Open AI Assistant">
+        <i class="fa fa-magic" id="aiIconOpen"></i>
+        <i class="fa fa-times" id="aiIconClose"></i>
+      </button>
+
+      <!-- Chat window -->
+      <div id="aiChatWindow" role="dialog" aria-label="AI Assistant chat">
+        <div id="aiChatHeader">
+          <div id="aiChatHeaderInfo">
+            <span id="aiChatAvatar"><i class="fa fa-magic"></i></span>
+            <strong>Shivam's World Assistant</strong>
+          </div>
+          <div id="aiChatHeaderActions">
+            <button id="aiReplayBtn" aria-label="Replay last reply" title="Replay last reply" hidden><i class="fa fa-repeat"></i></button>
+            <button id="aiSpeechToggle" aria-label="Pause reading" title="Pause reading" hidden><i class="fa fa-pause"></i></button>
+            <button id="aiCloseBtn" title="Close" aria-label="Close chat"></button>
+          </div>
+        </div>
+
+        <div id="aiChatMessages"></div>
+
+        <form id="aiChatForm">
+          <input type="text" id="aiChatInput" placeholder="Ask something…" autocomplete="off" maxlength="500">
+          <button type="button" id="aiMicBtn" aria-label="Speak your message" title="Voice input"><i class="fa fa-microphone"></i></button>
+          <button type="submit" id="aiSendBtn" aria-label="Send message"><i class="fa fa-paper-plane"></i></button>
+        </form>
+      </div>
     </div>
 
     <main class="container">

@@ -942,6 +942,16 @@ async function downloadInvoice(order) {
     return null;
   }
 
+  // Puts a Font Awesome icon in front of a line of text (instead of an emoji)
+  function iconText(el, icon, text) {
+    el.textContent = "";
+    var i = document.createElement("i");
+    i.className = "fa " + icon;
+    i.setAttribute("aria-hidden", "true");
+    el.appendChild(i);
+    el.appendChild(document.createTextNode(" " + text));
+  }
+
   function minQtyOf(p) { return (p && p.minQty) || 1; }
 
   // "Rs 499  Rs 699 (crossed out)  29% off" plus "each, min order 2" where it applies
@@ -2033,9 +2043,11 @@ async function downloadInvoice(order) {
       saveProfileNow({ name: order.name, phone: order.phone, address: order.address, location: order.location }, true);
     }
     $("doneOrderId").textContent = order.id;
-    $("doneEarn").textContent = order.pointsEarned > 0
-      ? "\u2B50 You'll earn " + order.pointsEarned + " point" + (order.pointsEarned === 1 ? "" : "s") + " once this order is delivered."
-      : "";
+    if (order.pointsEarned > 0) {
+      iconText($("doneEarn"), "fa-star", "You'll earn " + order.pointsEarned + " point" + (order.pointsEarned === 1 ? "" : "s") + " once this order is delivered.");
+    } else {
+      $("doneEarn").textContent = "";
+    }
     $("waAgainBtn").setAttribute("href", url);
     showStep("done");
 
@@ -2112,9 +2124,9 @@ async function downloadInvoice(order) {
     $("sumDelivery").textContent = money(CONFIG.deliveryCharge);
     $("sumTotal").textContent = money(orderTotal());
     var earn = pointsEarnedNow();
-    $("pointsEarnNote").textContent = earn > 0
-      ? "\u2B50 You'll earn " + earn + " point" + (earn === 1 ? "" : "s") + " when this order is delivered."
-      : "\u2B50 Spend \u20B9100 or more on items to earn points.";
+    iconText($("pointsEarnNote"), "fa-star", earn > 0
+      ? "You'll earn " + earn + " point" + (earn === 1 ? "" : "s") + " when this order is delivered."
+      : "Spend \u20B9100 or more on items to earn points.");
   }
 
   // Shows the balance in My account and refreshes anything that depends on it
@@ -2247,8 +2259,8 @@ async function downloadInvoice(order) {
       if (!picked) { box.hidden = true; return; }
       box.hidden = false;
       var text = document.createElement("span");
-      text.textContent = "\uD83D\uDCCD Location pinned: " + picked.lat.toFixed(5) + ", " + picked.lng.toFixed(5) +
-        (accuracy ? " (GPS accuracy about " + Math.round(accuracy) + " m, drag the pin if it's off)" : "") + " ";
+      iconText(text, "fa-map-marker", "Location pinned: " + picked.lat.toFixed(5) + ", " + picked.lng.toFixed(5) +
+        (accuracy ? " (GPS accuracy about " + Math.round(accuracy) + " m, drag the pin if it's off)" : "") + " ");
       var link = document.createElement("a");
       link.href = mapsUrl(picked);
       link.target = "_blank";
@@ -2383,10 +2395,10 @@ async function downloadInvoice(order) {
   }
 
   var ETA_HINTS = {
-    pmEta: "\uD83D\uDCCD Add your location at checkout to see the estimated delivery time.",
-    cartEta: "\uD83D\uDCCD Add your location at checkout to see the estimated delivery time.",
-    locEta: "\uD83D\uDCCD Add your location above to see the estimated delivery time.",
-    acctEta: "\uD83D\uDCCD Save your location to see the estimated delivery time on every order."
+    pmEta: "Add your location at checkout to see the estimated delivery time.",
+    cartEta: "Add your location at checkout to see the estimated delivery time.",
+    locEta: "Add your location above to see the estimated delivery time.",
+    acctEta: "Save your location to see the estimated delivery time on every order."
   };
 
   // Fills every estimate line on the page: the date range if a location is known, else the hint
@@ -2397,10 +2409,10 @@ async function downloadInvoice(order) {
       var el = $(id);
       if (!el) return;
       if (when) {
-        el.textContent = "\uD83D\uDE9A Estimated delivery: " + when + " (includes " + CONFIG.productionDays + " days to make your order)";
+        iconText(el, "fa-truck", "Estimated delivery: " + when + " (includes " + CONFIG.productionDays + " days to make your order)");
         el.classList.remove("eta-hint");
       } else {
-        el.textContent = ETA_HINTS[id];
+        iconText(el, "fa-map-marker", ETA_HINTS[id]);
         el.classList.add("eta-hint");
       }
     });
@@ -2667,7 +2679,7 @@ async function downloadInvoice(order) {
       if (pts.length) {
         var ptsLine = document.createElement("p");
         ptsLine.className = "acct-points-line";
-        ptsLine.textContent = "\u2B50 " + pts.join(" \u00B7 ");
+        iconText(ptsLine, "fa-star", pts.join(" \u00B7 "));
         card.appendChild(ptsLine);
       }
 

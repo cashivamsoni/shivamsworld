@@ -1494,3 +1494,40 @@ html.theme-fade *::after {
 .consent-row a { color: var(--primary); text-decoration: underline; }
 .btn-inline.is-disabled { opacity: 0.55; cursor: not-allowed; }
 [data-theme="dark"] .consent-row a { color: #d9b8ff; }
+
+/* ---------- Reward points ---------- */
+.points-box {
+  margin: 14px 0 4px; padding: 12px 14px; text-align: left;
+  background: linear-gradient(135deg, rgba(255,193,7,0.16), rgba(111,0,255,0.08));
+  border: 2px solid rgba(245,166,35,0.55); border-radius: 14px;
+}
+.points-box-head { font-weight: 700; color: #8a5a00; display: flex; align-items: center; gap: 8px; }
+.points-box-head .fa { color: #f5a623; }
+.points-row { margin-top: 8px; font-weight: 600; }
+.points-box .hint { margin: 6px 0 0; }
+.sub-points { color: #8a5a00; font-weight: 600; }
+.points-earn { margin: 10px 0 0; font-size: 14px; font-weight: 600; color: #8a5a00; text-align: left; }
+.points-earn:empty { display: none; }
+.acct-points-line { color: #8a5a00; font-weight: 600; }
+
+/* My account: points balance card */
+.points-card {
+  display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 14px;
+  margin: 8px 0 18px; padding: 14px 16px; text-align: left;
+  background: linear-gradient(135deg, #fff3cd, #ffe08a 55%, #ffd166);
+  border: 2px solid rgba(245,166,35,0.7); border-radius: 16px; color: #4a3000;
+  box-shadow: 0 6px 16px rgba(245,166,35,0.25);
+}
+.points-star {
+  display: grid; place-items: center; width: 46px; height: 46px; font-size: 24px; color: #fff;
+  background: linear-gradient(135deg, #f5a623, #e07b00); border-radius: 50%;
+  box-shadow: 0 3px 8px rgba(224,123,0,0.45);
+}
+.points-main { display: grid; gap: 2px; }
+.points-main strong { font-size: 22px; line-height: 1.1; }
+.points-main span { font-size: 14px; }
+.points-how { grid-column: 1 / -1; margin: 6px 0 0; font-size: 13px; line-height: 1.5; opacity: 0.9; }
+
+[data-theme="dark"] .points-box { background: linear-gradient(135deg, rgba(255,193,7,0.14), rgba(160,110,255,0.14)); border-color: rgba(245,166,35,0.6); }
+[data-theme="dark"] .points-box-head, [data-theme="dark"] .sub-points, [data-theme="dark"] .points-earn, [data-theme="dark"] .acct-points-line { color: #ffd166; }
+[data-theme="dark"] .points-card { background: linear-gradient(135deg, #4a3000, #6b4700 55%, #7a5200); border-color: rgba(245,166,35,0.7); color: #fff3cd; box-shadow: none; }

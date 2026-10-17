@@ -126,18 +126,25 @@ body.store-locked { overflow: hidden; }
   position: absolute;
   top: -6px;
   right: -6px;
-  min-width: 24px;
-  height: 24px;
+  box-sizing: border-box;
+  min-width: 26px;
+  height: 26px;
   padding: 0 6px;
-  border-radius: 12px;
+  border-radius: 13px;
   background: var(--secondary-yellow);
   color: #2a0066;
   font-family: 'Inter', sans-serif; /* buttons do not inherit the page font by default */
   font-size: 13px;
   font-weight: 700;
-  line-height: 24px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
   border: 2px solid #fff;
+  /* centres the number both ways inside the circle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.cart-badge[hidden] { display: none; }
 
 /* ---------- Overlay ---------- */
 .store-overlay {

@@ -42,6 +42,13 @@ THE STORE (Store page, opened from the site menu):
 - Offers: some products show a crossed-out old price and a "% off" badge. The coupon code
   SHIVAM10 gives 10% off the items (never on the delivery charge) and can be used once per
   customer. It is applied at checkout.
+- Reward points: customers earn 1 point for every full Rs 100 they pay for the items (after
+  points and coupon; delivery is not counted), added to their account once the order is marked
+  Delivered. 1 point = Rs 1. From 20 points they can tick "Use my points" at checkout; all usable
+  points are used and come off the items price first, then any coupon applies to what is left. The
+  balance is shown in My account, with a note of points used or earned on each order. Points have no
+  cash value. If an order is cancelled the used points are given back; if a refund is sent for a
+  return, used points are given back and points earned on that order are taken off.
 - Minimum order: Simple Pop-up Cards, Dreamcatcher Keyring and Heart-Themed Bookmark each
   need a minimum of 2 pieces (the price shown is per piece).
 - Delivery: a flat Rs 50 delivery charge on every order. Everything is made to order, so it
@@ -68,8 +75,8 @@ THE STORE (Store page, opened from the site menu):
   the top of the product window.
 - Returns and replacements: once an order is Delivered, the customer can ask for a return
   from My account within 7 days. They choose a refund or a replacement and give a reason.
-  A refund is the items total after any coupon discount; the Rs 50 delivery charge is not
-  refunded. For a refund they must enter their UPI ID, bank account number (typed twice)
+  A refund is what was paid for the items after any points and coupon; the Rs 50 delivery charge
+  is not refunded. For a refund they must enter their UPI ID, bank account number (typed twice)
   and IFSC code, which are visible only to them and Shivam. A replacement needs no bank
   details. The return can be tracked like an order (Return requested, approved, item
   received back, then refund sent or replacement sent). Each order can have one return request.

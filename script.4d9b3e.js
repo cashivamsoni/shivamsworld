@@ -566,6 +566,16 @@ document.addEventListener("DOMContentLoaded", () => {
         "Hey there! 👋 I'm Shivam's AI assistant. Ask me about the DIYs, calligraphy, sketches, custom orders, or how to reach Shivam.",
     },
     {
+      test: /\b(doubts?|stuck|don'?t understand|didn'?t understand)\b/i,
+      reply:
+        "Stuck on a topic? Send Shivam the topic name and your question on WhatsApp: https://wa.me/919005325544 — or ask in the live chat during a class.",
+    },
+    {
+      test: /\b(classroom|classes|class|lectures?|notes|pdfs?|recordings?|revision|study|timer|bba|b\.?com|ca (foundation|inter)|live stream)\b/i,
+      reply:
+        "The Classroom is a free page with live classes on YouTube, PDF notes, visual revision charts, class recordings and a study timer — for Class 12, B.Com and BBA topics (CA Foundation where relevant) and CA Inter revision charts. Open it from the menu under Classroom.",
+    },
+    {
       test: /\b(custom order|commission|order|buy|purchase|price|cost|rate)\b/i,
       reply:
         "For custom orders, the quickest way is to message Shivam directly on WhatsApp: https://wa.me/919005325544 — share what you'd like (calligraphy, sketch, DIY piece, etc.) and he'll get back to you with details.",

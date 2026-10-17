@@ -1623,6 +1623,35 @@ html.theme-fade *::after {
 .legal-toc ol { margin: 0; padding-left: 24px; columns: 2; column-gap: 32px; }
 .legal-toc li { margin-bottom: 5px; font-size: 16px; break-inside: avoid; }
 
+/* Parts of the legal pages: A = Store and site, B = Classroom, C = whole site */
+.legal-toc h3 { margin: 14px 0 4px; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary-dark); }
+.legal-toc h3:first-of-type { margin-top: 4px; }
+.legal-part { padding-top: 16px; padding-bottom: 16px; }
+.legal-part h2 { margin-bottom: 6px; }
+.legal-card .legal-part-label { margin: 0 0 4px; font: 700 12px/1.2 'Inter', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: var(--primary); }
+.legal-card.legal-part p:not(.legal-part-label) { font-size: 16px; }
+.legal-part-store { border-left: 6px solid var(--primary); }
+.legal-part-classroom { border-left: 6px solid var(--secondary-teal); }
+.legal-part-classroom .legal-part-label { color: #0b7a6e; }
+.legal-part-both { border-left: 6px solid var(--secondary-pink); }
+.legal-part-both .legal-part-label { color: #b0126f; }
+.legal-classroom { border-left: 6px solid var(--secondary-teal); }
+.legal-classroom h2::before {
+  content: "🎓 Classroom";
+  display: block;
+  margin-bottom: 4px;
+  font: 700 12px/1.2 'Inter', sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #0b7a6e;
+}
+[data-theme="dark"] .legal-toc h3 { color: #c9a3ff; }
+[data-theme="dark"] .legal-card .legal-part-label { color: #c9a3ff; }
+[data-theme="dark"] .legal-part-classroom .legal-part-label,
+[data-theme="dark"] .legal-classroom h2::before { color: #7fe0d0; }
+[data-theme="dark"] .legal-part-both .legal-part-label { color: #ff9ccf; }
+[data-theme="dark"] .legal-part-store { border-left-color: #a06eff; }
+
 .legal-foot-links { margin-top: 10px; }
 
 @media (max-width: 700px) {

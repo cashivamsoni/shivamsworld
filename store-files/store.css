@@ -1531,3 +1531,8 @@ html.theme-fade *::after {
 [data-theme="dark"] .points-box { background: linear-gradient(135deg, rgba(255,193,7,0.14), rgba(160,110,255,0.14)); border-color: rgba(245,166,35,0.6); }
 [data-theme="dark"] .points-box-head, [data-theme="dark"] .sub-points, [data-theme="dark"] .points-earn, [data-theme="dark"] .acct-points-line { color: #ffd166; }
 [data-theme="dark"] .points-card { background: linear-gradient(135deg, #4a3000, #6b4700 55%, #7a5200); border-color: rgba(245,166,35,0.7); color: #fff3cd; box-shadow: none; }
+
+/* Font Awesome icons that replaced emojis */
+.eta .fa, .loc-status .fa, .points-earn .fa, .acct-points-line .fa { margin-right: 4px; }
+.points-earn .fa-star, .acct-points-line .fa-star { color: #f5a623; }
+.nav a .fa { margin-right: 2px; }

@@ -108,6 +108,7 @@ body.store-locked { overflow: hidden; }
   border: 2px solid rgba(255,255,255,0.9);
   background: linear-gradient(135deg, var(--primary), var(--secondary-pink));
   color: #fff;
+  font-family: 'Inter', sans-serif;
   font-size: 24px;
   cursor: pointer;
   z-index: 90;
@@ -131,6 +132,7 @@ body.store-locked { overflow: hidden; }
   border-radius: 12px;
   background: var(--secondary-yellow);
   color: #2a0066;
+  font-family: 'Inter', sans-serif; /* buttons do not inherit the page font by default */
   font-size: 13px;
   font-weight: 700;
   line-height: 24px;

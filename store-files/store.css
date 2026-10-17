@@ -1485,3 +1485,12 @@ html.theme-fade *::after {
   #topBtn:not(.show) { transform: none; }
   #aiIconOpen, #aiIconClose { animation: none; }
 }
+
+/* ---------- Sign-in agreement ---------- */
+#consentModal { z-index: 350; }
+.consent-box { width: min(440px, 100%); }
+.consent-row { align-items: flex-start; margin: 16px 0 10px; line-height: 1.5; text-align: left; }
+.consent-row input { flex: 0 0 auto; width: 20px; height: 20px; margin-top: 3px; accent-color: var(--primary); }
+.consent-row a { color: var(--primary); text-decoration: underline; }
+.btn-inline.is-disabled { opacity: 0.55; cursor: not-allowed; }
+[data-theme="dark"] .consent-row a { color: #d9b8ff; }

@@ -922,28 +922,15 @@ body.store-locked { overflow: hidden; }
 .acct-h { scroll-margin-top: 84px; }
 
 /* =========================================================
-   Open menu: a dropdown under the header (it no longer
-   stretches the header or squeezes the logo)
+   Open menu: same as the homepage (opens inside the header).
+   The base rules live in the shared stylesheet. On phones the
+   account button steps aside while the menu is open, so the logo,
+   title and menu pills all fit on one row.
    ========================================================= */
-#mainNav.show {
-  position: absolute;
-  top: 100%;
-  right: 14px;
-  z-index: 110;
-  width: auto;
-  max-height: calc(100vh - 90px);
-  overflow-y: auto;
-  margin-top: 10px;
-  padding: 12px;
-  gap: 8px;
-  background: rgba(90,0,200,0.55);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  backdrop-filter: blur(16px) saturate(160%);
-  border: 2px solid rgba(255,255,255,0.6);
-  border-radius: 22px;
-  box-shadow: 0 12px 34px rgba(60,0,140,0.45), 0 0 18px rgba(255,255,255,0.35);
+@media (max-width: 700px) {
+  header:has(#mainNav.show) .account-btn { display: none; }
+  header:has(#mainNav.show) #menuToggle { margin-left: auto; }
 }
-[data-theme="dark"] #mainNav.show { background: rgba(30,0,60,0.92); border-color: rgba(160,110,255,0.5); }
 
 /* =========================================================
    Search bar and sort menu: same height and the same rounded shape

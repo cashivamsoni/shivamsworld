@@ -382,6 +382,26 @@
       </div>
     </div>
 
+    <!-- ===== SIGN-IN: AGREE TO TERMS ===== -->
+    <div id="consentModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="csTitle" hidden>
+      <div class="checkout-box with-head consent-box">
+        <div class="modal-head">
+          <h2 id="csTitle">Sign in to continue</h2>
+          <button id="csClose" class="icon-btn" aria-label="Close sign-in">&times;</button>
+        </div>
+        <p class="small">Sign in with your Google account to place orders, track them and save your details.</p>
+        <label class="check-row consent-row" for="csCheck">
+          <input id="csCheck" type="checkbox">
+          <span>By signing in, I agree to the
+            <a href="legal/terms-and-conditions.html" target="_blank" rel="noopener">Terms &amp; Conditions</a> and
+            <a href="legal/privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+        </label>
+        <p id="csError" class="form-error" role="alert" hidden></p>
+        <button id="csContinue" class="btn-inline wide is-disabled" type="button" aria-disabled="true"><i class="fa fa-google" aria-hidden="true"></i>&nbsp; Continue with Google</button>
+        <p class="hint">Tick the box above to continue.</p>
+      </div>
+    </div>
+
     <!-- ===== MY ACCOUNT MODAL ===== -->
     <div id="accountModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="acctTitle" hidden>
       <div class="checkout-box with-head">

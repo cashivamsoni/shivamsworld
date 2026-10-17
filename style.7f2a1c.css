@@ -671,23 +671,33 @@ p.ftsmall {
 .sw-search-clear {
   display: none;
   position: absolute;
-  right: 12px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: var(--primary);
+  font-size: 16px;
   line-height: 1;
-  padding: 0 2px;
+  cursor: pointer;
   z-index: 2;
-  transition: color 0.3s ease;
 }
 
-.sw-search-clear:hover {
-  color: var(--secondary-red);
-}
+.sw-search-clear .fa { pointer-events: none; }
+
+.sw-search-clear:hover { background: rgba(111, 0, 255, 0.12); }
+
+.sw-search-clear:focus-visible { outline: 3px solid rgba(111, 0, 255, 0.3); }
+
+[data-theme="dark"] .sw-search-clear { color: #c9a3ff; }
+
+[data-theme="dark"] .sw-search-clear:hover { background: rgba(201, 163, 255, 0.18); }
 
 #searchList {
   list-style: none;

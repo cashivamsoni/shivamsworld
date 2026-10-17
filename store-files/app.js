@@ -47,7 +47,7 @@
           app: app, db: fs.getFirestore(app), auth: au.getAuth(app),
           doc: fs.doc, setDoc: fs.setDoc, getDoc: fs.getDoc, updateDoc: fs.updateDoc, deleteDoc: fs.deleteDoc,
           writeBatch: fs.writeBatch, collection: fs.collection, query: fs.query, where: fs.where,
-          orderBy: fs.orderBy, onSnapshot: fs.onSnapshot, serverTimestamp: fs.serverTimestamp, getDocs: fs.getDocs,
+          orderBy: fs.orderBy, onSnapshot: fs.onSnapshot, serverTimestamp: fs.serverTimestamp, getDocs: fs.getDocs, increment: fs.increment,
           GoogleAuthProvider: au.GoogleAuthProvider, signInWithPopup: au.signInWithPopup,
           signOut: au.signOut, onAuthStateChanged: au.onAuthStateChanged
         };
@@ -90,8 +90,16 @@
     }, onError);
   }
 
+  // ----- reward points (the balance is kept in wallets/<uid>; only you can add points) -----
+  function watchWallet(uid, onData, onError) {
+    return S.onSnapshot(S.doc(S.db, "wallets", uid), function (snap) {
+      onData(snap.exists() ? snap.data() : null);
+    }, onError);
+  }
+
   // ----- orders -----
   // Saves the order (linked to the signed-in customer) and, if a coupon was used, marks it used.
+  // If reward points were redeemed, the same batch lowers the customer's balance (all or nothing).
   function saveOrder(o) {
     const batch = S.writeBatch(S.db);
     const order = {
@@ -103,6 +111,7 @@
         return line;
       }),
       subtotal: o.subtotal, deliveryCharge: o.deliveryCharge, discount: o.discount || 0,
+      pointsUsed: o.pointsUsed || 0, pointsEarned: o.pointsEarned || 0,
       total: o.total, utr: o.utr, status: "pending", createdAt: S.serverTimestamp()
     };
     order.uid = o.uid; // links the order to the signed-in customer
@@ -110,6 +119,11 @@
     if (o.couponKey) order.couponKey = o.couponKey;
     if (o.location) order.location = { lat: o.location.lat, lng: o.location.lng };
     batch.set(S.doc(S.db, "orders", o.id), order);
+    if (o.pointsUsed > 0) {
+      batch.update(S.doc(S.db, "wallets", o.uid), {
+        balance: o.pointsBalance - o.pointsUsed, lastOrderId: o.id, updatedAt: S.serverTimestamp()
+      });
+    }
     if (o.couponKey) {
       // Marks the coupon as used for this customer. It fails if it was already used.
       batch.set(S.doc(S.db, "couponUses", o.couponKey), { code: o.couponCode, orderId: o.id, usedAt: S.serverTimestamp() });
@@ -209,8 +223,9 @@ function normalize(o) {
   const items = (o.items || []).map((it) => ({ name: it.name, code: it.code || "", qty: it.qty, price: it.price }));
   const subtotal = o.subtotal !== undefined ? o.subtotal : items.reduce((s, it) => s + it.price * it.qty, 0);
   const discount = o.discount || 0;
-  const delivery = o.deliveryCharge !== undefined ? o.deliveryCharge : Math.max(0, (o.total || 0) - subtotal + discount);
-  return { items, subtotal, discount, delivery, total: o.total !== undefined ? o.total : subtotal - discount + delivery };
+  const points = o.pointsUsed || 0;
+  const delivery = o.deliveryCharge !== undefined ? o.deliveryCharge : Math.max(0, (o.total || 0) - subtotal + discount + points);
+  return { items, subtotal, discount, points, delivery, total: o.total !== undefined ? o.total : subtotal - points - discount + delivery };
 }
 
 // Small helper: element with inline styles (the page's own stylesheets are not used)
@@ -307,6 +322,7 @@ function buildInvoice(o) {
     totals.appendChild(row);
   };
   line("Items subtotal", money(n.subtotal));
+  if (n.points > 0) line("Reward points used (" + n.points + ")", "\u2212" + money(n.points), "color:#0b6b52;");
   if (n.discount > 0) line("Coupon" + (o.couponCode ? " (" + o.couponCode + ")" : ""), "\u2212" + money(n.discount), "color:#0b6b52;");
   line("Delivery charge", money(n.delivery));
   const grand = h("div", "display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding:12px 14px;" +
@@ -371,7 +387,8 @@ async function downloadInvoice(order) {
     loadProfile: loadProfile, saveProfile: saveProfile, watchMyOrders: watchMyOrders, watchOrder: watchOrder,
     saveOrder: saveOrder, isCouponUsed: isCouponUsed, downloadInvoice: downloadInvoice,
     loadReviews: loadReviews, saveReview: saveReview,
-    saveReturn: saveReturn, watchMyReturns: watchMyReturns, watchReturn: watchReturn
+    saveReturn: saveReturn, watchMyReturns: watchMyReturns, watchReturn: watchReturn,
+    watchWallet: watchWallet
   };
   window.SWData = SWData;
 })();
@@ -718,9 +735,15 @@ async function downloadInvoice(order) {
     productionLocation: { lat: 26.444917, lng: 80.325111 },
     productionDays: 2,   // days needed to make the order, added to every estimate
 
+    // ===== REWARD POINTS =====
+    // Earn 1 point for every Rs 100 you pay for the items (after points and coupon, delivery not counted).
+    // Points are added once the order is marked delivered. 1 point = Rs 1.
+    // NOTE: the earning rate, the Rs 1 value and the minimum below are also checked in firestore.rules.
+    pointsMinRedeem: 20,  // fewest points a customer must hold to redeem them
+
     // ===== RETURNS =====
     // A delivered order can be returned (refund or replacement) for this many days after delivery.
-    // Refund = items total after any coupon discount. The delivery charge is never refunded.
+    // Refund = what was paid for the items (after points and coupon). The delivery charge is never refunded.
     returnWindowDays: 7,
     roadFactor: 1.3,     // straight-line distance x this is roughly the road distance
     // Extra travel days by road distance. upToKm = this tier covers up to that distance.
@@ -742,6 +765,7 @@ async function downloadInvoice(order) {
       "\uD83D\uDE9A Flat {delivery} delivery on every order",
       "\uD83C\uDF9F\uFE0F Use code {code} for {percent}% off your items (delivery not included)",
       "\uD83D\uDC9C Handmade with love by Shivam's World",
+      "\u2B50 Earn 1 point on every \u20B9100 you spend. 1 point = \u20B91",
       "\uD83C\uDFA8 Order here first, then customise it your way on WhatsApp",
       "\uD83D\uDCCD Pin your exact location so we can find you easily",
       "\uD83D\uDE9A Add your location to see your estimated delivery time",
@@ -1191,7 +1215,7 @@ async function downloadInvoice(order) {
   }
 
   // Items total after any coupon. The delivery charge is not included.
-  function netRefund(o) { return Math.max(0, Number(o.subtotal || 0) - Number(o.discount || 0)); }
+  function netRefund(o) { return Math.max(0, Number(o.subtotal || 0) - Number(o.pointsUsed || 0) - Number(o.discount || 0)); }
 
   function inReturnWindow(o) {
     var t = o.updatedAt && o.updatedAt.toMillis ? o.updatedAt.toMillis() : (o.createdAt && o.createdAt.toMillis ? o.createdAt.toMillis() : Date.now());
@@ -1237,7 +1261,7 @@ async function downloadInvoice(order) {
     }
     $("rtRefundBox").hidden = t !== "refund";
     $("rtAmountNote").textContent = t === "refund"
-      ? "You will get " + money(netRefund(rtOrder)) + " back: your items total after any coupon. The delivery charge is not refunded."
+      ? "You will get " + money(netRefund(rtOrder)) + " back: what you paid for the items, after any points and coupon. The delivery charge is not refunded. Points you used come back to your balance."
       : "We will make and send you a replacement at no extra cost.";
     showError("rtError", "");
   }
@@ -1821,6 +1845,7 @@ async function downloadInvoice(order) {
       id: o.id, name: o.name, phone: o.phone, address: o.address,
       note: o.note, items: o.items, subtotal: o.subtotal, deliveryCharge: o.deliveryCharge,
       discount: o.discount, couponCode: o.couponCode, couponKey: o.couponKey, uid: o.uid,
+      pointsUsed: o.pointsUsed, pointsEarned: o.pointsEarned, pointsBalance: o.pointsBalance,
       total: o.total, location: o.location, utr: utr
     };
     return window.SWData.module()
@@ -1947,6 +1972,9 @@ async function downloadInvoice(order) {
       subtotal: cartTotal(),
       deliveryCharge: CONFIG.deliveryCharge,
       discount: discountAmount(),
+      pointsUsed: pointsUsed(),
+      pointsEarned: pointsEarnedNow(),
+      pointsBalance: pointsBalance,
       couponCode: appliedCoupon ? appliedCoupon.code : "",
       couponKey: appliedCoupon && appliedCoupon.key ? appliedCoupon.key : "",
       uid: currentUser ? currentUser.uid : "",
@@ -1957,6 +1985,7 @@ async function downloadInvoice(order) {
     $("payOrderId").textContent = order.id;
     $("payAmount").textContent = money(order.total);
     $("payBreakdown").textContent = "Items " + money(order.subtotal) +
+      (order.pointsUsed ? " \u2212 points " + money(order.pointsUsed) : "") +
       (order.discount ? " \u2212 coupon " + money(order.discount) : "") +
       " + delivery " + money(order.deliveryCharge);
     var link = upiLink(order);
@@ -1974,6 +2003,7 @@ async function downloadInvoice(order) {
     });
     lines.push("",
       "Items subtotal: " + money(order.subtotal),
+      order.pointsUsed ? "Reward points used: " + order.pointsUsed + " (-" + money(order.pointsUsed) + ")" : "Reward points used: none",
       order.discount ? "Coupon " + order.couponCode + ": -" + money(order.discount) : "Coupon: none",
       "Delivery charge: " + money(order.deliveryCharge),
       "*Total: " + money(order.total) + "*", "",
@@ -2003,6 +2033,9 @@ async function downloadInvoice(order) {
       saveProfileNow({ name: order.name, phone: order.phone, address: order.address, location: order.location }, true);
     }
     $("doneOrderId").textContent = order.id;
+    $("doneEarn").textContent = order.pointsEarned > 0
+      ? "\u2B50 You'll earn " + order.pointsEarned + " point" + (order.pointsEarned === 1 ? "" : "s") + " once this order is delivered."
+      : "";
     $("waAgainBtn").setAttribute("href", url);
     showStep("done");
 
@@ -2011,6 +2044,7 @@ async function downloadInvoice(order) {
     saveCart();
     renderCart();
     order = null;
+    usePoints = false;
     checkoutLoc.clear();
     checkoutLoc.hideMap();
     resetCoupon();
@@ -2018,23 +2052,94 @@ async function downloadInvoice(order) {
     if (!opened) toast("Tap Open WhatsApp to send your order");
   }
 
+  /* ---------- Reward points ---------- */
+  var pointsBalance = 0;   // live balance from the customer's wallet
+  var usePoints = false;   // the "use my points" tick box
+  var walletStop = null;
+
+  // The most points that can be used on this cart: the whole balance, but never more than the items cost
+  function pointsUsable() {
+    var max = Math.min(pointsBalance, cartTotal());
+    return pointsBalance >= CONFIG.pointsMinRedeem && max >= CONFIG.pointsMinRedeem ? max : 0;
+  }
+  // 1 point = Rs 1. Points come off the items price first, then any coupon is worked out on what is left.
+  function pointsUsed() { return usePoints && currentUser ? pointsUsable() : 0; }
+
   /* ---------- Coupon ---------- */
   var appliedCoupon = null; // { code, percent } once a valid code is applied
 
   function discountAmount() {
-    return appliedCoupon ? Math.round(cartTotal() * appliedCoupon.percent / 100) : 0;
+    return appliedCoupon ? Math.round((cartTotal() - pointsUsed()) * appliedCoupon.percent / 100) : 0;
   }
   function orderTotal() {
-    return cartTotal() - discountAmount() + CONFIG.deliveryCharge;
+    return cartTotal() - pointsUsed() - discountAmount() + CONFIG.deliveryCharge;
+  }
+  // 1 point for every full Rs 100 paid for the items
+  function pointsEarnedNow() {
+    return Math.floor((cartTotal() - pointsUsed() - discountAmount()) / 100);
+  }
+
+  function renderPointsBox() {
+    var box = $("pointsBox");
+    var usable = pointsUsable();
+    var min = CONFIG.pointsMinRedeem;
+    if (!usable) usePoints = false;
+    $("usePointsRow").hidden = !usable;
+    $("usePoints").checked = usePoints && !!usable;
+    if (usable) {
+      $("pointsLabel").textContent = "Use my points: " + usable + " point" + (usable === 1 ? "" : "s") + " = \u2212" + money(usable);
+      $("pointsHint").textContent = "Points are taken off first, then any coupon applies to what is left.";
+    } else if (pointsBalance > 0 && pointsBalance < min) {
+      $("pointsHint").textContent = "You have " + pointsBalance + " point" + (pointsBalance === 1 ? "" : "s") + ". Collect " + min + " to use them (" + (min - pointsBalance) + " more).";
+    } else if (pointsBalance >= min) {
+      $("pointsHint").textContent = "Points can be used on orders of " + money(min) + " or more.";
+    } else {
+      $("pointsHint").textContent = "Earn 1 point for every \u20B9100 you spend. 1 point = \u20B91. Use them once you have " + min + ".";
+    }
+    box.hidden = !currentUser;
   }
 
   function renderSummary() {
     var disc = discountAmount();
+    var pts = pointsUsed();
+    renderPointsBox();
     $("sumSubtotal").textContent = money(cartTotal());
+    $("sumPointsRow").hidden = !pts;
+    $("sumPointsLabel").textContent = "Points used (" + pts + ")";
+    $("sumPoints").textContent = "\u2212" + money(pts);
     $("sumDiscountRow").hidden = !disc;
     $("sumDiscount").textContent = "\u2212" + money(disc);
     $("sumDelivery").textContent = money(CONFIG.deliveryCharge);
     $("sumTotal").textContent = money(orderTotal());
+    var earn = pointsEarnedNow();
+    $("pointsEarnNote").textContent = earn > 0
+      ? "\u2B50 You'll earn " + earn + " point" + (earn === 1 ? "" : "s") + " when this order is delivered."
+      : "\u2B50 Spend \u20B9100 or more on items to earn points.";
+  }
+
+  // Shows the balance in My account and refreshes anything that depends on it
+  function renderPoints() {
+    $("acctPoints").textContent = pointsBalance + (pointsBalance === 1 ? " point" : " points");
+    $("acctPointsValue").textContent = "Worth " + money(pointsBalance) + (pointsBalance >= CONFIG.pointsMinRedeem ? ". Ready to use at checkout." : ". Use them once you have " + CONFIG.pointsMinRedeem + ".");
+    renderSummary();
+  }
+
+  function startWallet(uid) {
+    stopWallet();
+    accountModule().then(function (m) {
+      var stop = m.watchWallet(uid, function (w) {
+        pointsBalance = w && Number(w.balance) > 0 ? Math.floor(Number(w.balance)) : 0;
+        renderPoints();
+      }, function (err) { console.error("Points could not load:", err); });
+      if (currentUser && currentUser.uid === uid) walletStop = stop; else stop();
+    }).catch(function (err) { console.error(err); });
+  }
+  function stopWallet() {
+    if (walletStop) walletStop();
+    walletStop = null;
+    pointsBalance = 0;
+    usePoints = false;
+    if ($("acctPoints")) renderPoints();
   }
 
   function couponMessage(text, kind) {
@@ -2426,6 +2531,7 @@ async function downloadInvoice(order) {
       currentUser = null;
       profile = null;
       myReturns = {};
+      stopWallet();
       renderAccountButton();
       if (!$("checkoutModal").hidden) { closeCheckout(); toast("Please sign in to place your order"); }
       if (!$("reviewModal").hidden) closeReview();
@@ -2437,6 +2543,7 @@ async function downloadInvoice(order) {
     }
     currentUser = { uid: user.uid, name: user.displayName || "", email: user.email || "" };
     renderAccountButton();
+    startWallet(user.uid);
     accountModule()
       .then(function (m) { return m.loadProfile(user.uid); })
       .then(function (p) {
@@ -2551,6 +2658,18 @@ async function downloadInvoice(order) {
       var items = document.createElement("p");
       items.textContent = (o.items || []).map(function (it) { return itemLabel(it) + " \u00D7 " + it.qty; }).join(", ");
       card.appendChild(items);
+
+      var pts = [];
+      if (o.pointsUsed > 0) pts.push("Points used: " + o.pointsUsed + " (\u2212" + money(o.pointsUsed) + ")");
+      if (o.pointsEarned > 0 && o.status !== "cancelled") {
+        pts.push(o.pointsCredited ? "Points earned: " + o.pointsEarned + " (added to your balance)" : "Points to earn: " + o.pointsEarned + " (added after delivery)");
+      }
+      if (pts.length) {
+        var ptsLine = document.createElement("p");
+        ptsLine.className = "acct-points-line";
+        ptsLine.textContent = "\u2B50 " + pts.join(" \u00B7 ");
+        card.appendChild(ptsLine);
+      }
 
       if (o.adminNote) {
         var note = document.createElement("p");
@@ -2976,6 +3095,8 @@ async function downloadInvoice(order) {
       showError("rvError", "");
     });
     $("rvSubmit").addEventListener("click", submitReview);
+    // reward points tick box
+    $("usePoints").addEventListener("change", function () { usePoints = this.checked; renderSummary(); });
     // sign-in agreement window
     $("csCheck").addEventListener("change", updateConsentButton);
     $("csClose").addEventListener("click", function () { closeConsent(false); });
@@ -3879,7 +4000,7 @@ if (!document.getElementById("ordersList")) return; // only on the admin page
 
 // Firebase handles, filled in once the sign-in service has loaded (see the Auth section)
 let auth, db, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, collection, query, orderBy,
-    onSnapshot, doc, updateDoc, writeBatch, serverTimestamp;
+    onSnapshot, doc, updateDoc, writeBatch, serverTimestamp, getDoc, increment;
 
 const ADMIN_EMAIL = "babitavrm60@gmail.com";
 // Suggests which delivery partner to book: Rapido inside the city, Porter for another city.
@@ -4056,9 +4177,29 @@ async function saveReturn(r, btn) {
   try {
     const status = d.status !== undefined ? d.status : retKey(r);
     const adminNote = d.note !== undefined ? d.note : (r.adminNote || "");
-    await updateDoc(doc(db, "returns", r.id), { status, adminNote, updatedAt: serverTimestamp() });
+    const update = { status, adminNote, updatedAt: serverTimestamp() };
+    const batch = writeBatch(db);
+    let pointsMsg = "";
+    // When a refund is sent: the points the customer used come back, and the points this order earned are taken off.
+    if (status === "refunded" && !r.pointsAdjusted) {
+      const ord = orders.find((x) => x.id === (r.orderId || r.id));
+      if (ord && ord.uid) {
+        const give = Number(ord.pointsUsed) || 0;
+        const take = ord.pointsCredited ? (Number(ord.pointsEarned) || 0) : 0;
+        if (give || take) {
+          const ref = doc(db, "wallets", ord.uid);
+          const snap = await getDoc(ref);
+          const current = snap.exists() ? Number(snap.data().balance) || 0 : 0;
+          batch.set(ref, { balance: Math.max(0, current + give - take), updatedAt: serverTimestamp() }, { merge: true });
+          pointsMsg = ` (points: +${give}, -${take})`;
+        }
+        update.pointsAdjusted = true;
+      }
+    }
+    batch.update(doc(db, "returns", r.id), update);
+    await batch.commit();
     delete retDrafts[r.id];
-    toast("Saved");
+    toast("Saved" + pointsMsg);
   } catch (err) {
     console.error(err);
     toast("Could not save. Check your connection and try again.");
@@ -4073,9 +4214,25 @@ async function saveOrder(o, btn) {
   try {
     const status = d.status !== undefined ? d.status : statusKey(o);
     const adminNote = d.note !== undefined ? d.note : (o.adminNote || "");
-    await updateDoc(doc(db, "orders", o.id), { status, adminNote, updatedAt: serverTimestamp() });
+    const update = { status, adminNote, updatedAt: serverTimestamp() };
+    const batch = writeBatch(db);
+    let pointsMsg = "";
+    // Reward points: earned points are added once, when the order becomes Delivered.
+    if (status === "delivered" && !o.pointsCredited && Number(o.pointsEarned) > 0 && o.uid) {
+      batch.set(doc(db, "wallets", o.uid), { balance: increment(Number(o.pointsEarned)), updatedAt: serverTimestamp() }, { merge: true });
+      update.pointsCredited = true;
+      pointsMsg = ` (+${o.pointsEarned} points added)`;
+    }
+    // A cancelled order gives the customer's redeemed points back, once.
+    if (status === "cancelled" && !o.pointsRestored && Number(o.pointsUsed) > 0 && o.uid) {
+      batch.set(doc(db, "wallets", o.uid), { balance: increment(Number(o.pointsUsed)), updatedAt: serverTimestamp() }, { merge: true });
+      update.pointsRestored = true;
+      pointsMsg = ` (${o.pointsUsed} points given back)`;
+    }
+    batch.update(doc(db, "orders", o.id), update);
+    await batch.commit();
     delete drafts[o.id];
-    toast("Saved");
+    toast("Saved" + pointsMsg);
   } catch (err) {
     console.error(err);
     toast("Could not save. Check your connection and try again.");
@@ -4187,8 +4344,12 @@ function orderCard(o) {
   const payBox = el("div");
   payBox.appendChild(el("h3", "", "Payment"));
   const coupon = o.discount > 0 ? ` \u2212 coupon ${o.couponCode || ""} ${money(o.discount)}` : "";
-  const breakdown = o.deliveryCharge !== undefined ? ` (items ${money(o.subtotal)}${coupon} + delivery ${money(o.deliveryCharge)})` : "";
-  payBox.appendChild(el("p", "o-text", `Amount to match: ${money(o.total)}${breakdown}\nUTR given by customer: ${o.utr || ""}`));
+  const points = o.pointsUsed > 0 ? ` \u2212 points ${money(o.pointsUsed)}` : "";
+  const breakdown = o.deliveryCharge !== undefined ? ` (items ${money(o.subtotal)}${points}${coupon} + delivery ${money(o.deliveryCharge)})` : "";
+  let pointsInfo = "";
+  if (o.pointsUsed > 0) pointsInfo += `\nPoints used: ${o.pointsUsed}`;
+  if (o.pointsEarned > 0) pointsInfo += `\nPoints to earn: ${o.pointsEarned} (${o.pointsCredited ? "already added" : "added when you mark it Delivered"})`;
+  payBox.appendChild(el("p", "o-text", `Amount to match: ${money(o.total)}${breakdown}\nUTR given by customer: ${o.utr || ""}${pointsInfo}`));
   body.appendChild(payBox);
 
   /* Quick contact buttons */
@@ -4601,7 +4762,7 @@ function showAuth(message, canSignIn) {
 showAuth("Checking your sign-in\u2026", false);
 try {
   ({ auth, db, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, collection, query, orderBy,
-     onSnapshot, doc, updateDoc, writeBatch, serverTimestamp } = await window.SWData.sdk());
+     onSnapshot, doc, updateDoc, writeBatch, serverTimestamp, getDoc, increment } = await window.SWData.sdk());
 } catch (err) {
   console.error(err);
   showAuth("Couldn't load the sign-in service. If you use an ad blocker, pause it for this page and reload.", false);

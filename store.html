@@ -210,6 +210,14 @@
           </div>
           <label for="custNote">Note (optional)</label>
           <input id="custNote" name="note" type="text" maxlength="300" placeholder="Colour, name to write, occasion…">
+          <div id="pointsBox" class="points-box" hidden>
+            <div class="points-box-head"><i class="fa fa-star" aria-hidden="true"></i> Reward points</div>
+            <label id="usePointsRow" class="check-row points-row" hidden>
+              <input id="usePoints" type="checkbox"> <span id="pointsLabel"></span>
+            </label>
+            <p id="pointsHint" class="hint"></p>
+          </div>
+
           <label for="couponInput">Coupon code (optional, one use per customer)</label>
           <div class="coupon-row">
             <input id="couponInput" type="text" placeholder="Have a coupon? Enter your code here" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="30">
@@ -219,10 +227,12 @@
 
           <div class="summary-box" aria-label="Order summary">
             <div class="sub-row"><span>Items subtotal</span><span id="sumSubtotal">₹0</span></div>
+            <div id="sumPointsRow" class="sub-row sub-points" hidden><span id="sumPointsLabel">Points used</span><span id="sumPoints">₹0</span></div>
             <div id="sumDiscountRow" class="sub-row" hidden><span>Coupon discount</span><span id="sumDiscount">₹0</span></div>
             <div class="sub-row"><span>Delivery charge</span><span id="sumDelivery">₹0</span></div>
             <div class="total-row"><span>Total to pay</span><strong id="sumTotal">₹0</strong></div>
           </div>
+          <p id="pointsEarnNote" class="points-earn" aria-live="polite"></p>
 
           <label id="saveDetailsRow" class="check-row" hidden>
             <input id="saveDetails" type="checkbox" checked> Save these details to my account
@@ -249,6 +259,7 @@
         <!-- Step 3: confirmation -->
         <div class="step" data-step="done" hidden>
           <p class="small confirm-text">Thanks! Your order <strong id="doneOrderId"></strong> is waiting for payment verification. You can follow it any time under My orders. We'll also confirm on WhatsApp once the payment is checked.</p>
+          <p id="doneEarn" class="points-earn" role="status"></p>
           <button id="trackNowBtn" class="btn-inline wide" type="button">Track this order</button>
           <a id="waAgainBtn" class="link-btn"  href="#" target="_blank" rel="noopener">Open WhatsApp again</a>
           <button id="doneClose" class="link-btn" type="button">Back to store</button>
@@ -410,6 +421,15 @@
           <button id="acctClose" class="icon-btn" aria-label="Close my account">&times;</button>
         </div>
         <p id="acctEmail" class="small acct-email"></p>
+
+        <div class="points-card" aria-label="Your reward points">
+          <span class="points-star" aria-hidden="true"><i class="fa fa-star"></i></span>
+          <div class="points-main">
+            <strong id="acctPoints" aria-live="polite">0 points</strong>
+            <span id="acctPointsValue">Worth ₹0. Use them once you have 20.</span>
+          </div>
+          <p class="points-how">Earn 1 point for every ₹100 you spend on items, added after your order is delivered. 1 point = ₹1. From 20 points you can use them at checkout, before any coupon.</p>
+        </div>
 
         <h3 class="acct-h">Saved details</h3>
         <form id="acctForm" novalidate>

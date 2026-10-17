@@ -2352,8 +2352,52 @@ async function downloadInvoice(order) {
     $("saveDetailsRow").hidden = !currentUser;
   }
 
-  // Resolves with the signed-in user, or nothing if the pop-up was closed or failed
+  /* ----- Agree to the Terms and Privacy Policy before signing in ----- */
+  var consentResolve = null, consentReturnFocus = null;
+
+  function updateConsentButton() {
+    var ok = $("csCheck").checked;
+    $("csContinue").setAttribute("aria-disabled", String(!ok));
+    $("csContinue").classList.toggle("is-disabled", !ok);
+    if (ok) showError("csError", "");
+  }
+
+  // Resolves true once the person ticks the box and continues, false if they close the window
+  function askConsent() {
+    return new Promise(function (resolve) {
+      if (!$("consentModal").hidden) { resolve(false); return; }
+      consentResolve = resolve;
+      $("csCheck").checked = false;
+      updateConsentButton();
+      showError("csError", "");
+      consentReturnFocus = document.activeElement;
+      $("consentModal").hidden = false;
+      document.body.classList.add("store-locked");
+      $("csCheck").focus();
+    });
+  }
+
+  function closeConsent(agreed) {
+    if ($("consentModal").hidden) return;
+    $("consentModal").hidden = true;
+    var stillOpen = ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal", "returnModal"].some(function (id) { return !$(id).hidden; }) ||
+      $("cartDrawer").classList.contains("open");
+    if (!stillOpen) document.body.classList.remove("store-locked");
+    if (consentReturnFocus && consentReturnFocus.focus) consentReturnFocus.focus();
+    var done = consentResolve;
+    consentResolve = null;
+    if (done) done(!!agreed);
+  }
+
+  // Resolves with the signed-in user, or nothing if they did not agree, closed the pop-up or it failed
   function signIn() {
+    return askConsent().then(function (agreed) {
+      if (!agreed) return;
+      return googleSignIn();
+    });
+  }
+
+  function googleSignIn() {
     return accountModule()
       .then(function (m) { return m.signInGoogle(); })
       .then(function (cred) {
@@ -2836,7 +2880,7 @@ async function downloadInvoice(order) {
       window.SWUI.customSelect($("sortSelect"), { label: "Sort by" });
       window.SWUI.customSelect($("rtReason"), { label: "Reason for return" });
       // every pop-up window (and the cart's backdrop) fades/pops on open and close
-      ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal", "returnModal", "cartOverlay"].forEach(function (id) {
+      ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal", "returnModal", "consentModal", "cartOverlay"].forEach(function (id) {
         window.SWUI.animateModal($(id));
       });
     }
@@ -2932,6 +2976,18 @@ async function downloadInvoice(order) {
       showError("rvError", "");
     });
     $("rvSubmit").addEventListener("click", submitReview);
+    // sign-in agreement window
+    $("csCheck").addEventListener("change", updateConsentButton);
+    $("csClose").addEventListener("click", function () { closeConsent(false); });
+    $("consentModal").addEventListener("click", function (e) { if (e.target === $("consentModal")) closeConsent(false); });
+    $("csContinue").addEventListener("click", function () {
+      if (!$("csCheck").checked) {
+        showError("csError", "Please tick the box to agree before you continue.");
+        $("csCheck").focus();
+        return;
+      }
+      closeConsent(true);
+    });
     // return window
     $("rtClose").addEventListener("click", closeReturn);
     $("returnModal").addEventListener("click", function (e) { if (e.target === $("returnModal")) closeReturn(); });
@@ -2993,7 +3049,8 @@ async function downloadInvoice(order) {
 
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
-      if (!$("returnModal").hidden) closeReturn();
+      if (!$("consentModal").hidden) closeConsent(false);
+      else if (!$("returnModal").hidden) closeReturn();
       else if (!$("reviewModal").hidden) closeReview();
       else if (!$("checkoutModal").hidden) closeCheckout();
       else if (!$("trackModal").hidden) closeTrack();
@@ -3291,7 +3348,7 @@ async function downloadInvoice(order) {
     {
       test: /\b(custom order|commission|order|buy|purchase|price|cost|rate)\b/i,
       reply:
-        "For custom orders, the quickest way is to message Shivam directly on WhatsApp: https://wa.link/zvaoa9 — share what you'd like (calligraphy, sketch, DIY piece, etc.) and he'll get back to you with details.",
+        "For custom orders, the quickest way is to message Shivam directly on WhatsApp: https://wa.me/919005325544 — share what you'd like (calligraphy, sketch, DIY piece, etc.) and he'll get back to you with details.",
     },
     {
       test: /\b(contact|reach|email|phone|number|whatsapp|call)\b/i,
@@ -3328,7 +3385,7 @@ async function downloadInvoice(order) {
     for (const intent of LOCAL_INTENTS) {
       if (intent.test.test(userText)) return intent.reply;
     }
-    return "I'm not fully sure about that one — the best way to get an accurate answer is to reach out to Shivam directly on WhatsApp: https://wa.link/zvaoa9";
+    return "I'm not fully sure about that one — the best way to get an accurate answer is to reach out to Shivam directly on WhatsApp: https://wa.me/919005325544";
   }
 
   /* ----- Rendering ----- */
@@ -3825,6 +3882,10 @@ let auth, db, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, 
     onSnapshot, doc, updateDoc, writeBatch, serverTimestamp;
 
 const ADMIN_EMAIL = "babitavrm60@gmail.com";
+// Suggests which delivery partner to book: Rapido inside the city, Porter for another city.
+// PRODUCTION is your workshop; orders pinned within CITY_RADIUS_KM (by road, roughly) count as in the city.
+const PRODUCTION = { lat: 26.444917, lng: 80.325111 };
+const CITY_RADIUS_KM = 30;
 const THEME_KEY = "sw-theme";
 
 // Return requests (refund or replacement). The last "done" step depends on the type of request.
@@ -3975,6 +4036,19 @@ function returnMessage(r, key, note) {
   return text;
 }
 
+// "Delivery partner (suggested): Rapido (within the city, about 6 km)" or Porter, from the pinned location
+function partnerHint(o) {
+  const l = o.location;
+  if (!l || typeof l.lat !== "number" || typeof l.lng !== "number") return "\n\nDelivery partner: no pinned location, so choose Rapido or Porter yourself";
+  const rad = Math.PI / 180;
+  const dLat = (l.lat - PRODUCTION.lat) * rad;
+  const dLng = (l.lng - PRODUCTION.lng) * rad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(PRODUCTION.lat * rad) * Math.cos(l.lat * rad) * Math.sin(dLng / 2) ** 2;
+  const km = 2 * 6371 * Math.asin(Math.sqrt(a)) * 1.3; // straight line x 1.3 is roughly the road distance
+  const near = km <= CITY_RADIUS_KM;
+  return `\n\nDelivery partner (suggested): ${near ? "Rapido (within the city" : "Porter (another city"}, about ${Math.round(km)} km)`;
+}
+
 /* ---------- Actions ---------- */
 async function saveReturn(r, btn) {
   const d = retDrafts[r.id] || {};
@@ -4103,7 +4177,7 @@ function orderCard(o) {
 
   const custBox = el("div");
   custBox.appendChild(el("h3", "", "Customer"));
-  custBox.appendChild(el("p", "o-text", `${o.name || ""}\n${o.phone || ""}\n${o.address || ""}`));
+  custBox.appendChild(el("p", "o-text", `${o.name || ""}\n${o.phone || ""}\n${o.address || ""}` + partnerHint(o)));
   if (o.note) {
     custBox.appendChild(el("h3", "", "Customer note"));
     custBox.appendChild(el("p", "o-text", o.note));

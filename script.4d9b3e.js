@@ -544,7 +544,7 @@ document.addEventListener("DOMContentLoaded", () => {
     {
       test: /\b(custom order|commission|order|buy|purchase|price|cost|rate)\b/i,
       reply:
-        "For custom orders, the quickest way is to message Shivam directly on WhatsApp: https://wa.link/zvaoa9 — share what you'd like (calligraphy, sketch, DIY piece, etc.) and he'll get back to you with details.",
+        "For custom orders, the quickest way is to message Shivam directly on WhatsApp: https://wa.me/919005325544 — share what you'd like (calligraphy, sketch, DIY piece, etc.) and he'll get back to you with details.",
     },
     {
       test: /\b(contact|reach|email|phone|number|whatsapp|call)\b/i,
@@ -581,7 +581,7 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const intent of LOCAL_INTENTS) {
       if (intent.test.test(userText)) return intent.reply;
     }
-    return "I'm not fully sure about that one — the best way to get an accurate answer is to reach out to Shivam directly on WhatsApp: https://wa.link/zvaoa9";
+    return "I'm not fully sure about that one — the best way to get an accurate answer is to reach out to Shivam directly on WhatsApp: https://wa.me/919005325544";
   }
 
   /* ----- Rendering ----- */

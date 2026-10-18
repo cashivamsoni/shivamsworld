@@ -3221,6 +3221,42 @@ async function downloadInvoice(order) {
    AI assistant. Each block does nothing when its buttons are not on the page, so admin.html is not affected.
    (Dark mode itself is wired up in section 3, from the floral menu's first petal.) */
 
+/* ---------- Welcome Popup ----------
+   One popup design for the homepage, the store and the classroom. Each page puts its own text in
+   #swWelcome (data-key says which page). It opens once per browser session for each page. */
+(function () {
+  const overlay = document.getElementById("swWelcome");
+  if (!overlay) return;
+  const key = "sw-welcome-" + (overlay.getAttribute("data-key") || "page");
+  try { if (sessionStorage.getItem(key) === "1") return; } catch (e) {}
+
+  function onKey(e) { if (e.key === "Escape") close(); }
+
+  function open() {
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
+    requestAnimationFrame(function () { overlay.classList.add("show"); });
+    const first = overlay.querySelector(".sw-welcome-ok");
+    if (first) first.focus({ preventScroll: true });
+    document.addEventListener("keydown", onKey);
+  }
+
+  function close() {
+    try { sessionStorage.setItem(key, "1"); } catch (e) {}
+    overlay.classList.remove("show");
+    document.body.style.overflow = "";
+    document.removeEventListener("keydown", onKey);
+    setTimeout(function () { overlay.hidden = true; }, 250);
+  }
+
+  // Close from the X, the buttons marked data-welcome-close, or a click outside the box
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay || e.target.closest("[data-welcome-close]")) close();
+  });
+
+  open();
+})();
+
 /* ---------- Floral Quick Menu ---------- */
 (function () {
   const menu = document.getElementById("floralMenu");

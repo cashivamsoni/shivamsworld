@@ -103,7 +103,7 @@
   }
 
   document.querySelectorAll("img").forEach(function (img) {
-    if (img.closest("header") || img.closest("#popupBoxUnique") || img === lightboxImg) return;
+    if (img.closest("header") || img.closest(".sw-welcome") || img === lightboxImg) return;
     img.style.cursor = "zoom-in";
     img.addEventListener("click", function () {
       openLightbox(img.src, img.alt);
@@ -149,34 +149,40 @@
   });
 })();
 
-/* ---------- Welcome Popup ---------- */
+/* ---------- Welcome Popup ----------
+   One popup design for the homepage, the store and the classroom. Each page puts its own text in
+   #swWelcome (data-key says which page). It opens once per browser session for each page. */
 (function () {
-  const closeBtn = document.getElementById("popupCloseUnique");
-  const overlay = document.getElementById("popupOverlayUnique");
+  const overlay = document.getElementById("swWelcome");
+  if (!overlay) return;
+  const key = "sw-welcome-" + (overlay.getAttribute("data-key") || "page");
+  try { if (sessionStorage.getItem(key) === "1") return; } catch (e) {}
 
-  // Show popup on page load and lock scroll
-  if (overlay) {
-    overlay.style.display = "flex";
+  function onKey(e) { if (e.key === "Escape") close(); }
+
+  function open() {
+    overlay.hidden = false;
     document.body.style.overflow = "hidden";
+    requestAnimationFrame(function () { overlay.classList.add("show"); });
+    const first = overlay.querySelector(".sw-welcome-ok");
+    if (first) first.focus({ preventScroll: true });
+    document.addEventListener("keydown", onKey);
   }
 
-  // Close when clicking the X button
-  if (closeBtn) {
-    closeBtn.onclick = function () {
-      overlay.style.display = "none";
-      document.body.style.overflow = "";
-    };
+  function close() {
+    try { sessionStorage.setItem(key, "1"); } catch (e) {}
+    overlay.classList.remove("show");
+    document.body.style.overflow = "";
+    document.removeEventListener("keydown", onKey);
+    setTimeout(function () { overlay.hidden = true; }, 250);
   }
 
-  // Close when clicking outside the popup box (on the overlay)
-  if (overlay) {
-    overlay.addEventListener("click", function (event) {
-      if (event.target === overlay) {
-        overlay.style.display = "none";
-        document.body.style.overflow = "";
-      }
-    });
-  }
+  // Close from the X, the buttons marked data-welcome-close, or a click outside the box
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay || e.target.closest("[data-welcome-close]")) close();
+  });
+
+  open();
 })();
 
 /* ---------- Search Bar (Shivam's World) ---------- */

@@ -606,13 +606,14 @@
 
       /* ---------- Study timer ---------- */
       var total = 25 * 60, left = total, timer = null, label = "Focus";
+      var pageTitle = document.title; // the tab title from <title>; restored whenever the timer is not running
       var done = 0, key = "sw-classroom-sessions-" + new Date().toDateString();
       try { done = parseInt(localStorage.getItem(key) || "0", 10) || 0; } catch (e) {}
       function show() {
         $("crTime").textContent = pad(Math.floor(left / 60)) + ":" + pad(left % 60);
         $("crBar").style.width = ((total - left) / total * 100) + "%";
         $("crTimerNote").textContent = "Sessions completed today: " + done;
-        document.title = timer ? pad(Math.floor(left / 60)) + ":" + pad(left % 60) + " · " + label : "Shivam's Classroom - Live Classes & Study Resources";
+        document.title = timer ? pad(Math.floor(left / 60)) + ":" + pad(left % 60) + " · " + label : pageTitle;
       }
       function stop() { clearInterval(timer); timer = null; $("crStart").textContent = "▶ Start"; }
       function beep() {

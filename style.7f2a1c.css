@@ -884,7 +884,7 @@ p.ftsmall {
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   z-index: 50;
 }
 
@@ -892,10 +892,10 @@ p.ftsmall {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 45px;
-  height: 45px;
-  border-radius: 0 14px 14px 0;
-  font-size: 25px;
+  width: 34px;
+  height: 34px;
+  border-radius: 0 10px 10px 0;
+  font-size: 19px;
   text-decoration: none;
   color: #fff;
   border: 2px solid rgba(255,255,255,0.6);
@@ -911,8 +911,8 @@ p.ftsmall {
 .social-fixed a.fa-whatsapp  { background: linear-gradient(135deg, var(--secondary-teal), #128c7e); }
 
 .social-fixed a.fa:hover {
-  width: 65px;
-  font-size: 30px;
+  width: 49px;
+  font-size: 23px;
   box-shadow: 0 0 18px rgba(255,255,255,0.8);
   transform: scale(1.06);
 }

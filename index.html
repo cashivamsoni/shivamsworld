@@ -70,11 +70,28 @@
 
 
     <!-- Welcome Popup -->
-    <div id="popupOverlayUnique">
-      <div id="popupBoxUnique">
-        <button id="popupCloseUnique" aria-label="Close"></button>
-        <h1>Welcome!</h1>
-        <h2 style="text-align:justify;">Welcome to Shivam's World - your home for calligraphy, DIYs, sketches, and creative content. Explore, get inspired, and feel free to reach out for a custom order!</h2>
+    <div id="swWelcome" class="sw-welcome" data-key="home" role="dialog" aria-modal="true" aria-labelledby="swWelcomeTitle" hidden>
+      <div class="sw-welcome-box">
+        <div class="sw-welcome-hero">
+          <button type="button" class="sw-welcome-close" data-welcome-close aria-label="Close"></button>
+          <span class="sw-welcome-emoji" aria-hidden="true">🎨</span>
+          <p class="sw-welcome-kicker">Welcome to</p>
+          <h1 id="swWelcomeTitle">Shivam's World</h1>
+        </div>
+        <div class="sw-welcome-body">
+          <p class="sw-welcome-intro">Your home for calligraphy, DIYs, sketches and creative content. Reach out any time for a custom order, and take a look at what's new:</p>
+          <h2 class="sw-welcome-sub">What's new</h2>
+          <ul class="sw-welcome-list">
+            <li><span class="sw-welcome-ico"><i class="fa fa-shopping-bag" aria-hidden="true"></i></span><span><strong>The Store is open.</strong> Shop handmade gifts, order with UPI and earn reward points.</span></li>
+            <li><span class="sw-welcome-ico"><i class="fa fa-graduation-cap" aria-hidden="true"></i></span><span><strong>A free Classroom.</strong> Live classes, notes and revision charts, exclusively for commerce students.</span></li>
+            <li><span class="sw-welcome-ico"><i class="fa fa-comments-o" aria-hidden="true"></i></span><span><strong>An AI assistant.</strong> Tap the chat button for help with videos, orders and classes.</span></li>
+            <li><span class="sw-welcome-ico"><i class="fa fa-bars" aria-hidden="true"></i></span><span><strong>One menu everywhere.</strong> Hop between Home, Store and Classroom, with dark mode and quick actions in the floral button.</span></li>
+          </ul>
+          <div class="sw-welcome-actions">
+            <a class="btn-inline sw-welcome-ok" href="store.html" data-welcome-close>Visit the Store</a>
+            <button type="button" class="btn-inline" data-welcome-close>Explore the homepage</button>
+          </div>
+        </div>
       </div>
     </div>
 

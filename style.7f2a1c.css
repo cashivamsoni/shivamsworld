@@ -1665,6 +1665,7 @@ footer.sw-footer {
 
 .sw-footer .ft-bottom p { margin: 0; color: rgba(255,255,255,0.94); }
 .sw-footer .ft-copy { text-align: right; }
+.sw-footer .ft-visits { text-align: left; }
 
 /* a page without the visit counter: the copyright line sits in the middle */
 .sw-footer .ft-bottom > :only-child { margin: 0 auto; text-align: center; }
@@ -1679,6 +1680,7 @@ footer.sw-footer {
   .sw-footer .ft-cols { grid-template-columns: 1fr; gap: 24px; }
   .sw-footer .ft-bottom { justify-content: center; text-align: center; }
   .sw-footer .ft-copy { text-align: center; }
+  .sw-footer .ft-visits { text-align: center; }
 }
 
 

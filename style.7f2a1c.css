@@ -1508,6 +1508,175 @@ footer h1 { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.4); }
 
 footer a { color: #fff; }
 
+/* ---------- Footer (the same on every page) ---------- */
+footer.sw-footer {
+  padding: 40px 20px 100px; /* extra room at the bottom so the floating buttons never cover the text */
+  text-align: left;
+}
+
+.sw-footer .ft-wrap { max-width: 1100px; margin: 0 auto; }
+
+.sw-footer .ft-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.28);
+}
+
+.sw-footer .ft-brand h2 {
+  margin: 0;
+  font-family: 'DM Serif Display', serif;
+  font-weight: 400;
+  font-size: 34px;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255,255,255,0.35);
+}
+
+.sw-footer .ft-brand p {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.88);
+}
+
+.sw-footer .ft-social { display: flex; gap: 12px; }
+
+.sw-footer .ft-social a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.35);
+  color: #fff;
+  font-size: 19px;
+  text-decoration: none;
+  transition: transform 0.15s ease-out, background 0.15s ease-out;
+}
+
+.sw-footer .ft-social a:hover {
+  background: rgba(255,255,255,0.3);
+  transform: translateY(-2px) scale(1.06);
+}
+
+.sw-footer .ft-cols {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1.25fr 1.05fr;
+  gap: 32px;
+  padding: 28px 0 26px;
+}
+
+.sw-footer .ft-col h3 {
+  position: relative;
+  margin: 0 0 16px;
+  padding-bottom: 8px;
+  font-family: 'DM Serif Display', serif;
+  font-weight: 400;
+  font-size: 21px;
+  color: #fff;
+}
+
+.sw-footer .ft-col h3::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 34px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.55);
+}
+
+.sw-footer .ft-col p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.94);
+}
+
+.sw-footer .ft-links { list-style: none; margin: 0; padding: 0; }
+.sw-footer .ft-links li { margin: 0 0 11px; padding: 0; }
+
+.sw-footer .ft-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.35;
+  text-decoration: none;
+  opacity: 0.92;
+  overflow-wrap: anywhere;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.sw-footer .ft-links a .fa { flex: 0 0 16px; width: 16px; text-align: center; opacity: 0.8; }
+
+.sw-footer .ft-links a:hover { opacity: 1; transform: translateX(3px); }
+
+.sw-footer .ft-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 14px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255,255,255,0.28);
+  border-bottom: 1px solid rgba(255,255,255,0.28);
+  font-size: 14.5px;
+}
+
+.sw-footer .ft-legal a {
+  display: inline-flex;
+  align-items: center;
+  color: #fff;
+  text-decoration: none;
+  opacity: 0.92;
+}
+
+.sw-footer .ft-legal a:hover { opacity: 1; text-decoration: underline; }
+
+.sw-footer .ft-legal a + a::before {
+  content: "\2022";
+  margin-right: 14px;
+  color: rgba(255,255,255,0.55);
+}
+
+.sw-footer .ft-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 18px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.94);
+}
+
+.sw-footer .ft-bottom p { margin: 0; color: rgba(255,255,255,0.94); }
+.sw-footer .ft-copy { text-align: right; }
+
+/* a page without the visit counter: the copyright line sits in the middle */
+.sw-footer .ft-bottom > :only-child { margin: 0 auto; text-align: center; }
+
+@media (max-width: 900px) {
+  .sw-footer .ft-cols { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 560px) {
+  footer.sw-footer { padding: 32px 16px 100px; }
+  .sw-footer .ft-top { justify-content: center; text-align: center; }
+  .sw-footer .ft-cols { grid-template-columns: 1fr; gap: 24px; }
+  .sw-footer .ft-bottom { justify-content: center; text-align: center; }
+  .sw-footer .ft-copy { text-align: center; }
+}
+
 
 /* ---------- Smooth light/dark switch (all pages) ---------- */
 ::view-transition-old(root),

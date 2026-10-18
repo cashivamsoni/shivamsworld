@@ -590,6 +590,43 @@
         });
       });
       show();
+
+      /* ---------- FAQ: smooth open / close ---------- */
+      var noMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      document.querySelectorAll(".cr-faq details").forEach(function (d) {
+        var summary = d.querySelector("summary");
+        var answer = d.querySelector("p");
+        var anim = null;
+        summary.addEventListener("click", function (e) {
+          if (noMotion || !d.animate) return;        // plain open/close when motion is off
+          e.preventDefault();
+          if (anim) { anim.cancel(); anim = null; }
+          var cs = getComputedStyle(d);
+          var closedH = summary.offsetHeight + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) +
+                        parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+          var startH = d.offsetHeight;
+          var opening = !d.open;
+          if (opening) d.open = true;                // open first so the full height can be measured
+          var endH = opening ? d.offsetHeight : closedH;
+          d.style.overflow = "hidden";
+          anim = d.animate(
+            { height: [startH + "px", endH + "px"] },
+            { duration: 320, easing: "ease", fill: "forwards" }
+          );
+          if (answer) {
+            answer.animate(
+              { opacity: opening ? [0, 1] : [1, 0] },
+              { duration: 320, easing: "ease" }
+            );
+          }
+          anim.onfinish = function () {
+            if (!opening) d.open = false;
+            anim.cancel();                           // drop the forced height
+            anim = null;
+            d.style.overflow = "";
+          };
+        });
+      });
     })();
     </script>
     <script src="script.4d9b3e.js"></script>

@@ -382,7 +382,13 @@ p.ftsmall {
 
 .sw-welcome-hero {
   position: relative;
-  padding: 26px 24px 20px;
+  /* compact header: the badge sits beside "Welcome to the / Title" instead of above it */
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 14px;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 56px;
   text-align: center;
   color: #fff;
   background:
@@ -395,18 +401,21 @@ p.ftsmall {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 10px;
+  grid-row: 1 / span 2;
+  width: 54px;
+  height: 54px;
+  margin: 0;
   border-radius: 50%;
   background: rgba(255,255,255,0.18);
   border: 2px solid rgba(255,255,255,0.7);
   box-shadow: 0 0 16px rgba(255,255,255,0.45);
-  font-size: 32px;
+  font-size: 27px;
   line-height: 1;
 }
 
 .sw-welcome .sw-welcome-kicker {
+  grid-column: 2;
+  align-self: end;
   margin: 0;
   text-align: center;
   font-size: 12px;
@@ -417,6 +426,8 @@ p.ftsmall {
 }
 
 .sw-welcome .sw-welcome-hero h1 {
+  grid-column: 2;
+  align-self: start;
   margin: 2px 0 0;
   font-size: 34px;
   line-height: 1.15;
@@ -506,6 +517,12 @@ p.ftsmall {
 
 .sw-welcome-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
 .sw-welcome-actions .btn-inline { flex: 1 1 150px; margin-top: 0; }
+
+@media (max-width: 420px) {
+  .sw-welcome-hero { padding: 18px 46px; column-gap: 10px; }
+  .sw-welcome-emoji { width: 46px; height: 46px; font-size: 22px; }
+  .sw-welcome .sw-welcome-hero h1 { font-size: 28px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .sw-welcome, .sw-welcome-box { transition: none; }

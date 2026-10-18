@@ -151,12 +151,10 @@
 
 /* ---------- Welcome Popup ----------
    One popup design for the homepage, the store and the classroom. Each page puts its own text in
-   #swWelcome (data-key says which page). It opens once per browser session for each page. */
+   #swWelcome. It opens on every page load and refresh. */
 (function () {
   const overlay = document.getElementById("swWelcome");
   if (!overlay) return;
-  const key = "sw-welcome-" + (overlay.getAttribute("data-key") || "page");
-  try { if (sessionStorage.getItem(key) === "1") return; } catch (e) {}
 
   function onKey(e) { if (e.key === "Escape") close(); }
 
@@ -170,7 +168,6 @@
   }
 
   function close() {
-    try { sessionStorage.setItem(key, "1"); } catch (e) {}
     overlay.classList.remove("show");
     document.body.style.overflow = "";
     document.removeEventListener("keydown", onKey);

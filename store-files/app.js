@@ -1078,7 +1078,8 @@ async function downloadInvoice(order) {
       var card = document.createElement("article");
       card.className = "product-card";
       card.innerHTML =
-        '<div class="product-img"><img loading="lazy" alt=""></div>' +
+        '<div class="product-img"><img loading="lazy" alt="">' +
+          '<button type="button" class="wish-btn" aria-pressed="false"><i class="fa fa-heart-o" aria-hidden="true"></i></button></div>' +
         '<div class="product-body">' +
           '<h2><button type="button" class="product-title-btn"></button></h2>' +
           '<div class="rating-line" hidden></div>' +
@@ -1103,11 +1104,14 @@ async function downloadInvoice(order) {
       // Clicking anywhere on the card opens the product, except the Add to cart button.
       // (The name stays a real button so keyboard users can open it too; its click reaches the card.)
       card.addEventListener("click", function (e) {
-        if (e.target.closest && e.target.closest(".add-btn")) return;
+        if (e.target.closest && e.target.closest(".add-btn, .wish-btn")) return;
         var picked = window.getSelection ? String(window.getSelection()) : "";
         if (picked) return; // the person was selecting text, not tapping the card
         openProduct(p.id);
       });
+      var heart = card.querySelector(".wish-btn");
+      setWishBtn(heart, p, isWished(p.id));
+      heart.addEventListener("click", function (e) { e.stopPropagation(); toggleWish(p.id); });
       var btn = card.querySelector(".add-btn");
       btn.setAttribute("aria-label", "Add " + p.name + " to cart");
       btn.addEventListener("click", function () { addToCart(p.id); });
@@ -2418,6 +2422,170 @@ async function downloadInvoice(order) {
     });
   }
 
+  /* ---------- Wishlist (hearts on the product cards; the list sits under My account) ---------- */
+  // Saved in this browser, one list per signed-in customer (hearts tapped while signed out
+  // are kept as a guest list and join the customer's own list when they sign in).
+  var WISH_PREFIX = "sw-wishlist-";
+  var wishlist = [];
+  var wishReturnFocus = null;
+
+  function readWish(key) {
+    try {
+      var list = JSON.parse(storeGet(key) || "[]");
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+  }
+  function wishKey() { return WISH_PREFIX + (currentUser ? currentUser.uid : "guest"); }
+  function loadWishlist() {
+    wishlist = readWish(wishKey()).filter(function (id) { return !!findProduct(id); });
+  }
+  function saveWishlist() { storeSet(wishKey(), JSON.stringify(wishlist)); }
+  function isWished(id) { return wishlist.indexOf(id) !== -1; }
+
+  function setWishBtn(btn, p, on) {
+    btn.classList.toggle("on", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.setAttribute("aria-label", on ? "Remove " + p.name + " from wishlist" : "Save " + p.name + " to wishlist");
+    btn.setAttribute("title", on ? "Remove from wishlist" : "Save to wishlist");
+    var icon = btn.querySelector("i");
+    if (icon) icon.className = on ? "fa fa-heart" : "fa fa-heart-o";
+  }
+
+  function refreshWishHearts() {
+    Array.prototype.forEach.call(document.querySelectorAll(".product-card"), function (card) {
+      var p = findProduct(card.getAttribute("data-pid"));
+      var btn = card.querySelector(".wish-btn");
+      if (p && btn) setWishBtn(btn, p, isWished(p.id));
+    });
+  }
+
+  function renderWishCount() {
+    var n = wishlist.length;
+    var el = $("acctWishCount");
+    if (el) el.textContent = n ? n + (n === 1 ? " saved product" : " saved products") : "Nothing saved yet";
+  }
+
+  function toggleWish(id) {
+    var p = findProduct(id);
+    if (!p) return;
+    var at = wishlist.indexOf(id);
+    if (at === -1) wishlist.push(id); else wishlist.splice(at, 1);
+    saveWishlist();
+    refreshWishHearts();
+    renderWishCount();
+    if (!$("wishModal").hidden) renderWishlist();
+    if (at !== -1) toast("Removed from your wishlist");
+    else toast(currentUser ? "Added to your wishlist" : "Added to wishlist. Sign in to see it under My account");
+  }
+
+  // Runs whenever someone signs in or out: switch lists, and carry guest hearts across
+  function wishlistUserChanged() {
+    if (currentUser) {
+      var guest = readWish(WISH_PREFIX + "guest");
+      if (guest.length) {
+        var mine = readWish(WISH_PREFIX + currentUser.uid);
+        guest.forEach(function (id) { if (mine.indexOf(id) === -1) mine.push(id); });
+        storeSet(WISH_PREFIX + currentUser.uid, JSON.stringify(mine));
+        try { localStorage.removeItem(WISH_PREFIX + "guest"); } catch (e) { /* ignore */ }
+      }
+    }
+    loadWishlist();
+    refreshWishHearts();
+    renderWishCount();
+    if (!$("wishModal").hidden) renderWishlist();
+  }
+
+  function renderWishlist() {
+    var box = $("wishList");
+    box.textContent = "";
+    if (!wishlist.length) {
+      var empty = document.createElement("p");
+      empty.className = "acct-empty";
+      empty.textContent = "Nothing saved yet. Tap the heart on any product to keep it here.";
+      box.appendChild(empty);
+      var browse = document.createElement("button");
+      browse.type = "button";
+      browse.className = "btn-inline wide";
+      browse.textContent = "Browse products";
+      browse.addEventListener("click", function () { closeWish(); closeAccount(); });
+      box.appendChild(browse);
+      return;
+    }
+    wishlist.slice().reverse().forEach(function (id) { // newest first
+      var p = findProduct(id);
+      if (!p) return;
+      var item = document.createElement("div");
+      item.className = "wish-item";
+
+      var thumb = document.createElement("button");
+      thumb.type = "button";
+      thumb.className = "wish-thumb";
+      thumb.setAttribute("aria-label", "View details: " + p.name);
+      var img = document.createElement("img");
+      img.src = p.image;
+      img.alt = "";
+      img.loading = "lazy";
+      thumb.appendChild(img);
+
+      var info = document.createElement("div");
+      info.className = "wish-info";
+      var name = document.createElement("button");
+      name.type = "button";
+      name.className = "wish-name";
+      name.textContent = p.name;
+      var price = document.createElement("p");
+      price.className = "wish-price";
+      fillPrice(price, p, false);
+
+      var actions = document.createElement("div");
+      actions.className = "wish-actions";
+      var add = document.createElement("button");
+      add.type = "button";
+      add.className = "btn-inline";
+      add.textContent = "Add to cart";
+      add.setAttribute("aria-label", "Add " + p.name + " to cart");
+      add.addEventListener("click", function () { addToCart(p.id); });
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "wish-remove";
+      remove.innerHTML = '<i class="fa fa-trash-o" aria-hidden="true"></i> Remove';
+      remove.setAttribute("aria-label", "Remove " + p.name + " from wishlist");
+      remove.addEventListener("click", function () { toggleWish(p.id); });
+      actions.appendChild(add);
+      actions.appendChild(remove);
+
+      // Opening a product needs the account and wishlist windows out of its way
+      function view() { closeWish(); closeAccount(); openProduct(p.id); }
+      thumb.addEventListener("click", view);
+      name.addEventListener("click", view);
+
+      info.appendChild(name);
+      info.appendChild(price);
+      info.appendChild(actions);
+      item.appendChild(thumb);
+      item.appendChild(info);
+      box.appendChild(item);
+    });
+  }
+
+  function openWish() {
+    if (!currentUser) return;
+    wishReturnFocus = document.activeElement;
+    renderWishlist();
+    $("wishModal").hidden = false;
+    document.body.classList.add("store-locked");
+    $("wishClose").focus({ preventScroll: true });
+  }
+
+  function closeWish() {
+    if ($("wishModal").hidden) return;
+    $("wishModal").hidden = true;
+    var stillOpen = ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal", "returnModal"].some(function (id) { return !$(id).hidden; }) ||
+      $("cartDrawer").classList.contains("open");
+    if (!stillOpen) document.body.classList.remove("store-locked");
+    if (wishReturnFocus && wishReturnFocus.focus) wishReturnFocus.focus();
+  }
+
   /* ---------- Customer account (Google sign-in, required to order) ---------- */
   var currentUser = null; // { uid, name, email } when signed in
   var profile = null;     // saved details from the customer's account
@@ -2548,13 +2716,16 @@ async function downloadInvoice(order) {
       if (!$("checkoutModal").hidden) { closeCheckout(); toast("Please sign in to place your order"); }
       if (!$("reviewModal").hidden) closeReview();
       if (!$("returnModal").hidden) closeReturn();
+      if (!$("wishModal").hidden) closeWish();
       if (!$("accountModal").hidden) closeAccount();
       if (!$("trackModal").hidden) closeTrack();
+      wishlistUserChanged();
       if (pendingTrack) toast("Sign in with Google to see your order status");
       return;
     }
     currentUser = { uid: user.uid, name: user.displayName || "", email: user.email || "" };
     renderAccountButton();
+    wishlistUserChanged();
     startWallet(user.uid);
     accountModule()
       .then(function (m) { return m.loadProfile(user.uid); })
@@ -2750,6 +2921,7 @@ async function downloadInvoice(order) {
     if (profile && profile.location && typeof profile.location.lat === "number") {
       acctLoc.set(profile.location.lat, profile.location.lng);
     }
+    renderWishCount();
     $("accountModal").hidden = false;
     document.body.classList.add("store-locked");
     startMyOrders();
@@ -3005,13 +3177,14 @@ async function downloadInvoice(order) {
 
   function init() {
     loadCart();
+    loadWishlist();
     checkoutLoc = createLocationPicker({ gps: "gpsBtn", choose: "mapBtn", error: "locError", mapBox: "mapBox", map: "map", status: "locStatus", onChange: refreshEta });
     acctLoc = createLocationPicker({ gps: "acctGpsBtn", choose: "acctMapBtn", error: "acctLocError", mapBox: "acctMapBox", map: "acctMap", status: "acctLocStatus", onChange: refreshEta });
     if (window.SWUI) {
       window.SWUI.customSelect($("sortSelect"), { label: "Sort by" });
       window.SWUI.customSelect($("rtReason"), { label: "Reason for return" });
       // every pop-up window (and the cart's backdrop) fades/pops on open and close
-      ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal", "returnModal", "consentModal", "cartOverlay"].forEach(function (id) {
+      ["checkoutModal", "accountModal", "trackModal", "productModal", "reviewModal", "returnModal", "consentModal", "wishModal", "cartOverlay"].forEach(function (id) {
         window.SWUI.animateModal($(id));
       });
     }
@@ -3039,6 +3212,11 @@ async function downloadInvoice(order) {
       if (currentUser) openAccount(); else signIn();
     });
     $("acctClose").addEventListener("click", closeAccount);
+    $("acctWishBtn").addEventListener("click", openWish);
+    $("wishClose").addEventListener("click", closeWish);
+    $("wishModal").addEventListener("click", function (e) {
+      if (e.target === $("wishModal")) closeWish();
+    });
     $("accountModal").addEventListener("click", function (e) {
       if (e.target === $("accountModal")) closeAccount();
     });
@@ -3197,6 +3375,7 @@ async function downloadInvoice(order) {
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
       if (!$("consentModal").hidden) closeConsent(false);
+      else if (!$("wishModal").hidden) closeWish();
       else if (!$("returnModal").hidden) closeReturn();
       else if (!$("reviewModal").hidden) closeReview();
       else if (!$("checkoutModal").hidden) closeCheckout();
@@ -3209,6 +3388,7 @@ async function downloadInvoice(order) {
     // Keep cart in sync if the store is open in another tab
     window.addEventListener("storage", function (e) {
       if (e.key === CART_KEY) { cart = {}; loadCart(); renderCart(); }
+      if (e.key && e.key.indexOf(WISH_PREFIX) === 0) { loadWishlist(); refreshWishHearts(); renderWishCount(); if (!$("wishModal").hidden) renderWishlist(); }
     });
   }
 

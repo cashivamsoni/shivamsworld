@@ -24,7 +24,6 @@
     <!-- Store-only styles -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
     <link rel="stylesheet" href="store-files/store.css" />
-    <link rel="stylesheet" href="store-files/style-diwali.css" />
 
     <!-- Open Graph tags -->
     <meta property="og:title" content="Store - Shivam's World" />
@@ -546,6 +545,15 @@
           <p class="points-how">Earn 1 point for every ₹100 you spend on items, added after your order is delivered. 1 point = ₹1. From 20 points you can use them at checkout, before any coupon.</p>
         </div>
 
+        <button id="acctWishBtn" type="button" class="wish-row" aria-label="Open my wishlist">
+          <span class="wish-row-ico" aria-hidden="true"><i class="fa fa-heart"></i></span>
+          <span class="wish-row-main">
+            <strong>My wishlist</strong>
+            <span id="acctWishCount">Nothing saved yet</span>
+          </span>
+          <i class="fa fa-angle-right wish-row-go" aria-hidden="true"></i>
+        </button>
+
         <h3 class="acct-h">Saved details</h3>
         <form id="acctForm" novalidate>
           <label for="acctName">Full name</label>
@@ -577,6 +585,18 @@
         <div id="acctOrders" class="acct-orders" aria-live="polite"></div>
 
         <button id="signOutBtn" class="link-btn" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <!-- ===== WISHLIST MODAL (opens above My account) ===== -->
+    <div id="wishModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="wishTitle" hidden>
+      <div class="checkout-box with-head">
+        <div class="modal-head">
+          <h2 id="wishTitle">My wishlist</h2>
+          <button id="wishClose" class="icon-btn" aria-label="Close my wishlist">&times;</button>
+        </div>
+        <p class="small wish-note">Products you have hearted. Saved on this device.</p>
+        <div id="wishList" class="wish-list" aria-live="polite"></div>
       </div>
     </div>
 

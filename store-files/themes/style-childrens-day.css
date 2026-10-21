@@ -99,12 +99,12 @@
    2. HEADER + GARLAND OF STARS
    ========================================================= */
 header {
-  background: rgba(21, 101, 192, 0.9);
+  background: rgba(21, 101, 192, 0.55);
   border-bottom: 4px solid;
   border-image: var(--cd-rainbow-h) 1;
   box-shadow: 0 6px 22px rgba(10, 60, 140, 0.35);
 }
-[data-theme="dark"] header { background: rgba(14, 24, 84, 0.92); }
+[data-theme="dark"] header { background: rgba(14, 24, 84, 0.6); }
 header h1 { text-shadow: 0 2px 0 rgba(10, 40, 120, 0.55); }
 #headerlogo img {
   box-shadow: 0 0 14px 2px rgba(255, 224, 80, 0.95) !important;

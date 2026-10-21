@@ -87,12 +87,12 @@
    2. HEADER + GARLAND OF EGGS
    ========================================================= */
 header {
-  background: rgba(118, 86, 196, 0.86);
+  background: rgba(84, 52, 166, 0.58);
   border-bottom: 4px solid;
   border-image: var(--ez-rainbow-h) 1;
   box-shadow: 0 6px 22px rgba(90, 60, 160, 0.3);
 }
-[data-theme="dark"] header { background: rgba(36, 22, 80, 0.92); }
+[data-theme="dark"] header { background: rgba(36, 22, 80, 0.6); }
 header h1 { text-shadow: 0 2px 0 rgba(70, 40, 140, 0.55); }
 #headerlogo img {
   box-shadow: 0 0 14px 2px rgba(255, 190, 220, 0.95) !important;

@@ -111,12 +111,12 @@
    2. HEADER + STRING OF COLOUR DROPS
    ========================================================= */
 header {
-  background: rgba(150, 20, 120, 0.88);
+  background: rgba(120, 8, 100, 0.62);
   border-bottom: 4px solid;
   border-image: var(--hl-rainbow-h) 1;
   box-shadow: 0 6px 22px rgba(120, 0, 100, 0.3);
 }
-[data-theme="dark"] header { background: rgba(60, 8, 70, 0.92); }
+[data-theme="dark"] header { background: rgba(60, 8, 70, 0.6); }
 header h1 { text-shadow: 0 2px 0 rgba(90, 0, 70, 0.55); }
 #headerlogo img {
   box-shadow: 0 0 14px 2px rgba(255, 150, 220, 0.95) !important;
